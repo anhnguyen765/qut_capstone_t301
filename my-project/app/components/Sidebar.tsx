@@ -8,6 +8,12 @@ export default function Sidebar() {
       </h2>
       <nav className="flex flex-col gap-4">
         <Link
+          href="/login"
+          className="px-4 py-2 rounded-lg transition-colors hover:bg-gray-700 hover:text-blue-400"
+        >
+          Login
+        </Link>
+        <Link
           href="/"
           className="px-4 py-2 rounded-lg transition-colors hover:bg-gray-700 hover:text-blue-400"
         >

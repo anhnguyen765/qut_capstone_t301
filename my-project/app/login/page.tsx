@@ -1,0 +1,47 @@
+import {
+    Card,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardContent,
+    CardFooter,
+  } from "@/app/components/ui/card";
+  import { Input } from "@/app/components/ui/input";
+  import { Label } from "@/app/components/ui/label";
+  import { Button } from "@/app/components/ui/button";
+  
+  export default function Login() {
+    return (
+        <div className="items-center justify-center font-[family-name:var(--font-geist-sans)] min-h-screen p-8 sm:p-20">
+            <h1 className="invisible text-4xl font-bold text-center p0">
+                I'm trying to fix the layout of this card T.T
+            </h1>
+            <div>
+                <Card className="w-full max-w-xl">
+                <CardHeader>
+                    <CardTitle className="text-lg font-bold">Login</CardTitle>
+                    <CardDescription className="text-md">
+                    Please enter your credentials to access your account.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" type="email" placeholder="email@example.com" required />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input id="password" type="password" placeholder="••••••••" required />
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button className="w-full text-lg" type="submit">
+                    Login
+                    </Button>
+                </CardFooter>
+                </Card>
+            </div>
+        </div>
+    );
+  }
+  

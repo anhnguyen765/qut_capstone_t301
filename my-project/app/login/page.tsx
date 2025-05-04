@@ -12,11 +12,11 @@ import {
   
   export default function Login() {
     return (
-        <div className="items-center justify-center font-[family-name:var(--font-geist-sans)] min-h-screen p-8 sm:p-20">
-            <h1 className="invisible text-4xl font-bold text-center p0">
-                I'm trying to fix the layout of this card T.T
-            </h1>
-            <div>
+        <div className="justify-center items-center flex flex-col min-h-screen font-[family-name:var(--font-geist-sans)]">
+            <div className="flex items-center justify-center h-full w-full -translate-y-10">
+                <h1 className="text-3xl font-bold">2bentrods CRM</h1>
+            </div>
+            <div className="flex items-center justify-center h-full w-full -translate-y-5">
                 <Card className="w-full max-w-xl">
                 <CardHeader>
                     <CardTitle className="text-lg font-bold">Login</CardTitle>

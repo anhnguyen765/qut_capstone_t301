@@ -40,8 +40,8 @@ export default function RootLayout({
       <main className="flex w-full h-full">
         <SidebarTrigger className="text-[var(--foreground)] " />
         {children}
-        <ModeToggle />
       </main>
+      <ModeToggle />
     </SidebarProvider>
     </ThemeProvider>
   </body>

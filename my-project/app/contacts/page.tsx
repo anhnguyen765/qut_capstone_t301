@@ -2,10 +2,10 @@ export default function Contacts() {
     return (
       <div className="min-h-screen p-8 sm:p-20 font-[family-name:var(--font-geist-sans)]">
         <header className="mb-12">
-          <h1 className="text-4xl font-bold text-center sm:text-left">
+          <h1 className="text-4xl font-bold text-center sm:text-left text-[var(--foreground)]">
             Contacts
           </h1>
-          <p className="text-lg text-center sm:text-left text-gray-600 max-w-2xl">
+          <p className="text-lg text-center sm:text-left text-[var(--muted-foreground)] max-w-2xl">
             Manage your customer and client contacts efficiently. Add, edit, and organize your contacts in one place.
           </p>
         </header>

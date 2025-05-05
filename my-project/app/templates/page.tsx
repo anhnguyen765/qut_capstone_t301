@@ -2,10 +2,10 @@ export default function Templates() {
     return (
       <div className="min-h-screen p-8 sm:p-20 font-[family-name:var(--font-geist-sans)]">
         <header className="mb-12">
-          <h1 className="text-4xl font-bold text-center sm:text-left">
+          <h1 className="text-4xl font-bold text-center sm:text-left text-[var(--foreground)]">
             Template
           </h1>
-          <p className="text-lg text-center sm:text-left text-gray-600 max-w-2xl">
+          <p className="text-lg text-center sm:text-left text-[var(--muted-foreground)] max-w-2xl">
             Streamline your workflows and automate repetitive tasks to save time and increase efficiency.
           </p>
         </header>

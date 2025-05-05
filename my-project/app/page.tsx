@@ -7,10 +7,10 @@ export default function Dashboard() {
         {/* Dashboard Header */}
         <div className="flex flex-col sm:flex-row justify-between items-center w-full">
           <div>
-            <h1 className="text-4xl font-bold text-center sm:text-left">
+            <h1 className="text-4xl font-bold text-center sm:text-left text-[var(--foreground)]">
               Welcome to 2bentrods CRM Dashboard
             </h1>
-            <p className="text-lg text-center sm:text-left text-gray-600 max-w-2xl">
+            <p className="text-lg text-center sm:text-left text-[var(--muted-foreground)] max-w-2xl">
               Manage your campaigns, automation, contacts, analytics, and workflows all in one place.
             </p>
           </div>

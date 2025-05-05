@@ -14,18 +14,18 @@ export default function Contacts() {
           {/* Placeholder for contact cards */}
           <div className="p-6 bg-blue-100 rounded-lg shadow">
             <h2 className="text-xl font-bold">John Doe</h2>
-            <p className="text-gray-600">john.doe@example.com</p>
-            <p className="text-gray-600">+1 234 567 890</p>
+            <p className="text-gray-600 break-words">john.doe@example.com</p>
+            <p className="text-gray-600 break-words">+1 234 567 890</p>
           </div>
           <div className="p-6 bg-green-100 rounded-lg shadow">
             <h2 className="text-xl font-bold">Jane Smith</h2>
-            <p className="text-gray-600">jane.smith@example.com</p>
-            <p className="text-gray-600">+1 987 654 321</p>
+            <p className="text-gray-600 break-words">jane.smith@example.com</p>
+            <p className="text-gray-600 break-words">+1 987 654 321</p>
           </div>
           <div className="p-6 bg-yellow-100 rounded-lg shadow">
             <h2 className="text-xl font-bold">Alice Johnson</h2>
-            <p className="text-gray-600">alice.johnson@example.com</p>
-            <p className="text-gray-600">+1 555 123 456</p>
+            <p className="text-gray-600 break-words">alice.johnson@example.com</p>
+            <p className="text-gray-600 break-words">+1 555 123 456</p>
           </div>
         </section>
       </div>

@@ -33,13 +33,6 @@ export default function Dashboard() {
             <p className="text-gray-600">Create and manage your marketing campaigns.</p>
           </a>
           <a
-            href="/automation"
-            className="p-6 bg-green-100 rounded-lg shadow hover:bg-green-200 transition"
-          >
-            <h2 className="text-xl font-bold">Automation</h2>
-            <p className="text-gray-600">Automate repetitive tasks and workflows.</p>
-          </a>
-          <a
             href="/contacts"
             className="p-6 bg-yellow-100 rounded-lg shadow hover:bg-yellow-200 transition"
           >
@@ -52,13 +45,6 @@ export default function Dashboard() {
           >
             <h2 className="text-xl font-bold">Analytics</h2>
             <p className="text-gray-600">Track and analyze your business performance.</p>
-          </a>
-          <a
-            href="/workflows"
-            className="p-6 bg-red-100 rounded-lg shadow hover:bg-red-200 transition"
-          >
-            <h2 className="text-xl font-bold">Workflows</h2>
-            <p className="text-gray-600">Design and manage your workflows.</p>
           </a>
         </div>
       </main>

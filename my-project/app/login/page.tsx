@@ -12,11 +12,7 @@ import {
   
   export default function Login() {
     return (
-        <div className="justify-center items-center flex flex-col min-h-screen font-[family-name:var(--font-geist-sans)]">
-            <div className="flex items-center justify-center h-full w-full -translate-y-10">
-                <h1 className="text-3xl font-bold">2bentrods CRM</h1>
-            </div>
-            <div className="flex items-center justify-center h-full w-full -translate-y-5">
+        <div className="flex items-center justify-center h-full w-full -translate-y-5">
                 <Card className="w-full max-w-xl">
                 <CardHeader>
                     <CardTitle className="text-lg font-bold">Login</CardTitle>
@@ -40,7 +36,6 @@ import {
                     </Button>
                 </CardFooter>
                 </Card>
-            </div>
         </div>
     );
   }

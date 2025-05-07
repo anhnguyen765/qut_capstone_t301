@@ -49,7 +49,7 @@ export function AppSidebar() {
                 <DropdownMenuItem>
                   <span>Profile</span>
                 </DropdownMenuItem>
-                <Link href="/login">
+                <Link href="/login" prefetch={false}>
                   <DropdownMenuItem>
                     Login
                   </DropdownMenuItem>
@@ -64,7 +64,7 @@ export function AppSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]">
-                <Link href="/">
+                <Link href="/" prefetch>
                   <House className="ml-2" />
                   <span className="font-bold ">Dashboard</span>
                 </Link>
@@ -90,17 +90,17 @@ export function AppSidebar() {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
                   <SidebarMenuSub>
-                    <Link href="/campaigns">
+                    <Link href="/campaigns" prefetch>
                       <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">
                         Campaigns
                       </SidebarMenuSubItem>
                     </Link>
-                    <Link href="/templates">
+                    <Link href="/templates" prefetch>
                       <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
                         Templates
                       </SidebarMenuSubItem>
                     </Link>
-                    <Link href="/newsletters">
+                    <Link href="/newsletters" prefetch>
                       <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
                         Newsletters
                       </SidebarMenuSubItem>
@@ -129,22 +129,22 @@ export function AppSidebar() {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
                   <SidebarMenuSub>
-                    <Link href="/contacts">
+                    <Link href="/contacts" prefetch>
                       <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
                         Companies
                       </SidebarMenuSubItem>
                     </Link>
-                    <Link href="/contacts">
+                    <Link href="/contacts" prefetch>
                       <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
                         Private
                       </SidebarMenuSubItem>
                     </Link>
-                    <Link href="/contacts">
+                    <Link href="/contacts" prefetch>
                       <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
                         Groups
                       </SidebarMenuSubItem>
                     </Link>
-                    <Link href="/contacts">
+                    <Link href="/contacts" prefetch>
                       <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
                         Schools
                       </SidebarMenuSubItem>
@@ -155,7 +155,7 @@ export function AppSidebar() {
             </Collapsible>
             <SidebarMenuItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]">
               <SidebarMenuButton asChild>
-                <Link href="/analytics">
+                <Link href="/analytics" prefetch>
                   <ChartNoAxesColumn className="ml-2" />
                   <span className="font-bold">Analytics</span>
                 </Link>

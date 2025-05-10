@@ -10,8 +10,9 @@ export default function Dashboard() {
           <Performance />
         </div>
       </section>
-      <div className="my-2 mx-1 h-px lg:h-auto lg:w-px bg-border flex-shrink-0"></div>      <section className="flex-1 flex flex-col w-full min-h-screen">
-        <h1 className="text-2xl sm:text-xl font-bold text-foreground)">This Week's Bookings</h1>
+      <div className="my-2 mx-1 h-px lg:h-auto lg:w-px bg-border flex-shrink-0"></div>      
+      <section className="flex-1 flex flex-col w-full min-h-screen">
+        <h1 className="text-2xl sm:text-xl font-bold text-foreground">This Week's Bookings</h1>
         <div className="w-full max-w-full mt-4">
           <Bookings />
         </div>

@@ -114,7 +114,7 @@ export default function Bookings() {
                 <div className="w-full sm:w-[125px]">
                     <label className="text-sm font-medium text-muted-foreground">Status</label>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-full truncate">
+                        <SelectTrigger className="w-full truncate text-muted-foreground">
                             <SelectValue placeholder="Filter by status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -129,6 +129,7 @@ export default function Bookings() {
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">Date</label>
                     <Input
+                        className="w-full text-muted-foreground"
                         type="date"
                         value={dateFilter}
                         onChange={(e) => setDateFilter(e.target.value)}
@@ -138,7 +139,7 @@ export default function Bookings() {
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">Sort By</label>
                     <Select value={sortOption} onValueChange={setSortOption}>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full truncate text-muted-foreground">
                             <SelectValue placeholder="Sort by" />
                         </SelectTrigger>
                         <SelectContent>
@@ -154,7 +155,7 @@ export default function Bookings() {
                     <Button
                         variant="outline"
                         onClick={resetFilters}
-                        className="w-full font-medium"
+                        className="w-full font-medium text-muted-foreground"
                     >
                         Reset Filters
                     </Button>

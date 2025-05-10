@@ -1,73 +1,71 @@
 import Image from "next/image";
+import { Button } from "./components/ui/button";
 
 export default function Dashboard() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start w-full">
-        {/* Dashboard Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-center w-full">
-          <div>
-            <h1 className="text-4xl font-bold text-center sm:text-left text-[var(--foreground)]">
-              Welcome to 2bentrods CRM Dashboard
-            </h1>
-            <p className="text-lg text-center sm:text-left text-[var(--muted-foreground)] max-w-2xl">
-              Manage your campaigns, automation, contacts, analytics, and workflows all in one place.
-            </p>
+    <div className="flex flex-row min-h-screen font-[family-name:var(--font-geist-sans)]">
+      {/* Performance */}
+      <div className="flex flex-col px-2 py-7">
+        <h1 className="text-2xl sm:text-xl font-bold text-[var(--foreground)]">Performance</h1>
+        <h3 className="text-lg sm:text-md font-bold text-[var(--foreground)] py-3">Subscribers</h3>
+        <div className="w-[200px] h-[200px] bg-[var(--muted-foreground)]"></div>
+        <div className="py-3">
+          <div className="flex flex-row">
+            <h4 className="text-md font-bold text-[var(--foreground)] grow">Total Subsrcibers</h4>
+            <p className="text-[var(--foreground)]">8000</p>
           </div>
-          <Image
-            src="/favicon.ico"
-            alt="2bentrods CRM Logo"
-            width={150}
-            height={40}
-            priority
-          />
+          <div className="flex flex-row">
+            <h4 className="text-md font-bold text-[var(--foreground)] grow">New Subscribers</h4>
+            <p className="text-[var(--foreground)]">8000</p>
+          </div>
+          <div className="flex flex-row">
+            <h4 className="text-md font-bold text-[var(--foreground)] grow">Last Subscribers</h4>
+            <p className="text-[var(--foreground)]">8000</p>
+          </div>
         </div>
-
-        {/* Dashboard Sections */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-          <a
-            href="/campaigns"
-            className="p-6 bg-blue-100 rounded-lg shadow hover:bg-blue-200 transition"
-          >
-            <h2 className="text-xl font-bold">Campaigns</h2>
-            <p className="text-gray-600">Create and manage your marketing campaigns.</p>
-          </a>
-          <a
-            href="/contacts"
-            className="p-6 bg-yellow-100 rounded-lg shadow hover:bg-yellow-200 transition"
-          >
-            <h2 className="text-xl font-bold">Contacts</h2>
-            <p className="text-gray-600">Manage your customer and client contacts.</p>
-          </a>
-          <a
-            href="/analytics"
-            className="p-6 bg-purple-100 rounded-lg shadow hover:bg-purple-200 transition"
-          >
-            <h2 className="text-xl font-bold">Analytics</h2>
-            <p className="text-gray-600">Track and analyze your business performance.</p>
-          </a>
+      {/* Last Campaign*/}
+        <h3 className="text-lg sm:text-md font-bold text-[var(--foreground)] py-3">Last Campaign</h3>
+        <div className="flex flex-row">
+          <h4 className="text-md font-bold text-[var(--foreground)] grow">Sent</h4>
+          <p className="text-[var(--foreground)]">500</p>
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://2bentrods.com/privacy"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Privacy Policy
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://2bentrods.com/terms"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Terms of Service
-        </a>
-      </footer>
+        <div className="flex flex-row">
+          <h4 className="text-md font-bold text-[var(--foreground)] grow">Opened</h4>
+          <p className="text-[var(--foreground)]">400</p>
+        </div>
+        <div className="flex flex-row">
+          <h4 className="text-md font-bold text-[var(--foreground)] grow">Clicked</h4>
+          <p className="text-[var(--foreground)]">100</p>
+        </div>
+        <div className="flex flex-row">
+          <h4 className="text-md font-bold text-[var(--foreground)] grow">CTR</h4>
+          <p className="text-[var(--foreground)]">25%</p>
+        </div>
+        {/* Last Campaign*/}
+        <h3 className="text-lg sm:text-md font-bold text-[var(--foreground)] py-3">Upcoming Campaigns</h3>
+        <div className="flex flex-row">
+          <h4 className="text-md font-bold text-[var(--foreground)] grow">Campaign Name</h4>
+          <p className="text-[var(--foreground)]">Date</p>
+        </div>
+        <div className="flex flex-row">
+          <h4 className="text-md font-bold text-[var(--foreground)] grow">Campaign Name</h4>
+          <p className="text-[var(--foreground)]">Date</p>
+        </div>
+        <div className="flex flex-row">
+          <h4 className="text-md font-bold text-[var(--foreground)] grow">Campaign Name</h4>
+          <p className="text-[var(--foreground)]">Date</p>
+        </div>
+        <div className="flex flex-row">
+          <h4 className="text-md font-bold text-[var(--foreground)] grow">Campaign Name</h4>
+          <p className="text-[var(--foreground)]">Date</p>
+        </div>
+        <Button className="w-full h-10 text-md font-bold mt-5" type="submit">
+          Create Campaign
+        </Button>
+      </div>
+      <div className="flex flex-col px-2 py-7">
+        <h1 className="text-2xl sm:text-xl font-bold text-[var(--foreground)]">This Week's Bookings</h1>
+      </div>
     </div>
   );
 }

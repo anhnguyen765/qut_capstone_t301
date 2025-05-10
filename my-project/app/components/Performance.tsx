@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { BarChart, Bar } from "recharts";
 import { ChartContainer, ChartConfig } from "@/app/components/ui/chart";
 import { Button } from "@/app/components/ui/button";
@@ -61,9 +62,11 @@ export default function Performance() {
             </div>
           ))}
         </div>
-        <Button className="w-full h-8 sm:h-10 text-sm sm:text-md font-bold mt-1 sm:mt-2" type="submit">
-          Create New Email Campaign
-        </Button>
+        <Link href="/campaigns/create" className="w-full">
+            <Button className="w-full h-8 sm:h-10 text-sm sm:text-md font-bold mt-1 sm:mt-2" type="submit">
+            Create New Email Campaign
+            </Button>
+        </Link>
       </section>
     </div>
   );

@@ -1,15 +1,12 @@
 export default function Campaigns() {
-  return (
-    <div className="min-h-screen w-screen bg-gray-100">
-      {/* Hero Section */}
-      <header className="bg-gradient-to-r from-gray-500 to-gray-600 text-white p-10 rounded-b-lg shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-5xl font-extrabold text-center sm:text-left">
+    return (
+      <div className="min-h-screen p-8 sm:p-20 font-[family-name:var(--font-geist-sans)]">
+        <header className="mb-12">
+          <h1 className="text-4xl font-bold text-center sm:text-left text-[var(--foreground)]">
             Campaigns
           </h1>
-          <p className="text-lg text-center sm:text-left max-w-2xl mt-4">
-            Create, manage, and track your marketing campaigns to reach your
-            audience effectively.
+          <p className="text-lg text-center sm:text-left text-[var(--muted-foreground)] max-w-2xl">
+            Create, manage, and track your marketing campaigns to reach your audience effectively.
           </p>
         </div>
       </header>

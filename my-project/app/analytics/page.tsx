@@ -2,10 +2,10 @@ export default function Analytics() {
     return (
       <div className="min-h-screen p-8 sm:p-20 font-[family-name:var(--font-geist-sans)]">
         <header className="mb-12">
-          <h1 className="text-4xl font-bold text-center sm:text-left">
+          <h1 className="text-4xl font-bold text-center sm:text-left text-[var(--foreground)]">
             Analytics
           </h1>
-          <p className="text-lg text-center sm:text-left text-gray-600 max-w-2xl">
+          <p className="text-lg text-center sm:text-left max-w-2xl text-[var(--muted-foreground)]">
             Gain insights into your business performance with detailed analytics and reports.
           </p>
         </header>

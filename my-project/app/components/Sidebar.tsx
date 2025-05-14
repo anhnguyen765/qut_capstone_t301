@@ -1,110 +1,169 @@
-"use client";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarHeader,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+} from "@/app/components/ui/sidebar"
 
-import { useState } from "react";
-import Link from "next/link";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from "@/app/components/ui/dropdown-menu"
 
-export default function Sidebar() {
-  const [isMarketingOpen, setMarketingOpen] = useState(false);
-  const [isContactsOpen, setContactsOpen] = useState(false);
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent
+} from "@/app/components/ui/collapsible"
 
+import {
+  ChevronDown,
+  PartyPopper,
+  Users,
+  ChartNoAxesColumn,
+  House
+} from "lucide-react"
+
+import Link from "next/link"
+
+export function AppSidebar() {
   return (
-    <aside className="w-64 h-full bg-gray-900 text-white flex flex-col p-6 shadow-lg">
-      <h2 className="text-2xl font-bold mb-8 text-center border-b border-gray-700 pb-4">
-        2bentrods CRM
-      </h2>
-      <nav className="flex flex-col gap-4">
-        {/* Dashboard */}
-        <Link
-          href="/"
-          className="px-4 py-2 rounded-lg transition-colors hover:bg-gray-700 hover:text-blue-400"
-        >
-          Dashboard
-        </Link>
-
-        {/* Marketing Section */}
-        <div>
-          <button
-            onClick={() => setMarketingOpen(!isMarketingOpen)}
-            className="w-full flex items-center justify-between px-4 py-2 rounded-lg transition-colors hover:bg-gray-700 hover:text-blue-400"
-          >
-            <span>Marketing</span>
-            <span className={`transform transition-transform ${isMarketingOpen ? "rotate-90" : ""}`}>
-              ▶
-            </span>
-          </button>
-          {isMarketingOpen && (
-            <div className="ml-4 mt-2 flex flex-col gap-2">
-              <Link
-                href="/campaigns"
-                className="px-4 py-2 rounded-lg transition-colors hover:bg-gray-700 hover:text-blue-400"
-              >
-                Campaigns
-              </Link>
-              <Link
-                href="/templates"
-                className="px-4 py-2 rounded-lg transition-colors hover:bg-gray-700 hover:text-blue-400"
-              >
-                Templates
-              </Link>
-              <Link
-                href="/newsletters"
-                className="px-4 py-2 rounded-lg transition-colors hover:bg-gray-700 hover:text-blue-400"
-              >
-                Newsletters
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Contacts Section */}
-        <div>
-          <button
-            onClick={() => setContactsOpen(!isContactsOpen)}
-            className="w-full flex items-center justify-between px-4 py-2 rounded-lg transition-colors hover:bg-gray-700 hover:text-blue-400"
-          >
-            <span>Contacts</span>
-            <span className={`transform transition-transform ${isContactsOpen ? "rotate-90" : ""}`}>
-              ▶
-            </span>
-          </button>
-          {isContactsOpen && (
-            <div className="ml-4 mt-2 flex flex-col gap-2">
-              <Link
-                href="/contacts/companies"
-                className="px-4 py-2 rounded-lg transition-colors hover:bg-gray-700 hover:text-blue-400"
-              >
-                Companies
-              </Link>
-              <Link
-                href="/contacts/private"
-                className="px-4 py-2 rounded-lg transition-colors hover:bg-gray-700 hover:text-blue-400"
-              >
-                Private
-              </Link>
-              <Link
-                href="/contacts/groups"
-                className="px-4 py-2 rounded-lg transition-colors hover:bg-gray-700 hover:text-blue-400"
-              >
-                Groups
-              </Link>
-              <Link
-                href="/contacts/schools"
-                className="px-4 py-2 rounded-lg transition-colors hover:bg-gray-700 hover:text-blue-400"
-              >
-                Schools
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Analytics */}
-        <Link
-          href="/analytics"
-          className="px-4 py-2 rounded-lg transition-colors hover:bg-gray-700 hover:text-blue-400"
-        >
-          Analytics
-        </Link>
-      </nav>
-    </aside>
-  );
+    <Sidebar className="text-[var(--foreground)]">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton className="font-bold text-lg hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]">
+                  2bentrods CRM
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-[--radix-popper-anchor-width p-0" align="end">
+                <DropdownMenuItem>
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <Link href="/login" prefetch={false}>
+                  <DropdownMenuItem>
+                    Login
+                  </DropdownMenuItem>
+                </Link>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]">
+                <Link href="/" prefetch>
+                  <House className="ml-2" />
+                  <span className="font-bold ">Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            { /* Marketing Section */}
+            <Collapsible defaultOpen className="group/collapsible">
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild >
+                  <SidebarMenuButton className="
+                    group/collapsible 
+                    mb-1 
+                    hover:bg-[var(--accent)] 
+                    hover:text-[var(--accent-foreground)] 
+                    data-[state=open]:[&:hover]:bg-[var(--accent)] 
+                    data-[state=open]:[&:hover]:text-[var(--accent-foreground)]
+                    transition-colors
+                  ">
+                    <PartyPopper className="ml-2" />
+                    <span className="font-bold">Marketing</span>
+                    <ChevronDown className="ml-auto h-4 w-4 transition-all duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+                  <SidebarMenuSub>
+                    <Link href="/campaigns" prefetch>
+                      <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">
+                        Campaigns
+                      </SidebarMenuSubItem>
+                    </Link>
+                    <Link href="/templates" prefetch>
+                      <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
+                        Templates
+                      </SidebarMenuSubItem>
+                    </Link>
+                    <Link href="/newsletters" prefetch>
+                      <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
+                        Newsletters
+                      </SidebarMenuSubItem>
+                    </Link>
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </SidebarMenuItem>
+            </Collapsible>
+            { /* Contacts Section */}
+            <Collapsible defaultOpen className="group/collapsible">
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton className="
+                    group/collapsible 
+                    mb-1 
+                    hover:bg-[var(--accent)] 
+                    hover:text-[var(--accent-foreground)] 
+                    data-[state=open]:[&:hover]:bg-[var(--accent)] 
+                    data-[state=open]:[&:hover]:text-[var(--accent-foreground)]
+                    transition-colors
+                  ">
+                    <Users className="ml-2" />
+                    <span className="font-bold">Contacts</span>
+                    <ChevronDown className="ml-auto h-4 w-4 transition-all duration-200 group-data-[state=open]/collapsible:rotate-180" />                    
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+                  <SidebarMenuSub>
+                    <Link href="/contacts" prefetch>
+                      <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
+                        Companies
+                      </SidebarMenuSubItem>
+                    </Link>
+                    <Link href="/contacts" prefetch>
+                      <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
+                        Private
+                      </SidebarMenuSubItem>
+                    </Link>
+                    <Link href="/contacts" prefetch>
+                      <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
+                        Groups
+                      </SidebarMenuSubItem>
+                    </Link>
+                    <Link href="/contacts" prefetch>
+                      <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
+                        Schools
+                      </SidebarMenuSubItem>
+                    </Link>                                 
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </SidebarMenuItem>
+            </Collapsible>
+            <SidebarMenuItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]">
+              <SidebarMenuButton asChild>
+                <Link href="/analytics" prefetch>
+                  <ChartNoAxesColumn className="ml-2" />
+                  <span className="font-bold">Analytics</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarContent>
+    </Sidebar>
+  )
 }

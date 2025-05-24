@@ -18,7 +18,7 @@ const chartData = [
 const chartConfig = {
   subscribe: {
     label: "Subscribers",
-    color: "#6366f1",
+    color: "var(--primary)", 
   },
 } satisfies ChartConfig;
 
@@ -30,7 +30,7 @@ export default function Performance() {
         <h3 className="text-md sm:text-lg font-bold text-[var(--foreground)]">Subscribers</h3>
         <ChartContainer config={chartConfig} className="min-h-[150px] sm:min-h-[200px] w-full">
           <BarChart data={chartData}>
-            <Bar dataKey="subscribe" fill="var(--foreground)" radius={4} />
+            <Bar dataKey="subscribe" fill="var(--chart-2)" radius={4} />
           </BarChart>
         </ChartContainer>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
@@ -54,7 +54,7 @@ export default function Performance() {
       {/* Upcoming Campaigns */}
       <section className="space-y-2 sm:space-y-3">
         <h3 className="text-md sm:text-lg font-bold text-[var(--foreground)]">Upcoming</h3>
-        <div className="space-y-1 sm:space-y-2">
+        <div className="space-y-1 sm:space-y-2 p-2 sm:p-3 bg-popover rounded-lg shadow-sm">
           {["Summer Sale", "Product Launch", "Webinar Reminder", "Holiday Promo"].map((name, i) => (
             <div key={i} className="flex justify-between text-sm sm:text-md text-[var(--foreground)]">
               <h4 className="font-bold truncate pr-2">{name}</h4>
@@ -63,9 +63,12 @@ export default function Performance() {
           ))}
         </div>
         <Link href="/campaigns/create" className="w-full">
-            <Button className="w-full h-8 sm:h-10 text-sm sm:text-md font-bold mt-1 sm:mt-2" type="submit">
+          <Button
+            className="w-full h-8 sm:h-10 text-sm sm:text-md font-bold mt-1 sm:mt-2 bg-[var(--muted)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90"
+            type="submit"
+          >
             Create New Email Campaign
-            </Button>
+          </Button>
         </Link>
       </section>
     </div>
@@ -74,9 +77,9 @@ export default function Performance() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg sm:rounded-xl bg-muted p-2 sm:p-3 shadow-sm">
-      <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">{label}</h4>
-      <p className="text-md sm:text-xl font-bold text-[var(--foreground)]">{value}</p>
+    <div className="rounded-lg sm:rounded-xl bg-[var(--primary)] p-2 sm:p-3 shadow-sm">
+      <h4 className="text-xs sm:text-sm font-medium text-[var(--muted-foreground)]">{label}</h4>
+      <p className="text-md sm:text-xl font-bold text-[var(--muted-foreground)]">{value}</p>
     </div>
   );
 }

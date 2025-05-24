@@ -112,9 +112,9 @@ export default function Bookings() {
             {/* Filter Controls */}
             <div className="flex flex-col md:flex-row gap-4 items-end bg-background">
                 <div className="w-full sm:w-[125px]">
-                    <label className="text-sm font-medium text-muted-foreground">Status</label>
+                    <label className="text-sm font-medium text-foreground">Status</label>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-full truncate text-muted-foreground">
+                        <SelectTrigger className="w-full truncate text-foreground">
                             <SelectValue placeholder="Filter by status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -127,9 +127,9 @@ export default function Bookings() {
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Date</label>
+                    <label className="text-sm font-medium text-foreground">Date</label>
                     <Input
-                        className="w-full text-muted-foreground"
+                        className="w-full text-foreground"
                         type="date"
                         value={dateFilter}
                         onChange={(e) => setDateFilter(e.target.value)}
@@ -137,9 +137,9 @@ export default function Bookings() {
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">Sort By</label>
+                    <label className="text-sm font-medium text-foreground">Sort By</label>
                     <Select value={sortOption} onValueChange={setSortOption}>
-                        <SelectTrigger className="w-full truncate text-muted-foreground">
+                        <SelectTrigger className="w-full truncate text-foreground">
                             <SelectValue placeholder="Sort by" />
                         </SelectTrigger>
                         <SelectContent>
@@ -155,7 +155,7 @@ export default function Bookings() {
                     <Button
                         variant="outline"
                         onClick={resetFilters}
-                        className="w-full font-medium text-muted-foreground"
+                        className="w-full font-medium text-foreground"
                     >
                         Reset Filters
                     </Button>
@@ -170,7 +170,7 @@ export default function Bookings() {
                             <div className="text-lg font-semibold text-[var(--foreground)]">
                                 {booking.name}
                             </div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-foreground">
                                 {new Date(booking.date).toLocaleDateString("en-US", {
                                     year: "numeric",
                                     month: "short",
@@ -191,7 +191,7 @@ export default function Bookings() {
                             >
                                 {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                             </div>
-                            <Button variant="outline" className="mt-2 w-full">
+                            <Button variant="outline" className="mt-2 w-full bg-muted text-muted-foreground">
                                 View Details
                             </Button>
                         </CardContent>
@@ -200,7 +200,7 @@ export default function Bookings() {
             </div>
 
             {filteredBookings.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-foreground">
                     No bookings match your filters
                 </div>
             )}

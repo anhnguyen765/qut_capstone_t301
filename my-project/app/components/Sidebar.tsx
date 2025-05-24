@@ -8,20 +8,20 @@ import {
   SidebarHeader,
   SidebarMenuSub,
   SidebarMenuSubItem,
-} from "@/app/components/ui/sidebar"
+} from "@/app/components/ui/sidebar";
 
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem
-} from "@/app/components/ui/dropdown-menu"
+} from "@/app/components/ui/dropdown-menu";
 
 import {
   Collapsible,
   CollapsibleTrigger,
   CollapsibleContent
-} from "@/app/components/ui/collapsible"
+} from "@/app/components/ui/collapsible";
 
 import {
   ChevronDown,
@@ -29,135 +29,100 @@ import {
   Users,
   ChartNoAxesColumn,
   House
-} from "lucide-react"
+} from "lucide-react";
 
-import Link from "next/link"
+import Link from "next/link";
 
 export function AppSidebar() {
   return (
-    <Sidebar className="text-[var(--foreground)]">
+    <Sidebar className="bg-[var(--background)] text-[var(--foreground)] border-r border-[var(--border)]">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="font-bold text-lg hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]">
+                <SidebarMenuButton className="font-bold text-lg px-4 py-2 rounded-md hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">
                   2bentrods CRM
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[--radix-popper-anchor-width p-0" align="end">
-                <DropdownMenuItem>
-                  <span>Profile</span>
-                </DropdownMenuItem>
+              <DropdownMenuContent className="w-full p-0" align="end">
+                <DropdownMenuItem>Profile</DropdownMenuItem>
                 <Link href="/login" prefetch={false}>
-                  <DropdownMenuItem>
-                    Login
-                  </DropdownMenuItem>
+                  <DropdownMenuItem>Login</DropdownMenuItem>
                 </Link>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
       <SidebarContent>
         <SidebarGroupContent>
           <SidebarMenu>
+            {/* Dashboard */}
             <SidebarMenuItem>
-              <SidebarMenuButton asChild className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]">
+              <SidebarMenuButton asChild className="px-4 py-2 gap-x-2 hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] rounded transition-colors">
                 <Link href="/" prefetch>
-                  <House className="ml-2" />
-                  <span className="font-bold ">Dashboard</span>
+                  <House className="h-5 w-5" />
+                  <span className="font-semibold">Dashboard</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            { /* Marketing Section */}
-            <Collapsible defaultOpen className="group/collapsible">
-              <SidebarMenuItem>
-                <CollapsibleTrigger asChild >
-                  <SidebarMenuButton className="
-                    group/collapsible 
-                    mb-1 
-                    hover:bg-[var(--accent)] 
-                    hover:text-[var(--accent-foreground)] 
-                    data-[state=open]:[&:hover]:bg-[var(--accent)] 
-                    data-[state=open]:[&:hover]:text-[var(--accent-foreground)]
-                    transition-colors
-                  ">
-                    <PartyPopper className="ml-2" />
-                    <span className="font-bold">Marketing</span>
-                    <ChevronDown className="ml-auto h-4 w-4 transition-all duration-200 group-data-[state=open]/collapsible:rotate-180" />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-                  <SidebarMenuSub>
-                    <Link href="/campaigns" prefetch>
-                      <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">
-                        Campaigns
-                      </SidebarMenuSubItem>
-                    </Link>
-                    <Link href="/templates" prefetch>
-                      <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
-                        Templates
-                      </SidebarMenuSubItem>
-                    </Link>
-                    <Link href="/newsletters" prefetch>
-                      <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
-                        Newsletters
-                      </SidebarMenuSubItem>
-                    </Link>
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
-            { /* Contacts Section */}
+
+            {/* Marketing */}
             <Collapsible defaultOpen className="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton className="
-                    group/collapsible 
-                    mb-1 
-                    hover:bg-[var(--accent)] 
-                    hover:text-[var(--accent-foreground)] 
-                    data-[state=open]:[&:hover]:bg-[var(--accent)] 
-                    data-[state=open]:[&:hover]:text-[var(--accent-foreground)]
-                    transition-colors
-                  ">
-                    <Users className="ml-2" />
-                    <span className="font-bold">Contacts</span>
-                    <ChevronDown className="ml-auto h-4 w-4 transition-all duration-200 group-data-[state=open]/collapsible:rotate-180" />                    
+                  <SidebarMenuButton className="px-4 py-2 gap-x-2 rounded hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors group-data-[state=open]/collapsible:bg-[var(--accent)] group-data-[state=open]/collapsible:text-[var(--accent-foreground)]">
+                    <PartyPopper className="h-5 w-5" />
+                    <span className="font-semibold">Marketing</span>
+                    <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+                <CollapsibleContent className="overflow-hidden">
                   <SidebarMenuSub>
-                    <Link href="/contacts" prefetch>
-                      <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
-                        Companies
-                      </SidebarMenuSubItem>
-                    </Link>
-                    <Link href="/contacts" prefetch>
-                      <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
-                        Private
-                      </SidebarMenuSubItem>
-                    </Link>
-                    <Link href="/contacts" prefetch>
-                      <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
-                        Groups
-                      </SidebarMenuSubItem>
-                    </Link>
-                    <Link href="/contacts" prefetch>
-                      <SidebarMenuSubItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">                        
-                        Schools
-                      </SidebarMenuSubItem>
-                    </Link>                                 
+                    {["Campaigns", "Templates", "Newsletters"].map((item) => (
+                      <Link key={item} href={`/${item.toLowerCase()}`} prefetch>
+                        <SidebarMenuSubItem className="px-6 py-2 rounded hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">
+                          {item}
+                        </SidebarMenuSubItem>
+                      </Link>
+                    ))}
                   </SidebarMenuSub>
                 </CollapsibleContent>
               </SidebarMenuItem>
             </Collapsible>
-            <SidebarMenuItem className="hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]">
-              <SidebarMenuButton asChild>
+
+            {/* Contacts */}
+            <Collapsible defaultOpen className="group/collapsible">
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton className="px-4 py-2 gap-x-2 rounded hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors group-data-[state=open]/collapsible:bg-[var(--accent)] group-data-[state=open]/collapsible:text-[var(--accent-foreground)]">
+                    <Users className="h-5 w-5" />
+                    <span className="font-semibold">Contacts</span>
+                    <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="overflow-hidden">
+                  <SidebarMenuSub>
+                    {["Companies", "Private", "Groups", "Schools"].map((item) => (
+                      <Link key={item} href="/contacts" prefetch>
+                        <SidebarMenuSubItem className="px-6 py-2 rounded hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">
+                          {item}
+                        </SidebarMenuSubItem>
+                      </Link>
+                    ))}
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </SidebarMenuItem>
+            </Collapsible>
+
+            {/* Analytics */}
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className="px-4 py-2 gap-x-2 rounded hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">
                 <Link href="/analytics" prefetch>
-                  <ChartNoAxesColumn className="ml-2" />
-                  <span className="font-bold">Analytics</span>
+                  <ChartNoAxesColumn className="h-5 w-5" />
+                  <span className="font-semibold">Analytics</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -165,5 +130,5 @@ export function AppSidebar() {
         </SidebarGroupContent>
       </SidebarContent>
     </Sidebar>
-  )
+  );
 }

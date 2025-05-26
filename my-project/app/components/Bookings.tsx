@@ -191,7 +191,7 @@ export default function Bookings() {
                             >
                                 {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                             </div>
-                            <Button variant="outline" className="mt-2 w-full bg-muted text-muted-foreground">
+                            <Button variant="outline" className="mt-2 w-full bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground">
                                 View Details
                             </Button>
                         </CardContent>

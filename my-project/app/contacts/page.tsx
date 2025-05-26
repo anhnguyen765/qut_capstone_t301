@@ -80,7 +80,7 @@ export default function Contacts() {
   return (
     <div className="min-h-screen w-full p-8 sm:p-20">
       <header className="mb-12">
-        <h1 className="text-4xl font-bold text-center sm:text-left text-[var(--foreground)]">
+        <h1 className="text-4xl font-bold text-[var(--foreground)]">
           Contacts
         </h1>
       </header>

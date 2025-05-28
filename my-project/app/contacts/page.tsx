@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Filter, UserPlus, ArrowUpDown, Upload } from "lucide-react";
 import {
   Popover,
@@ -8,6 +8,7 @@ import {
   PopoverTrigger,
 } from "@/app/components/ui/popover";
 import { Button } from "@/app/components/ui/button";
+
 
 type Contact = {
   name: string;
@@ -185,3 +186,19 @@ export default function Contacts() {
     </div>
   );
 }
+//
+
+//import { useEffect, useState } from "react";
+// ...existing code...
+
+//export default function Contacts() {
+////  const [filter, setFilter] = useState("");
+ // const [contacts, setContacts] = useState<Contact[]>([]);
+  // ...existing code...
+
+  //useEffect(() => {
+  //  fetch("/api/contacts")
+  //    .then((res) => res.json())
+  //    .then(setContacts);
+ // }, []);
+// ...existing code...

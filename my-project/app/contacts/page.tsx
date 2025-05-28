@@ -168,7 +168,10 @@ export default function Contacts() {
               <li className="p-6 text-center text-[var(--foreground)]">No contacts found.</li>
             ) : (
               filteredContacts.map((contact, idx) => (
-                <li key={idx} className="p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between hover:bg-[var(--accent)]/50">
+                <li 
+                  key={idx} 
+                  className="p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between hover:bg-[var(--accent)]/50"
+                >
                   <div>
                     <span className="font-semibold text-[var(--foreground)]">{contact.name}</span>
                     <span className="ml-2 text-xs px-2 py-1 rounded bg-[var(--muted)] text-[var(--muted-foreground)]">

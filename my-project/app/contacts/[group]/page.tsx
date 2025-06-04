@@ -1,39 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Search, Filter, UserPlus, ArrowUpDown, Upload } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/app/components/ui/popover";
+import { useState, useEffect } from "react";
+import { Search, UserPlus, ArrowUpDown, Upload } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 
 type Contact = {
   name: string;
   email: string;
   group: "companies" | "private" | "schools" | "groups" | "oshc";
 };
-
-const initialContacts: Contact[] = [
-  { name: "John Doe", email: "john.doe@example.com", group: "companies" },
-  { name: "Jane Smith", email: "jane.smith@example.com", group: "private" },
-  { name: "Alice Johnson", email: "alice.johnson@example.com", group: "schools" },
-  { name: "Bob Lee", email: "bob.lee@example.com", group: "companies" },
-  { name: "Charlie Brown", email: "charlie.brown@example.com", group: "private" },
-  // Groups contacts
-  { name: "Soccer Club Brisbane", email: "soccer.club@bris.com.au", group: "groups" },
-  { name: "Tennis Association QLD", email: "tennis.qld@sports.com.au", group: "groups" },
-  { name: "Swimming Club Gold Coast", email: "swim@gcclub.com.au", group: "groups" },
-  { name: "Basketball League Brisbane", email: "bball.bris@league.com.au", group: "groups" },
-  // OSHC contacts
-  { name: "Sunshine OSHC", email: "admin@sunshineoshc.com.au", group: "oshc" },
-  { name: "Kids First Care", email: "contact@kidsfirst.com.au", group: "oshc" },
-  { name: "Happy Valley OSHC", email: "info@happyvalleyoshc.com.au", group: "oshc" },
-  { name: "Bright Stars Aftercare", email: "bright.stars@oshc.edu.au", group: "oshc" }
-];
 
 const GROUPS = [
   { label: "Companies", value: "companies" },
@@ -49,9 +25,18 @@ export default function GroupContacts() {
   const groupInfo = GROUPS.find(g => g.value === groupId);
 
   const [filter, setFilter] = useState("");
-  const [contacts] = useState(initialContacts.filter(contact => contact.group === groupId));
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [sortBy, setSortBy] = useState<"name" | "email">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  // Fetch contacts from API and filter by group
+  useEffect(() => {
+    fetch("/api/contacts")
+      .then(res => res.json())
+      .then((data: Contact[]) => {
+        setContacts(data.filter(contact => contact.group === groupId));
+      });
+  }, [groupId]);
 
   const handleSort = (field: "name" | "email") => {
     if (sortBy === field) {
@@ -78,7 +63,7 @@ export default function GroupContacts() {
       <header className="mb-12 flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold text-[var(--foreground)]">
-            {groupInfo?.label + ' Contacts' || 'Contacts'}
+            {groupInfo?.label + " Contacts" || "Contacts"}
           </h1>
         </div>
       </header>
@@ -88,7 +73,7 @@ export default function GroupContacts() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
           <input
             type="text"
-            placeholder={`Search in ${groupInfo?.label || 'group'}...`}
+            placeholder={`Search in ${groupInfo?.label || "group"}...`}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="w-full pl-10 pr-12 p-4 border border-[var(--border)] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
@@ -103,7 +88,10 @@ export default function GroupContacts() {
                 variant="outline"
                 size="sm"
                 onClick={() => handleSort("name")}
-                className={`${sortBy === "name" ? "bg-[var(--accent)] text-[var(--accent-foreground)]" : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"}`}
+                className={`${sortBy === "name"
+                  ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                  : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+                  }`}
               >
                 Name {sortBy === "name" && <ArrowUpDown className="ml-1 h-4 w-4" />}
               </Button>
@@ -111,13 +99,16 @@ export default function GroupContacts() {
                 variant="outline"
                 size="sm"
                 onClick={() => handleSort("email")}
-                className={`${sortBy === "email" ? "bg-[var(--accent)] text-[var(--accent-foreground)]" : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"}`}
+                className={`${sortBy === "email"
+                  ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                  : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+                  }`}
               >
                 Email {sortBy === "email" && <ArrowUpDown className="ml-1 h-4 w-4" />}
               </Button>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <Button className="flex-1 sm:flex-none text-[var(--foreground)]" variant="outline">
               <Upload className="h-4 w-4 text-[var(--foreground)]" />
@@ -149,4 +140,4 @@ export default function GroupContacts() {
       </main>
     </div>
   );
-} 
+}

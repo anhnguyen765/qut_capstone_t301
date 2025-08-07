@@ -29,8 +29,26 @@ CREATE TABLE IF NOT EXISTS user_sessions (
     INDEX idx_expires_at (expires_at)
 );
 
+-- Create contacts table
+CREATE TABLE IF NOT EXISTS contacts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    `group` ENUM('Companies', 'Groups', 'Private', 'OSHC', 'Schools') DEFAULT 'Private',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by INT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_email (email),
+    INDEX idx_name (name),
+    INDEX idx_group (`group`),
+    INDEX idx_created_at (created_at),
+    INDEX idx_created_by (created_by),
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
 -- Insert a default admin user (password: admin123)
--- You should change this password in production
-INSERT INTO users (first_name, last_name, email, password, company) 
-VALUES ('Admin', 'User', 'admin@example.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4tbQJmHhK.', 'System Admin')
+INSERT INTO users (first_name, last_name, email, password) 
+VALUES ('Admin', 'User', 'admin@example.com', 'admin123')
 ON DUPLICATE KEY UPDATE id=id; 

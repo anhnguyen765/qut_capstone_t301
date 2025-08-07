@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/app/contexts/AuthContext";
 import {
     Card,
     CardHeader,
@@ -13,10 +14,12 @@ import {
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Button } from "@/app/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 export default function Login() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { login, isAuthenticated } = useAuth();
     const [formData, setFormData] = useState({
         email: "",
         password: "",
@@ -31,6 +34,13 @@ export default function Login() {
             setSuccessMessage(message);
         }
     }, [searchParams]);
+
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            router.push("/");
+        }
+    }, [isAuthenticated, router]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -64,11 +74,20 @@ export default function Login() {
         return Object.keys(newErrors).length === 0;
     };
 
+    const setCookie = (name: string, value: string, days: number = 7) => {
+        const expires = new Date();
+        expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+        const cookieValue = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+        document.cookie = cookieValue;
+        console.log('Cookie set:', name, value);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (validateForm()) {
             setIsLoading(true);
             try {
+                console.log('Attempting login...');
                 const response = await fetch("/api/auth/login", {
                     method: "POST",
                     headers: {
@@ -81,6 +100,7 @@ export default function Login() {
                 });
 
                 const data = await response.json();
+                console.log('Login response:', data);
 
                 if (!response.ok) {
                     throw new Error(data.error || "Login failed");
@@ -89,14 +109,23 @@ export default function Login() {
                 // Login successful
                 console.log("Login successful:", data);
                 
-                // Store token in localStorage (you might want to use a more secure method)
+                // Store token in localStorage and cookies
                 if (data.token) {
                     localStorage.setItem("authToken", data.token);
                     localStorage.setItem("user", JSON.stringify(data.user));
+                    
+                    // Also store in cookies for middleware access
+                    setCookie("authToken", data.token, 7);
+                    console.log('Token stored, redirecting to homepage...');
+                    
+                    // Update auth context
+                    login(data.token, data.user);
                 }
                 
-                // Redirect to dashboard after successful login
-                router.push("/");
+                // Redirect to homepage after successful login
+                // Use window.location.href for a full page redirect to ensure middleware picks up the token
+                window.location.href = "/";
+                
             } catch (error) {
                 console.error("Login failed:", error);
                 setErrors({ 
@@ -137,10 +166,11 @@ export default function Login() {
                                 name="email"
                                 type="email"
                                 placeholder="email@example.com"
-                                className="h-10"
+                                className="h-10 placeholder:text-grey dark:placeholder:text-white/80"
                                 value={formData.email}
                                 onChange={handleInputChange}
                                 required
+                                disabled={isLoading}
                             />
                             {errors.email && (
                                 <p className="text-sm text-red-500">{errors.email}</p>
@@ -152,11 +182,12 @@ export default function Login() {
                                 id="password"
                                 name="password"
                                 type="password"
-                                placeholder="••••••••"
-                                className="h-10"
+                                placeholder="Enter your password"
+                                className="h-10 placeholder:text-grey dark:placeholder:text-white/80"
                                 value={formData.password}
                                 onChange={handleInputChange}
                                 required
+                                disabled={isLoading}
                             />
                             {errors.password && (
                                 <p className="text-sm text-red-500">{errors.password}</p>
@@ -179,7 +210,14 @@ export default function Login() {
                             type="submit"
                             disabled={isLoading}
                         >
-                            {isLoading ? "Signing In..." : "Sign In"}
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Signing In...
+                                </>
+                            ) : (
+                                "Sign In"
+                            )}
                         </Button>
                         
                         <div className="text-center text-sm">
@@ -188,6 +226,7 @@ export default function Login() {
                                 variant="link"
                                 className="h-auto p-0 text-sm"
                                 onClick={handleRegisterRedirect}
+                                disabled={isLoading}
                             >
                                 Sign up
                             </Button>

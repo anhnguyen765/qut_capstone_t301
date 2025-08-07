@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public paths that don't require authentication
-  const publicPaths = ["/login", "/register", "/api/auth/login", "/api/auth/register"];
+  const publicPaths = ["/login", "/register", "/api/auth/login", "/api/auth/register", "/api/test-db"];
   
   // Check if the current path is public
   const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
@@ -18,6 +18,28 @@ export async function middleware(request: NextRequest) {
 
   // If it's a public path, allow access
   if (isPublicPath) {
+    // If user is already logged in and trying to access login/register, redirect to homepage
+    if (token && (pathname === "/login" || pathname === "/register")) {
+      try {
+        const secret = new TextEncoder().encode(
+          process.env.JWT_SECRET || "your-secret-key"
+        );
+        
+        const { payload } = await jwtVerify(token, secret);
+        
+        // Check if token is expired
+        if (payload.exp && payload.exp < Date.now() / 1000) {
+          throw new Error("Token expired");
+        }
+
+        // Token is valid, redirect to homepage
+        const homeUrl = new URL("/", request.url);
+        return NextResponse.redirect(homeUrl);
+      } catch (error) {
+        // Token is invalid, allow access to login/register
+        return NextResponse.next();
+      }
+    }
     return NextResponse.next();
   }
 

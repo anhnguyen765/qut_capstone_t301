@@ -9,8 +9,6 @@ interface User {
   last_name: string;
   email: string;
   password: string;
-  phone?: string;
-  company?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -36,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // Get user by email
     const users = await executeQuery(
-      "SELECT id, first_name, last_name, email, password, phone, company FROM users WHERE email = ?",
+      "SELECT id, first_name, last_name, email, password FROM users WHERE email = ?",
       [email]
     ) as User[];
 

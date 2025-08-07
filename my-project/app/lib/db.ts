@@ -28,6 +28,10 @@ export async function executeQuery(query: string, params: any[] = []) {
   const connection = await createConnection();
   try {
     const [rows] = await connection.execute(query, params);
+    // Ensure we always return an array for SELECT queries
+    if (query.trim().toUpperCase().startsWith('SELECT')) {
+      return Array.isArray(rows) ? rows : [];
+    }
     return rows;
   } finally {
     await connection.end();

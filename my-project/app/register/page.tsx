@@ -124,10 +124,6 @@ export default function Register() {
             newErrors.confirmPassword = "Passwords do not match";
         }
 
-        if (formData.phone && !/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/\s/g, ''))) {
-            newErrors.phone = "Please enter a valid phone number";
-        }
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -147,8 +143,6 @@ export default function Register() {
                         lastName: formData.lastName,
                         email: formData.email,
                         password: formData.password,
-                        phone: formData.phone || undefined,
-                        company: formData.company || undefined,
                     }),
                 });
 

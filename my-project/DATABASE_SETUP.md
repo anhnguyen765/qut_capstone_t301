@@ -24,8 +24,6 @@ CREATE TABLE IF NOT EXISTS users (
     last_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    phone VARCHAR(20),
-    company VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL,
@@ -80,7 +78,7 @@ npm install --save-dev @types/bcryptjs @types/jsonwebtoken
 ### Authentication Endpoints
 
 1. **POST /api/auth/register** - User registration
-   - Body: `{ firstName, lastName, email, password, phone?, company? }`
+   - Body: `{ firstName, lastName, email, password }`
    - Returns: `{ message, user }`
 
 2. **POST /api/auth/login** - User login

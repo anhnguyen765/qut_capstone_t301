@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/app/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -41,6 +42,19 @@ import Link from "next/link";
 import Image from "next/image";
 
 export function AppSidebar() {
+  const { user, logout, isAuthenticated } = useAuth();
+
+  // Don't render sidebar if not authenticated
+  if (!isAuthenticated || !user) {
+    return null;
+  }
+
+  const handleLogout = () => {
+    // Clear cookies
+    document.cookie = "authToken=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+    logout();
+  };
+
   return (
     <Sidebar className="bg-[var(--background)] text-[var(--foreground)] border-r border-[var(--border)] flex flex-col">
       <SidebarHeader className="px-4 py-3">
@@ -55,7 +69,8 @@ export function AppSidebar() {
                 className="rounded-full text-[var(--foreground)]"
               />
               <div className="flex-1 text-left">
-                <div className="font-semibold">Admin User</div>
+                <div className="font-semibold">{user.first_name} {user.last_name}</div>
+                <div className="text-sm text-foreground">{user.email}</div>
               </div>
               <ChevronDown className="h-4 w-4 text-foreground" />
             </button>
@@ -66,12 +81,10 @@ export function AppSidebar() {
               Profile
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <Link href="/login" prefetch={false}>
-              <DropdownMenuItem className="text-[var(--destructive)]">
-                <LogOut className="mr-2 h-4 w-4 text-foreground" />
-                Logout
-              </DropdownMenuItem>
-            </Link>
+            <DropdownMenuItem onClick={handleLogout} className="text-[var(--foreground)]">
+              <LogOut className="mr-2 h-4 w-4 text-foreground" />
+              Logout
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarHeader>
@@ -162,7 +175,7 @@ export function AppSidebar() {
 
       <div className="p-4 flex justify-center items-center border-t border-[var(--border)]">
         <Image
-          src="/logo.svg"
+          src="/Logo.svg"
           alt="2bentrods Logo"
           width={300}
           height={300}

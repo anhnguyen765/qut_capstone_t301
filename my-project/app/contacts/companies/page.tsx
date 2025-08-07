@@ -1,12 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Filter, UserPlus, ArrowUpDown, Upload, Edit, Eye, ChevronDown} from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/app/components/ui/popover";
+import { Search, UserPlus, ArrowUpDown} from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -29,14 +24,13 @@ const GROUPS = [
   { label: "Private", value: "Private" },
   { label: "Schools", value: "Schools" },
   { label: "Groups", value: "Groups" },
-  { label: "OSHC", value: "OSHC" },
+  { label: "OSHC", value: "OSHC" }
 ];
 
-export default function Contacts() {
+export default function CompaniesContacts() {
   const [filter, setFilter] = useState("");
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<"name" | "email" | "group">("name");
+  const [sortBy, setSortBy] = useState<"name" | "email">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   // Add Contact Dialog State
@@ -54,13 +48,14 @@ export default function Contacts() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
+  // Fetch contacts from API and filter by Companies group
   useEffect(() => {
     fetch("/api/contacts")
-      .then((res) => res.json())
-      .then((data) => {
-        // Ensure data is always an array
+      .then(res => res.json())
+      .then((data: Contact[]) => {
+        // Ensure data is always an array and filter by Companies group
         if (Array.isArray(data)) {
-          setContacts(data);
+          setContacts(data.filter(contact => contact.group === "Companies"));
         } else {
           console.error("Contacts API returned non-array data:", data);
           setContacts([]);
@@ -72,13 +67,7 @@ export default function Contacts() {
       });
   }, []);
 
-  const handleGroupChange = (group: string) => {
-    setSelectedGroups((prev) =>
-      prev.includes(group) ? prev.filter((g) => g !== group) : [...prev, group]
-    );
-  };
-
-  const handleSort = (field: "name" | "email" | "group") => {
+  const handleSort = (field: "name" | "email") => {
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -90,10 +79,9 @@ export default function Contacts() {
   const filteredContacts = contacts
     .filter(
       (c) =>
-        (selectedGroups.length === 0 || selectedGroups.includes(c.group)) &&
-        (c.name.toLowerCase().includes(filter.toLowerCase()) ||
-          c.email.toLowerCase().includes(filter.toLowerCase()) ||
-          (c.phone && c.phone.toLowerCase().includes(filter.toLowerCase())))
+        c.name.toLowerCase().includes(filter.toLowerCase()) ||
+        c.email.toLowerCase().includes(filter.toLowerCase()) ||
+        (c.phone && c.phone.toLowerCase().includes(filter.toLowerCase()))
     )
     .sort((a, b) => {
       const compareValue = sortOrder === "asc" ? 1 : -1;
@@ -113,10 +101,7 @@ export default function Contacts() {
       const response = await fetch("/api/contacts");
       const data = await response.json();
       if (Array.isArray(data)) {
-        setContacts(data);
-      } else {
-        console.error("Contacts API returned non-array data:", data);
-        setContacts([]);
+        setContacts(data.filter(contact => contact.group === "Companies"));
       }
     } catch (error) {
       console.error("Error adding contact:", error);
@@ -143,7 +128,7 @@ export default function Contacts() {
       const response = await fetch("/api/contacts");
       const data = await response.json();
       if (Array.isArray(data)) {
-        setContacts(data);
+        setContacts(data.filter(contact => contact.group === "Companies"));
       }
     } catch (error) {
       console.error("Error updating contact:", error);
@@ -152,50 +137,34 @@ export default function Contacts() {
 
   return (
     <div className="min-h-screen w-full p-8 sm:p-20">
-      <header className="mb-12">
-        <h1 className="text-4xl font-bold text-[var(--foreground)]">
-          Contacts
-        </h1>
+      <header className="mb-12 flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-bold text-[var(--foreground)]">
+            Companies Contacts
+          </h1>
+        </div>
       </header>
 
-      <div className="max-w-full mx-auto space-y-2">
-        <div className="relative flex items-center">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
-          <Input
+      <div className="max-w-full mx-auto space-y-2 ">
+        <div className="flex gap-4">
+          <div className="relative flex items-center flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
+            <Input
             type="text"
-            placeholder="Search all contacts..."
+            placeholder="Search companies..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="pl-10 pr-4 placeholder:text-grey dark:placeholder:text-white/80"
           />
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 bg-background hover:bg-[var(--accent)] rounded-md">
-                <Filter className="h-5 w-5 text-[var(--foreground)]" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-48 p-2" align="end">
-              <div className="space-y-2">
-                {GROUPS.map((group) => (
-                  <label
-                    key={group.value}
-                    className="flex items-center space-x-2 p-2 hover:bg-[var(--accent)] rounded-md cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedGroups.includes(group.value)}
-                      onChange={() => handleGroupChange(group.value)}
-                      className="accent-[var(--primary)]"
-                    />
-                    <span className="text-[var(--foreground)]">
-                      {group.label}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
+          </div>
+          <Button
+            onClick={() => setShowAddDialog(true)}
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Company Contact
+          </Button>
         </div>
+
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-2">
@@ -227,46 +196,14 @@ export default function Contacts() {
                 Email{" "}
                 {sortBy === "email" && <ArrowUpDown className="ml-1 h-4 w-4" />}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleSort("group")}
-                className={`${
-                  sortBy === "group"
-                    ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
-                    : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
-                }`}
-              >
-                Group{" "}
-                {sortBy === "group" && <ArrowUpDown className="ml-1 h-4 w-4" />}
-              </Button>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button
-              className="flex-1 sm:flex-none text-[var(--foreground)]"
-              variant="outline"
-            >
-              <Upload className="h-4 w-4 text-[var(--foreground)]" />
-              Import
-            </Button>
-            <Button
-              className="flex-1 sm:flex-none"
-              onClick={() => setShowAddDialog(true)}
-            >
-              <UserPlus className="h-4 w-4" />
-              Add Contact
-            </Button>
           </div>
         </div>
 
         <main className="mx-auto mt-6">
           <ul className="divide-y divide-[var(--border)] bg-[var(--background)] rounded-lg shadow">
             {filteredContacts.length === 0 ? (
-              <li className="p-6 text-center text-[var(--foreground)]">
-                No contacts found.
-              </li>
+              <li className="p-6 text-center text-[var(--foreground)]">No company contacts found.</li>
             ) : (
               filteredContacts.map((contact, idx) => (
                 <li
@@ -276,12 +213,7 @@ export default function Contacts() {
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-[var(--foreground)]">
-                        {contact.name}
-                      </span>
-                      <span className="text-xs px-2 py-1 rounded bg-[var(--muted)] text-[var(--muted-foreground)]">
-                        {contact.group}
-                      </span>
+                      <span className="font-semibold text-[var(--foreground)]">{contact.name}</span>
                     </div>
                     <div className="text-sm text-[var(--foreground)]">
                       <span className="block">{contact.email}</span>
@@ -298,7 +230,7 @@ export default function Contacts() {
       {showAddDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Add New Contact</h2>
+            <h2 className="text-xl font-bold mb-4">Add New Company Contact</h2>
             <form
               onSubmit={e => {
                 e.preventDefault();
@@ -307,7 +239,7 @@ export default function Contacts() {
               className="space-y-4"
             >
               <div>
-                <Label className="block text-sm font-medium mb-1">Name *</Label>
+                <Label className="block text-sm font-medium mb-1">Company Name *</Label>
                 <Input
                   type="text"
                   value={newContact.name}
@@ -336,27 +268,6 @@ export default function Contacts() {
                 />
               </div>
               <div>
-                <Label className="block text-sm font-medium mb-1">Group</Label>
-                <Select
-                  value={newContact.group}
-                  onValueChange={(value) =>
-                    setNewContact({ ...newContact, group: value as Contact["group"] })
-                  }
-                >
-                  <SelectTrigger className="w-full border rounded p-2 flex justify-start items-center">
-                    <SelectValue placeholder="Select a group" />
-                    <span className="flex-none"><ChevronDown className="h-4 w-4 text-foreground" /></span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Private">Private</SelectItem>
-                    <SelectItem value="Companies">Companies</SelectItem>
-                    <SelectItem value="Groups">Groups</SelectItem>
-                    <SelectItem value="OSHC">OSHC</SelectItem>
-                    <SelectItem value="Schools">Schools</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
                 <Label className="block text-sm font-medium mb-1">Notes</Label>
                 <Textarea
                   value={newContact.notes}
@@ -369,7 +280,7 @@ export default function Contacts() {
                 <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">Add Contact</Button>
+                <Button type="submit">Add Company Contact</Button>
               </div>
             </form>
           </div>
@@ -382,7 +293,7 @@ export default function Contacts() {
           <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">
-                {isEditing ? "Edit Contact" : "Contact Details"}
+                {isEditing ? "Edit Company Contact" : "Company Contact Details"}
               </h2>
               {!isEditing && (
                 <Button
@@ -407,7 +318,7 @@ export default function Contacts() {
                 className="space-y-4"
               >
                 <div>
-                  <Label className="block text-sm font-medium mb-1">Name *</Label>
+                  <Label className="block text-sm font-medium mb-1">Company Name *</Label>
                   <Input
                     type="text"
                     value={selectedContact.name}
@@ -443,17 +354,15 @@ export default function Contacts() {
                       setSelectedContact({ ...selectedContact, group: value as Contact["group"] })
                     }
                   >
-                    <SelectTrigger className="w-full border rounded p-2 flex justify-between items-center">
-                      <SelectValue placeholder="Select group" />
-                      <ChevronDown className="w-4 h-4 text-gray-500" />
+                    <SelectTrigger className="w-full border rounded p-2 flex justify-start items-center">
+                      <SelectValue placeholder="Select a group" />
                     </SelectTrigger>
-
                     <SelectContent>
-                      {GROUPS.map((g) => (
-                        <SelectItem key={g.value} value={g.value}>
-                          {g.label}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="Companies">Companies</SelectItem>
+                      <SelectItem value="Groups">Groups</SelectItem>
+                      <SelectItem value="Private">Private</SelectItem>
+                      <SelectItem value="OSHC">OSHC</SelectItem>
+                      <SelectItem value="Schools">Schools</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -476,7 +385,7 @@ export default function Contacts() {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <Label className="block text-sm font-medium mb-1">Name</Label>
+                  <Label className="block text-sm font-medium mb-1">Company Name</Label>
                   <p className="text-[var(--foreground)]">{selectedContact.name}</p>
                 </div>
                 <div>
@@ -495,7 +404,7 @@ export default function Contacts() {
                 </div>
                 {selectedContact.notes && (
                   <div>
-                        <Label className="block text-sm font-medium mb-1">Notes</Label>
+                    <Label className="block text-sm font-medium mb-1">Notes</Label>
                     <p className="text-[var(--foreground)] whitespace-pre-wrap">{selectedContact.notes}</p>
                   </div>
                 )}
@@ -514,4 +423,4 @@ export default function Contacts() {
       )}
     </div>
   );
-}
+} 

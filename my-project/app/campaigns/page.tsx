@@ -123,9 +123,9 @@ export default function Campaigns() {
           />
           <Popover>
             <PopoverTrigger asChild>
-              <button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-[var(--accent)] rounded-md">
-                <Filter className="h-5 w-5 text-[var(--foreground)]" />
-              </button>
+              <Button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 bg-background hover:bg-[var(--accent)] rounded-md">
+                <Filter className="h-5 w-5 text-foreground" />
+              </Button>
             </PopoverTrigger>
             <PopoverContent className="w-48 p-2" align="end">
               <div className="space-y-2">
@@ -137,7 +137,7 @@ export default function Campaigns() {
                       onChange={() => handleTypeChange(type.value)}
                       className="accent-[var(--primary)]"
                     />
-                    <span className="text-[var(--foreground)]">{type.label}</span>
+                    <span className="text-foreground">{type.label}</span>
                   </label>
                 ))}
               </div>
@@ -197,7 +197,7 @@ export default function Campaigns() {
                           <Calendar className="h-4 w-4" />
                           {new Date(campaign.date).toLocaleDateString()}
                         </div>
-                        <span className="text-sm text-[var(--muted-foreground)]">
+                        <span className="text-sm text-accent-foreground bg-accent rounded-md px-2 py-1">
                           {getTypeLabel(campaign.type)}
                         </span>
                       </div>

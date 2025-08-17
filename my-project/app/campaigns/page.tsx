@@ -20,7 +20,7 @@ const CAMPAIGN_TYPES = [
   { label: "Workshop", value: "workshop" },
   { label: "Event", value: "event" },
   { label: "Community", value: "community" },
-  { label: "Special", value: "special" }
+  { label: "Special", value: "special" },
 ];
 
 const initialCampaigns: Campaign[] = [
@@ -28,38 +28,38 @@ const initialCampaigns: Campaign[] = [
     id: "1",
     title: "Summer Fishing Workshop Series",
     date: "2025-06-30",
-    type: "workshop"
+    type: "workshop",
   },
   {
     id: "2",
     title: "Teen Fishing & Survival Skills",
     date: "2025-07-10",
-    type: "workshop"
+    type: "workshop",
   },
   {
     id: "3",
     title: "Family Fishing Day",
     date: "2025-08-03",
-    type: "event"
+    type: "event",
   },
   {
     id: "4",
     title: "Girls Fishing Program",
     date: "2025-09-24",
-    type: "special"
+    type: "special",
   },
   {
     id: "5",
     title: "Community BBQ & Fishing",
     date: "2025-10-06",
-    type: "community"
+    type: "community",
   },
   {
     id: "6",
     title: "Kids Fishing Play Day",
     date: "2025-11-01",
-    type: "event"
-  }
+    type: "event",
+  },
 ];
 
 export default function Campaigns() {
@@ -71,9 +71,7 @@ export default function Campaigns() {
 
   const handleTypeChange = (type: string) => {
     setSelectedTypes((prev) =>
-      prev.includes(type)
-        ? prev.filter((t) => t !== type)
-        : [...prev, type]
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
     );
   };
 
@@ -87,9 +85,10 @@ export default function Campaigns() {
   };
 
   const filteredCampaigns = campaigns
-    .filter((c) =>
-      (selectedTypes.length === 0 || selectedTypes.includes(c.type)) &&
-      c.title.toLowerCase().includes(filter.toLowerCase())
+    .filter(
+      (c) =>
+        (selectedTypes.length === 0 || selectedTypes.includes(c.type)) &&
+        c.title.toLowerCase().includes(filter.toLowerCase())
     )
     .sort((a, b) => {
       const compareValue = sortOrder === "asc" ? 1 : -1;
@@ -100,7 +99,7 @@ export default function Campaigns() {
     });
 
   const getTypeLabel = (type: string) => {
-    return CAMPAIGN_TYPES.find(t => t.value === type)?.label || type;
+    return CAMPAIGN_TYPES.find((t) => t.value === type)?.label || type;
   };
 
   return (
@@ -130,7 +129,10 @@ export default function Campaigns() {
             <PopoverContent className="w-48 p-2" align="end">
               <div className="space-y-2">
                 {CAMPAIGN_TYPES.map((type) => (
-                  <label key={type.value} className="flex items-center space-x-2 p-2 hover:bg-[var(--accent)] rounded-md cursor-pointer">
+                  <label
+                    key={type.value}
+                    className="flex items-center space-x-2 p-2 hover:bg-[var(--accent)] rounded-md cursor-pointer"
+                  >
                     <input
                       type="checkbox"
                       checked={selectedTypes.includes(type.value)}
@@ -153,21 +155,31 @@ export default function Campaigns() {
                 variant="outline"
                 size="sm"
                 onClick={() => handleSort("type")}
-                className={`${sortBy === "type" ? "bg-[var(--accent)] text-[var(--accent-foreground)]" : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"}`}
+                className={`${
+                  sortBy === "type"
+                    ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                    : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+                }`}
               >
-                Type {sortBy === "type" && <ArrowUpDown className="ml-1 h-4 w-4" />}
+                Type{" "}
+                {sortBy === "type" && <ArrowUpDown className="ml-1 h-4 w-4" />}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleSort("date")}
-                className={`${sortBy === "date" ? "bg-[var(--accent)] text-[var(--accent-foreground)]" : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"}`}
+                className={`${
+                  sortBy === "date"
+                    ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                    : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+                }`}
               >
-                Date {sortBy === "date" && <ArrowUpDown className="ml-1 h-4 w-4" />}
+                Date{" "}
+                {sortBy === "date" && <ArrowUpDown className="ml-1 h-4 w-4" />}
               </Button>
             </div>
           </div>
-          
+
           <Button className="flex-1 sm:flex-none">
             <Plus className="h-4 w-4 mr-2" />
             New Campaign
@@ -195,7 +207,11 @@ export default function Campaigns() {
                       <div className="flex items-center gap-4 mt-1">
                         <div className="text-sm text-[var(--foreground)] flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
-                          {new Date(campaign.date).toLocaleDateString()}
+                          {new Date(campaign.date).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })}
                         </div>
                         <span className="text-sm text-accent-foreground bg-accent rounded-md px-2 py-1">
                           {getTypeLabel(campaign.type)}

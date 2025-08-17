@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Filter, Plus, ArrowUpDown, Calendar } from "lucide-react";
 import {
   Popover,
@@ -8,12 +8,16 @@ import {
   PopoverTrigger,
 } from "@/app/components/ui/popover";
 import { Button } from "@/app/components/ui/button";
+import { Edit, X, Eye, Send, Archive, Tag, FileText } from "lucide-react";
 
 type Campaign = {
   id: string;
   title: string;
   date: string;
   type: "workshop" | "event" | "community" | "special";
+  status: "draft" | "scheduled" | "sent" | "archived"; // Add status
+  targetGroups?: string[]; // Which contact groups to send to
+  content?: string; // Email content/template
 };
 
 const CAMPAIGN_TYPES = [
@@ -29,36 +33,42 @@ const initialCampaigns: Campaign[] = [
     title: "Summer Fishing Workshop Series",
     date: "2025-06-30",
     type: "workshop",
+    status: "draft",
   },
   {
     id: "2",
     title: "Teen Fishing & Survival Skills",
     date: "2025-07-10",
     type: "workshop",
+    status: "scheduled",
   },
   {
     id: "3",
     title: "Family Fishing Day",
     date: "2025-08-03",
     type: "event",
+    status: "sent",
   },
   {
     id: "4",
     title: "Girls Fishing Program",
     date: "2025-09-24",
     type: "special",
+    status: "archived",
   },
   {
     id: "5",
     title: "Community BBQ & Fishing",
     date: "2025-10-06",
     type: "community",
+    status: "draft",
   },
   {
     id: "6",
     title: "Kids Fishing Play Day",
     date: "2025-11-01",
     type: "event",
+    status: "scheduled",
   },
 ];
 
@@ -68,6 +78,14 @@ export default function Campaigns() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<"date" | "type">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [showEditor, setShowEditor] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleTypeChange = (type: string) => {
     setSelectedTypes((prev) =>
@@ -102,11 +120,41 @@ export default function Campaigns() {
     return CAMPAIGN_TYPES.find((t) => t.value === type)?.label || type;
   };
 
+  const handleCampaignClick = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setShowDetailsDialog(true);
+  };
+
+  const handleEditClick = () => {
+    setShowDetailsDialog(false);
+    setShowEditor(true);
+  };
+
+  const handleCloseEditor = () => {
+    setShowEditor(false);
+    setSelectedCampaign(null);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "sent":
+        return "bg-green-100 text-green-800";
+      case "scheduled":
+        return "bg-blue-100 text-blue-800";
+      case "draft":
+        return "bg-yellow-100 text-yellow-800";
+      case "archived":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   return (
     <div className="min-h-screen w-full p-8 sm:p-20">
       <header className="mb-12">
         <h1 className="text-4xl font-bold text-[var(--foreground)]">
-          Past Campaigns
+          Email Campaigns
         </h1>
       </header>
 
@@ -170,7 +218,7 @@ export default function Campaigns() {
                 onClick={() => handleSort("date")}
                 className={`${
                   sortBy === "date"
-                    ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                    ? "bg-[var(--accent)] text-[var,--accent-foreground)]"
                     : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
                 }`}
               >
@@ -192,7 +240,8 @@ export default function Campaigns() {
               {filteredCampaigns.map((campaign) => (
                 <div
                   key={campaign.id}
-                  className="p-4 hover:bg-[var(--accent)] transition-colors"
+                  className="p-4 hover:bg-[var(--accent)] transition-colors cursor-pointer"
+                  onClick={() => handleCampaignClick(campaign)}
                 >
                   <div className="flex items-start">
                     <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center mr-4">
@@ -200,21 +249,24 @@ export default function Campaigns() {
                         {campaign.title.charAt(0)}
                       </span>
                     </div>
-                    <div className="flex flex-col">
+                    <div className="flex flex-col flex-1">
                       <h4 className="font-medium text-[var(--foreground)]">
                         {campaign.title}
                       </h4>
                       <div className="flex items-center gap-4 mt-1">
                         <div className="text-sm text-[var(--foreground)] flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
-                          {new Date(campaign.date).toLocaleDateString("en-GB", {
+                          {mounted ? new Date(campaign.date).toLocaleDateString("en-GB", {
                             day: "2-digit",
                             month: "2-digit",
                             year: "numeric",
-                          })}
+                          }) : campaign.date}
                         </div>
                         <span className="text-sm text-accent-foreground bg-accent rounded-md px-2 py-1">
                           {getTypeLabel(campaign.type)}
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(campaign.status)}`}>
+                          {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
                         </span>
                       </div>
                     </div>
@@ -225,6 +277,171 @@ export default function Campaigns() {
           </div>
         </div>
       </div>
+
+      {/* Campaign Details Dialog */}
+      {showDetailsDialog && selectedCampaign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+            {/* Header */}
+            <div className="flex justify-between items-start p-6 border-b">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-[var(--accent)] flex items-center justify-center">
+                  <span className="text-xl font-semibold text-[var(--accent-foreground)]">
+                    {selectedCampaign.title.charAt(0)}
+                  </span>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">{selectedCampaign.title}</h2>
+                  <span className={`inline-block text-xs px-3 py-1 rounded-full mt-1 ${getStatusColor(selectedCampaign.status)}`}>
+                    {selectedCampaign.status.charAt(0).toUpperCase() + selectedCampaign.status.slice(1)}
+                  </span>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDetailsDialog(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Campaign Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Campaign Date</p>
+                      <p className="text-sm text-gray-600">
+                        {mounted ? new Date(selectedCampaign.date).toLocaleDateString("en-GB", {
+                          weekday: 'long',
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        }) : selectedCampaign.date}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Tag className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Campaign Type</p>
+                      <p className="text-sm text-gray-600">{getTypeLabel(selectedCampaign.type)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Send className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Target Groups</p>
+                      <p className="text-sm text-gray-600">
+                        {selectedCampaign.targetGroups?.join(', ') || 'Not specified'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Campaign ID</p>
+                      <p className="text-sm text-gray-600">#{selectedCampaign.id}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Email Content Preview */}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Email Content Preview</h3>
+                <div className="bg-gray-50 rounded-lg p-4 min-h-32">
+                  {selectedCampaign.content ? (
+                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                      {selectedCampaign.content}
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 py-8">
+                      <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>No content available</p>
+                      <p className="text-xs">Click "Edit Campaign" to add content</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex justify-between items-center p-6 border-t bg-gray-50">
+              <div className="flex gap-2">
+                {selectedCampaign.status === 'draft' && (
+                  <Button variant="outline" size="sm">
+                    <Send className="h-4 w-4 mr-2" />
+                    Schedule
+                  </Button>
+                )}
+                {selectedCampaign.status !== 'archived' && (
+                  <Button variant="outline" size="sm">
+                    <Archive className="h-4 w-4 mr-2" />
+                    Archive
+                  </Button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
+                  Close
+                </Button>
+                <Button onClick={handleEditClick} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Campaign
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Editor Dialog */}
+      {showEditor && selectedCampaign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-6xl max-h-[95vh] overflow-y-auto m-4">
+            <div className="flex justify-between items-center p-6 border-b">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Edit Campaign: {selectedCampaign.title}
+              </h2>
+              <Button variant="outline" size="sm" onClick={handleCloseEditor}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="p-6">
+              <div className="bg-gray-100 rounded-lg p-8 text-center">
+                <Edit className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-xl font-semibold mb-2">Email Editor</h3>
+                <p className="text-gray-600 mb-4">
+                  Web-based email editor will be implemented here
+                </p>
+                <p className="text-sm text-gray-500">
+                  This is where you'll integrate TinyMCE, React Email Builder, or your preferred editor
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 p-6 border-t">
+              <Button variant="outline" onClick={handleCloseEditor}>
+                Cancel
+              </Button>
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, Filter, Plus, ArrowUpDown, Calendar } from "lucide-react";
 import {
   Popover,
@@ -9,6 +9,7 @@ import {
 } from "@/app/components/ui/popover";
 import { Button } from "@/app/components/ui/button";
 import { Edit, X, Eye, Send, Archive, Tag, FileText } from "lucide-react";
+import EmailEditor, { EditorRef, EmailEditorProps } from "react-email-editor";
 
 type Campaign = {
   id: string;
@@ -82,6 +83,10 @@ export default function Campaigns() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [emailEditorLoaded, setEmailEditorLoaded] = useState(false);
+  const [emailDesign, setEmailDesign] = useState<any>(null);
+  const editorRef = useRef<EditorRef>(null);
+  const emailEditorRef = useRef<EditorRef>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -148,6 +153,44 @@ export default function Campaigns() {
       default:
         return "bg-gray-100 text-gray-800";
     }
+  };
+
+  const saveEmailDesign = () => {
+    const unlayer = emailEditorRef.current?.editor;
+
+    unlayer?.saveDesign((design: any) => {
+      console.log("Saved design:", design);
+      setEmailDesign(design);
+
+      // TODO: Save to database/API
+      // You can also export HTML here
+      unlayer.exportHtml((data: any) => {
+        const { html } = data;
+        console.log("Generated HTML:", html);
+        // Update your campaign content
+        if (selectedCampaign) {
+          // This would be saved to your database
+          selectedCampaign.content = html;
+        }
+      });
+    });
+  };
+
+  const loadEmailDesign = () => {
+    const unlayer = emailEditorRef.current?.editor;
+
+    if (emailDesign) {
+      unlayer?.loadDesign(emailDesign);
+    } else if (selectedCampaign?.content) {
+      // If you have existing HTML content, you can load it
+      // For now, we'll start with a blank template
+      unlayer?.loadDesign({});
+    }
+  };
+
+  const onEmailEditorReady = () => {
+    setEmailEditorLoaded(true);
+    loadEmailDesign();
   };
 
   return (
@@ -407,36 +450,99 @@ export default function Campaigns() {
 
       {/* Editor Dialog */}
       {showEditor && selectedCampaign && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-6xl max-h-[95vh] overflow-y-auto m-4">
-            <div className="flex justify-between items-center p-6 border-b">
+        <div className="fixed inset-0 z-50 bg-white">
+          {/* Header */}
+          <div className="absolute top-0 left-0 right-0 h-20 flex justify-between items-center p-6 border-b bg-white z-10">
+            <div>
               <h2 className="text-2xl font-bold text-gray-900">
                 Edit Campaign: {selectedCampaign.title}
               </h2>
-              <Button variant="outline" size="sm" onClick={handleCloseEditor}>
-                <X className="h-4 w-4" />
+              <p className="text-sm text-gray-600 mt-1">
+                Design your email campaign using the drag-and-drop editor
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleCloseEditor}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* Editor - Full height minus header and footer */}
+          <div 
+            className="absolute left-0 right-0"
+            style={{ 
+              top: '80px',
+              bottom: '80px',
+              height: 'calc(100vh - 160px)'
+            }}
+          >
+            <EmailEditor
+              ref={emailEditorRef}
+              onReady={onEmailEditorReady}
+              options={{
+                appearance: {
+                  theme: 'light',
+                  panels: {
+                    tools: {
+                      dock: 'left'
+                    }
+                  }
+                },
+                projectId: 1234,
+                locale: 'en-US',
+                features: {
+                  preview: true,
+                  export: true,
+                  undo: true,
+                  stockImages: true
+                }
+              }}
+              style={{ height: '100%', width: '100%' }}
+            />
+          </div>
+
+          {/* Footer */}
+          <div className="absolute bottom-0 left-0 right-0 h-20 flex justify-between items-center p-6 border-t bg-gray-50 z-10">
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  const unlayer = emailEditorRef.current?.editor;
+                  unlayer?.showPreview('desktop');
+                }}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Preview
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  const unlayer = emailEditorRef.current?.editor;
+                  unlayer?.exportHtml((data: any) => {
+                    const { html } = data;
+                    console.log('Exported HTML:', html);
+                    const blob = new Blob([html], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${selectedCampaign.title}.html`;
+                    a.click();
+                  });
+                }}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Export HTML
               </Button>
             </div>
-            
-            <div className="p-6">
-              <div className="bg-gray-100 rounded-lg p-8 text-center">
-                <Edit className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-xl font-semibold mb-2">Email Editor</h3>
-                <p className="text-gray-600 mb-4">
-                  Web-based email editor will be implemented here
-                </p>
-                <p className="text-sm text-gray-500">
-                  This is where you'll integrate TinyMCE, React Email Builder, or your preferred editor
-                </p>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 p-6 border-t">
+            <div className="flex gap-2">
               <Button variant="outline" onClick={handleCloseEditor}>
                 Cancel
               </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                Save Changes
+              <Button 
+                onClick={saveEmailDesign}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Save Campaign
               </Button>
             </div>
           </div>

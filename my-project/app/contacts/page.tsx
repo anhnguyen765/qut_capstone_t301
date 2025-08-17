@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Filter, UserPlus, ArrowUpDown, Upload, Edit, Eye, ChevronDown} from "lucide-react";
+import { Search, Filter, UserPlus, ArrowUpDown, Upload, Edit, Eye, ChevronDown, Trash2 } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -59,6 +59,10 @@ export default function Contacts() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<Contact[]>([]);
   const [isImporting, setIsImporting] = useState(false);
+
+  // Add delete state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -330,6 +334,37 @@ export default function Contacts() {
     setIsImporting(false);
   };
 
+  // Add delete handlers
+  const handleDeleteClick = (contact: Contact, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent opening the view dialog
+    setContactToDelete(contact);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteContact = async () => {
+    if (!contactToDelete?.id) return;
+    
+    try {
+      await fetch(`/api/contacts/${contactToDelete.id}`, {
+        method: "DELETE",
+      });
+      
+      // Refresh contacts
+      const response = await fetch("/api/contacts");
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setContacts(data);
+      }
+      
+      setShowDeleteConfirm(false);
+      setContactToDelete(null);
+      setShowViewDialog(false); // Close view dialog if open
+    } catch (error) {
+      console.error("Error deleting contact:", error);
+      alert("Error deleting contact. Please try again.");
+    }
+  };
+
   return (
     <div className="min-h-screen w-full p-8 sm:p-20">
       <header className="mb-12">
@@ -413,7 +448,7 @@ export default function Contacts() {
                 onClick={() => handleSort("group")}
                 className={`${
                   sortBy === "group"
-                    ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                    ? "bg-[var(--accent)] text-[var(--accent-foreground]"
                     : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
                 }`}
               >
@@ -467,6 +502,29 @@ export default function Contacts() {
                     <div className="text-sm text-[var(--foreground)]">
                       <span className="block">{contact.email}</span>
                     </div>
+                  </div>
+                  
+                  {/* Add action buttons */}
+                  <div className="flex gap-2 mt-2 sm:mt-0" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewContact(contact);
+                      }}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => handleDeleteClick(contact, e)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </li>
               ))
@@ -566,16 +624,27 @@ export default function Contacts() {
                 {isEditing ? "Edit Contact" : "Contact Details"}
               </h2>
               {!isEditing && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setIsEditing(true);
-                  }}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsEditing(true);
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => handleDeleteClick(selectedContact, e)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
               )}
             </div>
             
@@ -800,6 +869,52 @@ Jane Smith,jane@example.com,,Private,Friend`}
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && contactToDelete && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Contact</h3>
+                <p className="text-sm text-gray-600">This action cannot be undone.</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-700">
+                Are you sure you want to delete{" "}
+                <span className="font-semibold">{contactToDelete.name}</span>?
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Email: {contactToDelete.email}
+              </p>
+            </div>
+            
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setContactToDelete(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteContact}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Contact
+              </Button>
+            </div>
           </div>
         </div>
       )}

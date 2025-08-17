@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, Filter, UserPlus, ArrowUpDown, Upload, Edit, Eye, ChevronDown} from "lucide-react";
 import {
   Popover,
@@ -53,6 +53,14 @@ export default function Contacts() {
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Import Contacts State
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<Contact[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     fetch("/api/contacts")
@@ -148,6 +156,178 @@ export default function Contacts() {
     } catch (error) {
       console.error("Error updating contact:", error);
     }
+  };
+
+  const parseCsvFile = (file: File): Promise<Contact[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const csv = e.target?.result as string;
+          const lines = csv.split('\n').filter(line => line.trim());
+          
+          if (lines.length < 2) {
+            reject(new Error('CSV file must have at least a header row and one data row'));
+            return;
+          }
+          
+          // Detect delimiter (tab or comma)
+          const firstLine = lines[0];
+          const delimiter = firstLine.includes('\t') ? '\t' : ',';
+          
+          const headers = firstLine.split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+          
+          // Validate required headers
+          const requiredHeaders = ['name', 'email'];
+          const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+          if (missingHeaders.length > 0) {
+            reject(new Error(`Missing required columns: ${missingHeaders.join(', ')}`));
+            return;
+          }
+          
+          const contacts: Contact[] = [];
+          const errors: string[] = [];
+          
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+            
+            try {
+              // Improved CSV parsing that handles spaces in values
+              const values: string[] = [];
+              let current = '';
+              let inQuotes = false;
+              
+              for (let j = 0; j < line.length; j++) {
+                const char = line[j];
+                
+                if (char === '"') {
+                  inQuotes = !inQuotes;
+                } else if (char === delimiter && !inQuotes) {
+                  values.push(current.trim());
+                  current = '';
+                } else {
+                  current += char;
+                }
+              }
+              values.push(current.trim()); // Add the last value
+              
+              const contact: Contact = {
+                name: '',
+                email: '',
+                group: 'Private'
+              };
+              
+              headers.forEach((header, index) => {
+                const value = (values[index] || '').replace(/^"|"$/g, '').trim();
+                switch (header) {
+                  case 'name':
+                    if (!value) {
+                      errors.push(`Row ${i + 1}: Name is required`);
+                      return;
+                    }
+                    contact.name = value;
+                    break;
+                  case 'email':
+                    if (!value) {
+                      errors.push(`Row ${i + 1}: Email is required`);
+                      return;
+                    }
+                    // Basic email validation
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(value)) {
+                      errors.push(`Row ${i + 1}: Invalid email format: ${value}`);
+                      return;
+                    }
+                    contact.email = value;
+                    break;
+                  case 'phone':
+                    contact.phone = value; // Now preserves spaces and full phone number
+                    break;
+                  case 'group':
+                    if (value && !['Companies', 'Groups', 'Private', 'OSHC', 'Schools'].includes(value)) {
+                      errors.push(`Row ${i + 1}: Invalid group "${value}". Must be one of: Companies, Groups, Private, OSHC, Schools`);
+                    } else if (value) {
+                      contact.group = value as Contact['group'];
+                    }
+                    break;
+                  case 'notes':
+                    contact.notes = value;
+                    break;
+                }
+              });
+              
+              if (contact.name && contact.email) {
+                contacts.push(contact);
+              }
+            } catch (rowError) {
+              errors.push(`Row ${i + 1}: Failed to parse - ${rowError}`);
+            }
+          }
+          
+          if (errors.length > 0) {
+            reject(new Error(`CSV parsing errors:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? `\n... and ${errors.length - 5} more errors` : ''}`));
+            return;
+          }
+          
+          if (contacts.length === 0) {
+            reject(new Error('No valid contacts found in CSV file'));
+            return;
+          }
+          
+          resolve(contacts);
+        } catch (error) {
+          reject(new Error(`Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}`));
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsText(file);
+    });
+  };
+
+  const handleImportContacts = async () => {
+    if (!importFile) return;
+    
+    setIsImporting(true);
+    try {
+      const contacts = await parseCsvFile(importFile);
+      setImportPreview(contacts);
+    } catch (error) {
+      console.error('Error parsing CSV:', error);
+      // Show more specific error message
+      alert(error instanceof Error ? error.message : 'Error parsing CSV file. Please check the format.');
+    }
+    setIsImporting(false);
+  };
+
+  const handleConfirmImport = async () => {
+    setIsImporting(true);
+    try {
+      for (const contact of importPreview) {
+        await fetch("/api/contacts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(contact),
+        });
+      }
+      
+      // Refresh contacts
+      const response = await fetch("/api/contacts");
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setContacts(data);
+      }
+      
+      // Reset import state
+      setShowImportDialog(false);
+      setImportFile(null);
+      setImportPreview([]);
+      alert(`Successfully imported ${importPreview.length} contacts!`);
+    } catch (error) {
+      console.error('Error importing contacts:', error);
+      alert('Error importing contacts. Please try again.');
+    }
+    setIsImporting(false);
   };
 
   return (
@@ -247,6 +427,7 @@ export default function Contacts() {
             <Button
               className="flex-1 sm:flex-none text-[var(--foreground)]"
               variant="outline"
+              onClick={() => setShowImportDialog(true)}
             >
               <Upload className="h-4 w-4 text-[var(--foreground)]" />
               Import
@@ -505,6 +686,116 @@ export default function Contacts() {
                     onClick={() => setShowViewDialog(false)}
                   >
                     Close
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Import Dialog */}
+      {showImportDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">Import Contacts</h2>
+            
+            {importPreview.length === 0 ? (
+              <div className="space-y-4">
+                <div>
+                  <Label className="block text-sm font-medium mb-2">
+                    Upload CSV File
+                  </Label>
+                  <p className="text-sm text-gray-600 mb-4">
+                    CSV should have columns: name, email, phone, group, notes
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setImportFile(file);
+                      }
+                    }}
+                    className="w-full border rounded p-2 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                </div>
+                
+                <div className="bg-gray-50 p-4 rounded">
+                  <h3 className="font-medium mb-2">CSV Format Example:</h3>
+                  <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">
+{`name,email,phone,group,notes
+John Doe,john@example.com,123-456-7890,Companies,CEO
+Jane Smith,jane@example.com,,Private,Friend`}
+                  </pre>
+                </div>
+                
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowImportDialog(false);
+                      setImportFile(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="button" 
+                    onClick={handleImportContacts}
+                    disabled={!importFile || isImporting}
+                  >
+                    {isImporting ? 'Processing...' : 'Preview Import'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium mb-2">
+                    Preview ({importPreview.length} contacts found)
+                  </h3>
+                  <div className="max-h-60 overflow-y-auto border rounded">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="p-2 text-left">Name</th>
+                          <th className="p-2 text-left">Email</th>
+                          <th className="p-2 text-left">Phone</th>
+                          <th className="p-2 text-left">Group</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importPreview.map((contact, idx) => (
+                          <tr key={idx} className="border-t">
+                            <td className="p-2">{contact.name}</td>
+                            <td className="p-2">{contact.email}</td>
+                            <td className="p-2">{contact.phone || '-'}</td>
+                            <td className="p-2">{contact.group}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setImportPreview([])}
+                  >
+                    Back
+                  </Button>
+                  <Button 
+                    type="button" 
+                    onClick={handleConfirmImport}
+                    disabled={isImporting}
+                  >
+                    {isImporting ? 'Importing...' : `Import ${importPreview.length} Contacts`}
                   </Button>
                 </div>
               </div>

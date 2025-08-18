@@ -9,6 +9,7 @@ export interface JWTPayload {
   email: string;
   firstName: string;
   lastName: string;
+  role: string; // <-- Add this line!
   iat?: number;
   exp?: number;
 }
@@ -48,4 +49,4 @@ export function getTokenFromRequest(request: Request): string | null {
     return authHeader.substring(7);
   }
   return null;
-} 
+}

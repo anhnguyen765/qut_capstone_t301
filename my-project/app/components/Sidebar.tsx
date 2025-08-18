@@ -80,6 +80,12 @@ export function AppSidebar() {
               <User className="mr-2 h-4 w-4 text-foreground" />
               Profile
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/admin/users" className="flex items-center">
+                <Settings className="mr-2 h-4 w-4 text-foreground" />
+                Admin
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-[var(--foreground)]">
               <LogOut className="mr-2 h-4 w-4 text-foreground" />

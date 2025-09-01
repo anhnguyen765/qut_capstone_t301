@@ -34,9 +34,9 @@ export async function POST(request: NextRequest) {
 
     // Get user by email
     const users = await executeQuery(
-      "SELECT id, first_name, last_name, email, password FROM users WHERE email = ?",
+      "SELECT id, first_name, last_name, email, password, role FROM users WHERE email = ?",
       [email]
-    ) as User[];
+    ) as (User & { role: string })[];
 
     if (!Array.isArray(users) || users.length === 0) {
       return NextResponse.json(
@@ -61,7 +61,8 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       email: user.email,
       firstName: user.first_name,
-      lastName: user.last_name
+      lastName: user.last_name,
+      role: user.role
     });
 
     // Update last login
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Remove password from response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...userWithoutPassword } = user;
 
     return NextResponse.json({
@@ -86,4 +88,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

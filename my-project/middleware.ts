@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
     if (token && (pathname === "/login" || pathname === "/register")) {
       try {
         const secret = new TextEncoder().encode(
-          process.env.JWT_SECRET || "your-secret-key"
+          "hardcoded_super_secret_key_change_me"
         );
         
         const { payload } = await jwtVerify(token, secret);
@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest) {
   // Verify the JWT token
   try {
     const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || "your-secret-key"
+      "hardcoded_super_secret_key_change_me"
     );
     
     const { payload } = await jwtVerify(token, secret);

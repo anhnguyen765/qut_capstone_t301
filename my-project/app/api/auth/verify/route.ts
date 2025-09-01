@@ -8,6 +8,7 @@ type User = {
   first_name: string;
   last_name: string;
   email: string;
+  role: string;
 };
 
 export async function GET(request: NextRequest) {
@@ -31,8 +32,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Use the User type instead of any[]
+
     const users = await executeQuery(
-      "SELECT id, first_name, last_name, email FROM users WHERE id = ?",
+      "SELECT id, first_name, last_name, email, role FROM users WHERE id = ?",
       [payload.userId]
     ) as User[];
 
@@ -43,14 +45,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const user = users[0];
 
+    const user = users[0];
+    // Return user object with keys matching frontend expectations
     return NextResponse.json({
       user: {
-        id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email
+        userId: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role
       }
     });
 

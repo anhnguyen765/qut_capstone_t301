@@ -3,10 +3,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
-  id: number;
-  first_name: string;
-  last_name: string;
+  userId: number;
   email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
 }
 
 interface AuthContextType {
@@ -41,8 +42,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (response.ok) {
-        const userData = await response.json();
-        setUser(userData.user);
+        const data = await response.json();
+        // If backend returns user with new keys, use as is
+        if (data.user && data.user.userId && data.user.firstName && data.user.lastName && data.user.email && data.user.role) {
+          setUser(data.user);
+        } else if (data.user && data.user.id && data.user.first_name && data.user.last_name && data.user.email && data.user.role) {
+          // Fallback for old shape
+          setUser({
+            userId: data.user.id,
+            email: data.user.email,
+            firstName: data.user.first_name,
+            lastName: data.user.last_name,
+            role: data.user.role
+          });
+        } else {
+          setUser(null);
+        }
         setIsLoading(false);
         return true;
       } else {

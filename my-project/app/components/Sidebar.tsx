@@ -42,6 +42,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 export function AppSidebar() {
+
   const { user, logout, isAuthenticated } = useAuth();
 
   // Don't render sidebar if not authenticated
@@ -69,7 +70,7 @@ export function AppSidebar() {
                 className="rounded-full text-[var(--foreground)]"
               />
               <div className="flex-1 text-left">
-                <div className="font-semibold">{user.first_name} {user.last_name}</div>
+                <div className="font-semibold">{user.firstName} {user.lastName}</div>
                 <div className="text-sm text-foreground">{user.email}</div>
               </div>
               <ChevronDown className="h-4 w-4 text-foreground" />

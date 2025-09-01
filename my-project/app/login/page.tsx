@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/app/contexts/AuthContext";
 import {
@@ -16,7 +16,7 @@ import { Label } from "@/app/components/ui/label";
 import { Button } from "@/app/components/ui/button";
 import { Loader2 } from "lucide-react";
 
-export default function Login() {
+function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { login, isAuthenticated } = useAuth();
@@ -142,7 +142,7 @@ export default function Login() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen w-full p-4">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
             <Card className="w-full max-w-md shadow-xl rounded-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl font-bold text-center">
@@ -235,5 +235,13 @@ export default function Login() {
                 </form>
             </Card>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+            <LoginForm />
+        </Suspense>
     );
 }

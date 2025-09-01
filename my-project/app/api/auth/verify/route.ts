@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/app/lib/auth";
 import { executeQuery } from "@/app/lib/db";
 
+// Define the User type
+type User = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+};
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");
@@ -22,11 +30,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get user data from database
+    // Use the User type instead of any[]
     const users = await executeQuery(
       "SELECT id, first_name, last_name, email FROM users WHERE id = ?",
       [payload.userId]
-    ) as any[];
+    ) as User[];
 
     if (!Array.isArray(users) || users.length === 0) {
       return NextResponse.json(
@@ -53,4 +61,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

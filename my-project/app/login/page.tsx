@@ -106,22 +106,32 @@ function LoginForm() {
                     throw new Error(data.error || "Login failed");
                 }
 
+
                 // Login successful
                 console.log("Login successful:", data);
-                
+
                 // Store token in localStorage and cookies
-                if (data.token) {
+                if (data.token && data.user) {
+                    // Map user object to expected shape if needed
+                    let user = data.user;
+                    if (user.id && user.first_name && user.last_name && user.email && user.role) {
+                        user = {
+                            userId: user.id,
+                            email: user.email,
+                            firstName: user.first_name,
+                            lastName: user.last_name,
+                            role: user.role
+                        };
+                    }
                     localStorage.setItem("authToken", data.token);
-                    localStorage.setItem("user", JSON.stringify(data.user));
-                    
+                    localStorage.setItem("user", JSON.stringify(user));
                     // Also store in cookies for middleware access
                     setCookie("authToken", data.token, 7);
                     console.log('Token stored, redirecting to homepage...');
-                    
                     // Update auth context
-                    login(data.token, data.user);
+                    login(data.token, user);
                 }
-                
+
                 // Redirect to homepage after successful login
                 // Use window.location.href for a full page redirect to ensure middleware picks up the token
                 window.location.href = "/";
@@ -142,7 +152,7 @@ function LoginForm() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="flex min-h-screen w-full items-center justify-center bg-background">
             <Card className="w-full max-w-md shadow-xl rounded-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl font-bold text-center">

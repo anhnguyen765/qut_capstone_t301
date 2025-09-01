@@ -1,3 +1,18 @@
+-- Create campaigns table
+CREATE TABLE IF NOT EXISTS campaigns (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    date DATE NOT NULL,
+    type ENUM('workshop', 'event', 'community', 'special') NOT NULL,
+    status ENUM('draft', 'scheduled', 'sent', 'archived') DEFAULT 'draft',
+    target_groups TEXT,
+    content MEDIUMTEXT,
+    design JSON,
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);
 -- Create database if it doesn't exist
 CREATE DATABASE IF NOT EXISTS crm_db;
 USE crm_db;

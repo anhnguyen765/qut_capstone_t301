@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
+import { useAuth } from "@/app/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 type User = {
   id: number;
@@ -13,6 +15,8 @@ type User = {
 };
 
 export default function UsersPage() {
+  const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -26,14 +30,39 @@ export default function UsersPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
+  // Check if user is authenticated and has admin role
   useEffect(() => {
-    fetch("/api/users")
-      .then(res => res.json())
-      .then(data => {
-        setUsers(Array.isArray(data) ? data : []);
-        setLoading(false);
-      });
-  }, []);
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    
+    if (user?.role !== 'admin') {
+      router.push('/');
+      return;
+    }
+  }, [isAuthenticated, user, router]);
+
+  useEffect(() => {
+    // Only fetch users if user is admin
+    if (user?.role === 'admin') {
+      fetch("/api/users")
+        .then(res => res.json())
+        .then(data => {
+          setUsers(Array.isArray(data) ? data : []);
+          setLoading(false);
+        });
+    }
+  }, [user]);
+
+  // If not authenticated or not admin, show loading or redirect
+  if (!isAuthenticated) {
+    return <div className="p-8">Redirecting to login...</div>;
+  }
+
+  if (user?.role !== 'admin') {
+    return <div className="p-8">Access denied. Redirecting...</div>;
+  }
 
   const handleAddUser = async () => {
     await fetch("/api/users", {
@@ -141,6 +170,7 @@ export default function UsersPage() {
               value={newUser.role}
               onChange={e => setNewUser({ ...newUser, role: e.target.value })}
               className="mb-4 w-full border rounded p-2"
+              aria-label="Select user role"
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>

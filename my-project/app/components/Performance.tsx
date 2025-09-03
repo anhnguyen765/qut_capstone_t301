@@ -62,7 +62,9 @@ export default function Performance() {
             </div>
           ))}
         </div>
-        <Link href="/" className="w-full"> {/* TODO: Change to /campaigns/create after creating the page */}
+        
+        {/* TODO: Link to campaign creation page */}
+        <Link href="/" className="w-full"> 
           <Button
             className="w-full h-8 sm:h-10 text-sm sm:text-md font-bold mt-1 sm:mt-2 bg-[var(--muted)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90"
             type="submit"

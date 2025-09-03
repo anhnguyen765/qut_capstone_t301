@@ -1,5 +1,3 @@
-
-
 import { SignJWT, jwtVerify } from "jose";
 
 // Hardcoded secret for JWT signing and verification

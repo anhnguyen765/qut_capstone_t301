@@ -57,6 +57,18 @@ export default function Campaigns() {
     status: 'draft',
     targetGroups: [],
   });
+    // --- Schedule Email Dialog State (from calendar page) ---
+    const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+    const [scheduleCampaigns, setScheduleCampaigns] = useState<any[]>([]);
+    const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
+    const [recipientType, setRecipientType] = useState("all");
+    const [email, setEmail] = useState("");
+    const [group, setGroup] = useState("");
+    const groups = ["Companies", "Private", "Groups", "OSHC", "Schools"];
+    const [scheduleDate, setScheduleDate] = useState("");
+    const [scheduleTime, setScheduleTime] = useState("");
+    const [scheduling, setScheduling] = useState(false);
+    const [scheduleError, setScheduleError] = useState<string|null>(null);
   const editorRef = useRef<EditorRef>(null);
   const emailEditorRef = useRef<EditorRef>(null);
 
@@ -143,6 +155,8 @@ export default function Campaigns() {
     setSelectedCampaign({
       id: '',
       ...newCampaignData,
+      type: newCampaignData.type as Campaign["type"],
+      status: newCampaignData.status as Campaign["status"],
       content: '',
     });
     setEmailDesign(null);
@@ -253,6 +267,71 @@ export default function Campaigns() {
     setEmailEditorLoaded(true);
     loadEmailDesign();
   };
+
+  async function handleScheduleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setScheduleError(null);
+
+    if (!selectedCampaignId) {
+      setScheduleError("Please select a campaign.");
+      return;
+    }
+    if (!scheduleDate) {
+      setScheduleError("Please select a date.");
+      return;
+    }
+    if (recipientType === "email" && !email) {
+      setScheduleError("Please enter a recipient email.");
+      return;
+    }
+    if (recipientType === "group" && !group) {
+      setScheduleError("Please select a group.");
+      return;
+    }
+
+    setScheduling(true);
+
+    try {
+      const res = await fetch(`/api/campaigns/${selectedCampaignId}/schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: scheduleDate,
+          time: scheduleTime,
+          recipientType,
+          email: recipientType === "email" ? email : undefined,
+          group: recipientType === "group" ? group : undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to schedule campaign");
+      }
+
+      // Optionally update campaign status in UI
+      setCampaigns((prev) =>
+        prev.map((c) =>
+          c.id === selectedCampaignId
+            ? { ...c, status: "scheduled" }
+            : c
+        )
+      );
+
+      setShowScheduleDialog(false);
+      setScheduleDate("");
+      setScheduleTime("");
+      setRecipientType("all");
+      setEmail("");
+      setGroup("");
+      setSelectedCampaignId("");
+      setScheduling(false);
+      alert("Campaign scheduled successfully!");
+    } catch (err: any) {
+      setScheduleError(err.message || "Failed to schedule campaign");
+      setScheduling(false);
+    }
+  }
 
   return (
     <div className="min-h-screen w-full p-8 sm:p-20">
@@ -483,9 +562,16 @@ export default function Campaigns() {
             <div className="flex justify-between items-center p-6 border-t bg-gray-50">
               <div className="flex gap-2">
                 {selectedCampaign.status === 'draft' && (
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setShowScheduleDialog(true);
+                      setSelectedCampaignId(selectedCampaign.id);
+                    }}
+                  >
                     <Send className="h-4 w-4 mr-2" />
-                    Schedule
+                    Schedule Email
                   </Button>
                 )}
                 {selectedCampaign.status !== 'archived' && (
@@ -506,6 +592,93 @@ export default function Campaigns() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Schedule Email Dialog (always rendered at root) */}
+      {showScheduleDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <form onSubmit={handleScheduleSubmit} className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative space-y-4">
+            <button type="button" className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={() => setShowScheduleDialog(false)}>&times;</button>
+            <h2 className="text-xl font-bold mb-2">Schedule Email</h2>
+            <div>
+              <label className="block text-sm font-semibold mb-1">Campaign</label>
+              <select
+                className="w-full border rounded px-3 py-2"
+                value={selectedCampaignId}
+                onChange={e => setSelectedCampaignId(e.target.value)}
+                required
+              >
+                <option value="">Select a campaign</option>
+                {campaigns.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.title}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1">Recipient</label>
+              <select
+                className="w-full border rounded px-3 py-2"
+                value={recipientType}
+                onChange={e => setRecipientType(e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="group">Group</option>
+                <option value="email">Email</option>
+              </select>
+              {recipientType === "email" && (
+                <input
+                  type="email"
+                  className="w-full border rounded px-3 py-2 mt-2"
+                  placeholder="Recipient email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                />
+              )}
+              {recipientType === "group" && (
+                <select
+                  className="w-full border rounded px-3 py-2 mt-2"
+                  value={group}
+                  onChange={e => setGroup(e.target.value)}
+                  required
+                >
+                  <option value="">Select group</option>
+                  {groups.map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="block text-sm font-semibold mb-1">Date</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={scheduleDate}
+                  onChange={e => setScheduleDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-semibold mb-1">Time</label>
+                <input
+                  type="time"
+                  className="w-full border rounded px-3 py-2"
+                  value={scheduleTime}
+                  onChange={e => setScheduleTime(e.target.value)}
+                />
+              </div>
+            </div>
+            {scheduleError && <div className="text-red-600 text-sm">{scheduleError}</div>}
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300" onClick={() => setShowScheduleDialog(false)}>Cancel</button>
+              <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700" disabled={scheduling}>
+                {scheduling ? "Scheduling..." : "Schedule"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 

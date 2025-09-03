@@ -30,7 +30,9 @@ export async function POST(request: NextRequest) {
         createdBy || null,
       ]
     );
-    return NextResponse.json({ id: result.insertId, message: "Campaign created successfully" });
+    // If result is an array, insertId may be on result[0] or not available
+    const insertId = (result as any)?.insertId || (Array.isArray(result) && (result[0] as any)?.insertId) || null;
+    return NextResponse.json({ id: insertId, message: "Campaign created successfully" });
   } catch (error) {
     console.error("Create campaign error:", error);
     return NextResponse.json({ error: "Failed to create campaign" }, { status: 500 });

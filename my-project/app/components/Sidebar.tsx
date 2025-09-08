@@ -69,9 +69,9 @@ export function AppSidebar() {
                 height={40}
                 className="rounded-full text-[var(--foreground)]"
               />
-              <div className="flex-1 text-left min-w-0">
+              <div className="flex-1 text-left">
                 <div className="font-semibold">{user.firstName} {user.lastName}</div>
-                <div className="text-sm text-foreground text-ellipsis overflow-hidden whitespace-nowrap" title={user.email}>{user.email}</div>
+                <div className="text-sm text-foreground">{user.email}</div>
               </div>
               <ChevronDown className="h-4 w-4 text-foreground" />
             </button>
@@ -81,16 +81,14 @@ export function AppSidebar() {
               <User className="mr-2 h-4 w-4 text-foreground" />
               Profile
             </DropdownMenuItem>
-            {user.role === 'admin' && (
-              <DropdownMenuItem asChild>
-                <Link href="/admin/users" className="flex items-center">
-                  <Settings className="mr-2 h-4 w-4 text-foreground" />
-                  Admin
-                </Link>
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem asChild>
+              <Link href="/admin/users" className="flex items-center">
+                <Settings className="mr-2 h-4 w-4 text-foreground" />
+                Admin
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
+            <DropdownMenuItem onClick={handleLogout} className="text-[var(--foreground)]">
               <LogOut className="mr-2 h-4 w-4 text-foreground" />
               Logout
             </DropdownMenuItem>

@@ -5,7 +5,7 @@ import { executeQuery } from "@/app/lib/db";
 export async function GET() {
   try {
     const users = await executeQuery(
-      "SELECT id, first_name, last_name, email, role FROM users"
+      "SELECT id, first_name, last_name, email, role, is_active FROM users"
     );
     return NextResponse.json(Array.isArray(users) ? users : []);
   } catch (error) {

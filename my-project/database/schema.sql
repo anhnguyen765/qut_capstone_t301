@@ -3,16 +3,67 @@ CREATE TABLE IF NOT EXISTS campaigns (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     date DATE NOT NULL,
-    type ENUM('workshop', 'event', 'community', 'special') NOT NULL,
+    type ENUM('workshop', 'event', 'community', 'special', 'email') NOT NULL,
     status ENUM('draft', 'scheduled', 'sent', 'archived') DEFAULT 'draft',
     target_groups TEXT,
     content MEDIUMTEXT,
     design JSON,
+    html_content LONGTEXT,
+    subject_line VARCHAR(255),
+    sender_name VARCHAR(100),
+    sender_email VARCHAR(100),
     created_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    scheduled_at TIMESTAMP NULL,
+    sent_at TIMESTAMP NULL,
+    total_recipients INT DEFAULT 0,
+    sent_count INT DEFAULT 0,
+    failed_count INT DEFAULT 0,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
+ 
+-- Create email_queue table for tracking email sending
+CREATE TABLE IF NOT EXISTS email_queue (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    campaign_id INT NOT NULL,
+    contact_id INT NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    status ENUM('pending', 'sending', 'sent', 'failed', 'retry') DEFAULT 'pending',
+    attempts INT DEFAULT 0,
+    max_attempts INT DEFAULT 3,
+    last_attempt_at TIMESTAMP NULL,
+    sent_at TIMESTAMP NULL,
+    error_message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+    INDEX idx_campaign_id (campaign_id),
+    INDEX idx_status (status),
+    INDEX idx_email (email),
+    INDEX idx_pending (status, attempts, max_attempts)
+);
+
+-- Create email_logs table for detailed sending logs
+CREATE TABLE IF NOT EXISTS email_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    campaign_id INT NOT NULL,
+    queue_id INT NOT NULL,
+    contact_id INT NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    action ENUM('queued', 'sent', 'failed', 'retry') NOT NULL,
+    smtp_response TEXT,
+    error_message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
+    FOREIGN KEY (queue_id) REFERENCES email_queue(id) ON DELETE CASCADE,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+    INDEX idx_campaign_id (campaign_id),
+    INDEX idx_queue_id (queue_id),
+    INDEX idx_created_at (created_at)
+);
+
 -- Create database if it doesn't exist
 CREATE DATABASE IF NOT EXISTS crm_db;
 USE crm_db;
@@ -24,6 +75,7 @@ CREATE TABLE IF NOT EXISTS users (
     last_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
+    role ENUM('user', 'admin') DEFAULT 'user',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL,
@@ -64,6 +116,6 @@ CREATE TABLE IF NOT EXISTS contacts (
 );
 
 -- Insert a default admin user (password: admin123)
-INSERT INTO users (first_name, last_name, email, password) 
-VALUES ('Admin', 'User', 'admin@example.com', 'admin123')
+INSERT INTO users (first_name, last_name, email, password, role) 
+VALUES ('Admin', 'User', 'admin@example.com', 'admin123', 'admin')
 ON DUPLICATE KEY UPDATE id=id; 

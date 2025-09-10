@@ -42,6 +42,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 export function AppSidebar() {
+
   const { user, logout, isAuthenticated } = useAuth();
 
   // Don't render sidebar if not authenticated
@@ -68,9 +69,11 @@ export function AppSidebar() {
                 height={40}
                 className="rounded-full text-[var(--foreground)]"
               />
-              <div className="flex-1 text-left">
-                <div className="font-semibold">{user.first_name} {user.last_name}</div>
-                <div className="text-sm text-foreground">{user.email}</div>
+              <div className="flex-1 text-left min-w-0">
+                <div className="font-semibold truncate">{user.firstName} {user.lastName}</div>
+                <div className="text-sm text-foreground truncate" title={user.email}>
+                  {user.email.length > 20 ? `${user.email.substring(0, 20)}...` : user.email}
+                </div>
               </div>
               <ChevronDown className="h-4 w-4 text-foreground" />
             </button>
@@ -80,6 +83,14 @@ export function AppSidebar() {
               <User className="mr-2 h-4 w-4 text-foreground" />
               Profile
             </DropdownMenuItem>
+            {user.role === 'admin' && (
+              <DropdownMenuItem asChild>
+                <Link href="/admin/users" className="flex items-center">
+                  <Settings className="mr-2 h-4 w-4 text-foreground" />
+                  Admin
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-[var(--foreground)]">
               <LogOut className="mr-2 h-4 w-4 text-foreground" />
@@ -166,6 +177,17 @@ export function AppSidebar() {
                 <Link href="/analytics" prefetch>
                   <ChartNoAxesColumn className="h-5 w-5" />
                   <span className="font-semibold">Analytics</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            {/* Calendar */}
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className="px-4 py-2 gap-x-2 rounded hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">
+                <Link href="/calendar" prefetch>
+                  {/* You can use a calendar icon from lucide-react or similar */}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                  <span className="font-semibold">Calendar</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -448,7 +448,7 @@ export default function Contacts() {
                 onClick={() => handleSort("group")}
                 className={`${
                   sortBy === "group"
-                    ? "bg-[var(--accent)] text-[var(--accent-foreground]"
+                    ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
                     : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
                 }`}
               >

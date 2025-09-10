@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
     if (token && (pathname === "/login" || pathname === "/register")) {
       try {
         const secret = new TextEncoder().encode(
-          process.env.JWT_SECRET || "your-secret-key"
+          "hardcoded_super_secret_key_change_me"
         );
         
         const { payload } = await jwtVerify(token, secret);
@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest) {
   // Verify the JWT token
   try {
     const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || "your-secret-key"
+      "hardcoded_super_secret_key_change_me"
     );
     
     const { payload } = await jwtVerify(token, secret);
@@ -60,6 +60,15 @@ export async function middleware(request: NextRequest) {
     // Check if token is expired
     if (payload.exp && payload.exp < Date.now() / 1000) {
       throw new Error("Token expired");
+    }
+
+    // Check if accessing admin routes
+    if (pathname.startsWith("/admin")) {
+      // Check if user has admin role
+      if (payload.role !== "admin") {
+        const homeUrl = new URL("/", request.url);
+        return NextResponse.redirect(homeUrl);
+      }
     }
 
     // Token is valid, allow access

@@ -28,54 +28,11 @@ const CAMPAIGN_TYPES = [
   { label: "Special", value: "special" },
 ];
 
-const initialCampaigns: Campaign[] = [
-  {
-    id: "1",
-    title: "Summer Fishing Workshop Series",
-    date: "2025-06-30",
-    type: "workshop",
-    status: "draft",
-  },
-  {
-    id: "2",
-    title: "Teen Fishing & Survival Skills",
-    date: "2025-07-10",
-    type: "workshop",
-    status: "scheduled",
-  },
-  {
-    id: "3",
-    title: "Family Fishing Day",
-    date: "2025-08-03",
-    type: "event",
-    status: "sent",
-  },
-  {
-    id: "4",
-    title: "Girls Fishing Program",
-    date: "2025-09-24",
-    type: "special",
-    status: "archived",
-  },
-  {
-    id: "5",
-    title: "Community BBQ & Fishing",
-    date: "2025-10-06",
-    type: "community",
-    status: "draft",
-  },
-  {
-    id: "6",
-    title: "Kids Fishing Play Day",
-    date: "2025-11-01",
-    type: "event",
-    status: "scheduled",
-  },
-];
+// Fetch campaigns from backend
 
 export default function Campaigns() {
   const [filter, setFilter] = useState("");
-  const [campaigns] = useState(initialCampaigns);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<"date" | "type">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -85,11 +42,57 @@ export default function Campaigns() {
   const [mounted, setMounted] = useState(false);
   const [emailEditorLoaded, setEmailEditorLoaded] = useState(false);
   const [emailDesign, setEmailDesign] = useState<any>(null);
+  const [isNewCampaign, setIsNewCampaign] = useState(false);
+  const [showNewCampaignForm, setShowNewCampaignForm] = useState(false);
+  const [newCampaignData, setNewCampaignData] = useState<{
+    title: string;
+    date: string;
+    type: string;
+    status: string;
+    targetGroups: string[]; // <-- Fix: use string[] instead of never[]
+  }>({
+    title: '',
+    date: new Date().toISOString().slice(0, 10),
+    type: 'event',
+    status: 'draft',
+    targetGroups: [],
+  });
+    // --- Schedule Email Dialog State (from calendar page) ---
+    const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+    const [scheduleCampaigns, setScheduleCampaigns] = useState<any[]>([]);
+    const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
+    const [recipientType, setRecipientType] = useState("all");
+    const [email, setEmail] = useState("");
+    const [group, setGroup] = useState("");
+    const groups = ["Companies", "Private", "Groups", "OSHC", "Schools"];
+    const [scheduleDate, setScheduleDate] = useState("");
+    const [scheduleTime, setScheduleTime] = useState("");
+    const [scheduling, setScheduling] = useState(false);
+    const [scheduleError, setScheduleError] = useState<string|null>(null);
   const editorRef = useRef<EditorRef>(null);
   const emailEditorRef = useRef<EditorRef>(null);
 
+
   useEffect(() => {
     setMounted(true);
+    // Fetch campaigns from backend
+    fetch("/api/campaigns")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.campaigns)) {
+          setCampaigns(
+            data.campaigns.map((c: any) => ({
+              id: String(c.id),
+              title: c.title,
+              date: c.date,
+              type: c.type,
+              status: c.status,
+              targetGroups: c.target_groups ? c.target_groups.split(",") : [],
+              content: c.content,
+            }))
+          );
+        }
+      });
   }, []);
 
   const handleTypeChange = (type: string) => {
@@ -132,7 +135,34 @@ export default function Campaigns() {
 
   const handleEditClick = () => {
     setShowDetailsDialog(false);
+    setIsNewCampaign(false);
     setShowEditor(true);
+  };
+
+  const handleNewCampaign = () => {
+    setShowNewCampaignForm(true);
+    setNewCampaignData({
+      title: '',
+      date: new Date().toISOString().slice(0, 10),
+      type: 'event',
+      status: 'draft',
+      targetGroups: [],
+    });
+  };
+
+  const handleNewCampaignFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSelectedCampaign({
+      id: '',
+      ...newCampaignData,
+      type: newCampaignData.type as Campaign["type"],
+      status: newCampaignData.status as Campaign["status"],
+      content: '',
+    });
+    setEmailDesign(null);
+    setIsNewCampaign(true);
+    setShowEditor(true);
+    setShowNewCampaignForm(false);
   };
 
   const handleCloseEditor = () => {
@@ -159,18 +189,53 @@ export default function Campaigns() {
     const unlayer = emailEditorRef.current?.editor;
 
     unlayer?.saveDesign((design: any) => {
-      console.log("Saved design:", design);
       setEmailDesign(design);
-
-      // TODO: Save to database/API
-      // You can also export HTML here
-      unlayer.exportHtml((data: any) => {
+      unlayer.exportHtml(async (data: any) => {
         const { html } = data;
-        console.log("Generated HTML:", html);
-        // Update your campaign content
         if (selectedCampaign) {
-          // This would be saved to your database
-          selectedCampaign.content = html;
+          try {
+            let res;
+            if (isNewCampaign) {
+              // Create new campaign
+              res = await fetch('/api/campaigns', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title: selectedCampaign.title,
+                  date: selectedCampaign.date,
+                  type: selectedCampaign.type,
+                  status: selectedCampaign.status,
+                  targetGroups: selectedCampaign.targetGroups || [],
+                  content: html,
+                  design: design,
+                }),
+              });
+            } else {
+              // Update existing campaign
+              res = await fetch(`/api/campaigns/${selectedCampaign.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title: selectedCampaign.title,
+                  date: selectedCampaign.date,
+                  type: selectedCampaign.type,
+                  status: selectedCampaign.status,
+                  targetGroups: selectedCampaign.targetGroups || [],
+                  content: html,
+                  design: design,
+                }),
+              });
+            }
+            if (!res.ok) {
+              throw new Error('Failed to save campaign');
+            }
+            alert('Campaign saved successfully!');
+            setShowEditor(false);
+            setSelectedCampaign(null);
+            setIsNewCampaign(false);
+          } catch (err) {
+            alert('Error saving campaign: ' + (err instanceof Error ? err.message : err));
+          }
         }
       });
     });
@@ -184,7 +249,17 @@ export default function Campaigns() {
     } else if (selectedCampaign?.content) {
       // If you have existing HTML content, you can load it
       // For now, we'll start with a blank template
-      unlayer?.loadDesign({});
+      // Use a valid empty design object for Unlayer
+      unlayer?.loadDesign({
+        counters: {},
+        body: {
+          id: '',
+          rows: [],
+          headers: [],
+          footers: [],
+          values: {}
+        }
+      });
     }
   };
 
@@ -192,6 +267,71 @@ export default function Campaigns() {
     setEmailEditorLoaded(true);
     loadEmailDesign();
   };
+
+  async function handleScheduleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setScheduleError(null);
+
+    if (!selectedCampaignId) {
+      setScheduleError("Please select a campaign.");
+      return;
+    }
+    if (!scheduleDate) {
+      setScheduleError("Please select a date.");
+      return;
+    }
+    if (recipientType === "email" && !email) {
+      setScheduleError("Please enter a recipient email.");
+      return;
+    }
+    if (recipientType === "group" && !group) {
+      setScheduleError("Please select a group.");
+      return;
+    }
+
+    setScheduling(true);
+
+    try {
+      const res = await fetch(`/api/campaigns/${selectedCampaignId}/schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: scheduleDate,
+          time: scheduleTime,
+          recipientType,
+          email: recipientType === "email" ? email : undefined,
+          group: recipientType === "group" ? group : undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to schedule campaign");
+      }
+
+      // Optionally update campaign status in UI
+      setCampaigns((prev) =>
+        prev.map((c) =>
+          c.id === selectedCampaignId
+            ? { ...c, status: "scheduled" }
+            : c
+        )
+      );
+
+      setShowScheduleDialog(false);
+      setScheduleDate("");
+      setScheduleTime("");
+      setRecipientType("all");
+      setEmail("");
+      setGroup("");
+      setSelectedCampaignId("");
+      setScheduling(false);
+      alert("Campaign scheduled successfully!");
+    } catch (err: any) {
+      setScheduleError(err.message || "Failed to schedule campaign");
+      setScheduling(false);
+    }
+  }
 
   return (
     <div className="min-h-screen w-full p-8 sm:p-20">
@@ -271,7 +411,7 @@ export default function Campaigns() {
             </div>
           </div>
 
-          <Button className="flex-1 sm:flex-none">
+          <Button className="flex-1 sm:flex-none" onClick={handleNewCampaign}>
             <Plus className="h-4 w-4 mr-2" />
             New Campaign
           </Button>
@@ -422,9 +562,16 @@ export default function Campaigns() {
             <div className="flex justify-between items-center p-6 border-t bg-gray-50">
               <div className="flex gap-2">
                 {selectedCampaign.status === 'draft' && (
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setShowScheduleDialog(true);
+                      setSelectedCampaignId(selectedCampaign.id);
+                    }}
+                  >
                     <Send className="h-4 w-4 mr-2" />
-                    Schedule
+                    Schedule Email
                   </Button>
                 )}
                 {selectedCampaign.status !== 'archived' && (
@@ -448,16 +595,179 @@ export default function Campaigns() {
         </div>
       )}
 
+      {/* Schedule Email Dialog (always rendered at root) */}
+      {showScheduleDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <form onSubmit={handleScheduleSubmit} className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative space-y-4">
+            <button type="button" className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={() => setShowScheduleDialog(false)}>&times;</button>
+            <h2 className="text-xl font-bold mb-2">Schedule Email</h2>
+            <div>
+              <label className="block text-sm font-semibold mb-1">Campaign</label>
+              <select
+                className="w-full border rounded px-3 py-2"
+                value={selectedCampaignId}
+                onChange={e => setSelectedCampaignId(e.target.value)}
+                required
+              >
+                <option value="">Select a campaign</option>
+                {campaigns.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.title}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1">Recipient</label>
+              <select
+                className="w-full border rounded px-3 py-2"
+                value={recipientType}
+                onChange={e => setRecipientType(e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="group">Group</option>
+                <option value="email">Email</option>
+              </select>
+              {recipientType === "email" && (
+                <input
+                  type="email"
+                  className="w-full border rounded px-3 py-2 mt-2"
+                  placeholder="Recipient email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                />
+              )}
+              {recipientType === "group" && (
+                <select
+                  className="w-full border rounded px-3 py-2 mt-2"
+                  value={group}
+                  onChange={e => setGroup(e.target.value)}
+                  required
+                >
+                  <option value="">Select group</option>
+                  {groups.map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="block text-sm font-semibold mb-1">Date</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={scheduleDate}
+                  onChange={e => setScheduleDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-semibold mb-1">Time</label>
+                <input
+                  type="time"
+                  className="w-full border rounded px-3 py-2"
+                  value={scheduleTime}
+                  onChange={e => setScheduleTime(e.target.value)}
+                />
+              </div>
+            </div>
+            {scheduleError && <div className="text-red-600 text-sm">{scheduleError}</div>}
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300" onClick={() => setShowScheduleDialog(false)}>Cancel</button>
+              <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700" disabled={scheduling}>
+                {scheduling ? "Scheduling..." : "Schedule"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* New Campaign Form Dialog */}
+      {showNewCampaignForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-8 border border-[var(--border)]">
+            <h2 className="text-3xl font-bold mb-6 text-center text-[var(--foreground)]">Create New Campaign</h2>
+            <form onSubmit={handleNewCampaignFormSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-[var(--foreground)]">Title</label>
+                <input
+                  className="w-full border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
+                  value={newCampaignData.title}
+                  onChange={e => setNewCampaignData(d => ({ ...d, title: e.target.value }))}
+                  required
+                  placeholder="Campaign Title"
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-semibold mb-2 text-[var(--foreground)]">Date</label>
+                  <input
+                    type="date"
+                    className="w-full border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
+                    value={newCampaignData.date}
+                    onChange={e => setNewCampaignData(d => ({ ...d, date: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-semibold mb-2 text-[var(--foreground)]">Type</label>
+                  <select
+                    className="w-full border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
+                    value={newCampaignData.type}
+                    onChange={e => setNewCampaignData(d => ({ ...d, type: e.target.value as Campaign["type"] }))}
+                  >
+                    {CAMPAIGN_TYPES.map(t => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-semibold mb-2 text-[var(--foreground)]">Status</label>
+                  <select
+                    className="w-full border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
+                    value={newCampaignData.status}
+                    onChange={e => setNewCampaignData(d => ({ ...d, status: e.target.value as Campaign["status"] }))}
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="sent">Sent</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-semibold mb-2 text-[var(--foreground)]">Target Groups</label>
+                  <input
+                    className="w-full border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
+                    value={newCampaignData.targetGroups.join(",")}
+                    onChange={e => setNewCampaignData(d => ({
+                      ...d,
+                      targetGroups: e.target.value.split(",").map(s => s.trim()).filter(Boolean),
+                    }))}
+                    placeholder="e.g. Companies, Groups"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" className="px-5 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition" onClick={() => setShowNewCampaignForm(false)}>Cancel</button>
+                <button type="submit" className="px-5 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition">Continue</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Editor Dialog */}
       {showEditor && selectedCampaign && (
-        <div className="fixed inset-0 z-50 bg-white">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-gray-900">
           {/* Header */}
-          <div className="absolute top-0 left-0 right-0 h-20 flex justify-between items-center p-6 border-b bg-white z-10">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Edit Campaign: {selectedCampaign.title}
+          <div className="w-full max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center p-6 border-b border-[var(--border)] bg-white dark:bg-gray-900 z-10">
+            <div className="mb-4 sm:mb-0">
+              <h2 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">
+                {isNewCampaign ? 'Create Campaign' : `Edit Campaign: ${selectedCampaign.title}`}
               </h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-[var(--muted-foreground)] mt-1">
                 Design your email campaign using the drag-and-drop editor
               </p>
             </div>
@@ -465,16 +775,9 @@ export default function Campaigns() {
               <X className="h-4 w-4" />
             </Button>
           </div>
-          
-          {/* Editor - Full height minus header and footer */}
-          <div 
-            className="absolute left-0 right-0"
-            style={{ 
-              top: '80px',
-              bottom: '80px',
-              height: 'calc(100vh - 160px)'
-            }}
-          >
+
+          {/* Editor - Responsive and centered */}
+          <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col min-h-[60vh]" style={{ minHeight: '60vh' }}>
             <EmailEditor
               ref={emailEditorRef}
               onReady={onEmailEditorReady}
@@ -491,23 +794,21 @@ export default function Campaigns() {
                 locale: 'en-US',
                 features: {
                   preview: true,
-                  export: true,
-                  undo: true,
                   stockImages: true
                 }
               }}
-              style={{ height: '100%', width: '100%' }}
+              style={{ height: '60vh', width: '100%' }}
             />
           </div>
 
           {/* Footer */}
-          <div className="absolute bottom-0 left-0 right-0 h-20 flex justify-between items-center p-6 border-t bg-gray-50 z-10">
+          <div className="w-full max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center p-6 border-t border-[var(--border)] bg-gray-50 dark:bg-gray-800 z-10 gap-4">
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
                 onClick={() => {
                   const unlayer = emailEditorRef.current?.editor;
-                  unlayer?.showPreview('desktop');
+                  unlayer?.showPreview({ device: 'desktop' });
                 }}
               >
                 <Eye className="h-4 w-4 mr-2" />
@@ -519,7 +820,6 @@ export default function Campaigns() {
                   const unlayer = emailEditorRef.current?.editor;
                   unlayer?.exportHtml((data: any) => {
                     const { html } = data;
-                    console.log('Exported HTML:', html);
                     const blob = new Blob([html], { type: 'text/html' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');

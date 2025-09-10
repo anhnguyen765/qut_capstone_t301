@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/app/lib/auth";
 import { executeQuery } from "@/app/lib/db";
 
+// Define the User type
+type User = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+};
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");
@@ -22,11 +31,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get user data from database
+    // Use the User type instead of any[]
+
     const users = await executeQuery(
-      "SELECT id, first_name, last_name, email FROM users WHERE id = ?",
+      "SELECT id, first_name, last_name, email, role FROM users WHERE id = ?",
       [payload.userId]
-    ) as any[];
+    ) as User[];
 
     if (!Array.isArray(users) || users.length === 0) {
       return NextResponse.json(
@@ -35,14 +45,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const user = users[0];
 
+    const user = users[0];
+    // Return user object with keys matching frontend expectations
     return NextResponse.json({
       user: {
-        id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email
+        userId: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role
       }
     });
 
@@ -53,4 +65,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

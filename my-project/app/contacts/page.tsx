@@ -12,13 +12,8 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
-import { Textarea } from "@/app/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 
 type Contact = {
-  id?: number;
   id?: number;
   name: string;
   email: string;
@@ -27,19 +22,9 @@ type Contact = {
   notes?: string;
   created_at?: string;
   updated_at?: string;
-  phone?: string;
-  group: "Companies" | "Groups" | "Private" | "OSHC" | "Schools";
-  notes?: string;
-  created_at?: string;
-  updated_at?: string;
 };
 
 const GROUPS = [
-  { label: "Companies", value: "Companies" },
-  { label: "Private", value: "Private" },
-  { label: "Schools", value: "Schools" },
-  { label: "Groups", value: "Groups" },
-  { label: "OSHC", value: "OSHC" },
   { label: "Companies", value: "Companies" },
   { label: "Private", value: "Private" },
   { label: "Schools", value: "Schools" },
@@ -59,9 +44,6 @@ export default function Contacts() {
   const [newContact, setNewContact] = useState<Contact>({
     name: "",
     email: "",
-    phone: "",
-    group: "Companies",
-    notes: "",
     phone: "",
     group: "Companies",
     notes: "",
@@ -100,19 +82,6 @@ export default function Contacts() {
         console.error("Error fetching contacts:", error);
         setContacts([]);
       });
-      .then((data) => {
-        // Ensure data is always an array
-        if (Array.isArray(data)) {
-          setContacts(data);
-        } else {
-          console.error("Contacts API returned non-array data:", data);
-          setContacts([]);
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching contacts:", error);
-        setContacts([]);
-      });
   }, []);
 
   const handleGroupChange = (group: string) => {
@@ -135,8 +104,6 @@ export default function Contacts() {
       (c) =>
         (selectedGroups.length === 0 || selectedGroups.includes(c.group)) &&
         (c.name.toLowerCase().includes(filter.toLowerCase()) ||
-          c.email.toLowerCase().includes(filter.toLowerCase()) ||
-          (c.phone && c.phone.toLowerCase().includes(filter.toLowerCase())))
           c.email.toLowerCase().includes(filter.toLowerCase()) ||
           (c.phone && c.phone.toLowerCase().includes(filter.toLowerCase())))
     )
@@ -402,30 +369,24 @@ export default function Contacts() {
     <div className="min-h-screen w-full p-8 sm:p-20">
       <header className="mb-12">
         <h1 className="text-4xl font-bold text-[var(--foreground)]">
-        <h1 className="text-4xl font-bold text-[var(--foreground)]">
           Contacts
         </h1>
       </header>
 
       <div className="max-w-full mx-auto space-y-2">
-      <div className="max-w-full mx-auto space-y-2">
         <div className="relative flex items-center">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
-          <Input
           <Input
             type="text"
             placeholder="Search all contacts..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="pl-10 pr-4 placeholder:text-grey dark:placeholder:text-white/80"
-            className="pl-10 pr-4 placeholder:text-grey dark:placeholder:text-white/80"
           />
           <Popover>
             <PopoverTrigger asChild>
               <Button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 bg-background hover:bg-[var(--accent)] rounded-md">
-              <Button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 bg-background hover:bg-[var(--accent)] rounded-md">
                 <Filter className="h-5 w-5 text-[var(--foreground)]" />
-              </Button>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-48 p-2" align="end">
@@ -528,9 +489,6 @@ export default function Contacts() {
                   key={contact.id || idx}
                   className="p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between hover:bg-[var(--accent)]/50 cursor-pointer"
                   onClick={() => handleViewContact(contact)}
-                  key={contact.id || idx}
-                  className="p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between hover:bg-[var(--accent)]/50 cursor-pointer"
-                  onClick={() => handleViewContact(contact)}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -579,7 +537,6 @@ export default function Contacts() {
       {showAddDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Add New Contact</h2>
             <form
               onSubmit={e => {
@@ -589,8 +546,6 @@ export default function Contacts() {
               className="space-y-4"
             >
               <div>
-                <Label className="block text-sm font-medium mb-1">Name *</Label>
-                <Input
                 <Label className="block text-sm font-medium mb-1">Name *</Label>
                 <Input
                   type="text"
@@ -603,8 +558,6 @@ export default function Contacts() {
               <div>
                 <Label className="block text-sm font-medium mb-1">Email *</Label>
                 <Input
-                <Label className="block text-sm font-medium mb-1">Email *</Label>
-                <Input
                   type="email"
                   value={newContact.email}
                   onChange={e => setNewContact({ ...newContact, email: e.target.value })}
@@ -613,17 +566,6 @@ export default function Contacts() {
                 />
               </div>
               <div>
-                <Label className="block text-sm font-medium mb-1">Phone</Label>
-                <Input
-                  type="tel"
-                  value={newContact.phone}
-                  onChange={e => setNewContact({ ...newContact, phone: e.target.value })}
-                  className="w-full border rounded p-2"
-                />
-              </div>
-              <div>
-                <Label className="block text-sm font-medium mb-1">Group</Label>
-                <Select
                 <Label className="block text-sm font-medium mb-1">Phone</Label>
                 <Input
                   type="tel"
@@ -659,38 +601,13 @@ export default function Contacts() {
                   value={newContact.notes}
                   onChange={e => setNewContact({ ...newContact, notes: e.target.value })}
                   rows={3}
-                  onValueChange={(value) =>
-                    setNewContact({ ...newContact, group: value as Contact["group"] })
-                  }
-                >
-                  <SelectTrigger className="w-full border rounded p-2 flex justify-start items-center">
-                    <SelectValue placeholder="Select a group" />
-                    <span className="flex-none"><ChevronDown className="h-4 w-4 text-foreground" /></span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Private">Private</SelectItem>
-                    <SelectItem value="Companies">Companies</SelectItem>
-                    <SelectItem value="Groups">Groups</SelectItem>
-                    <SelectItem value="OSHC">OSHC</SelectItem>
-                    <SelectItem value="Schools">Schools</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="block text-sm font-medium mb-1">Notes</Label>
-                <Textarea
-                  value={newContact.notes}
-                  onChange={e => setNewContact({ ...newContact, notes: e.target.value })}
-                  rows={3}
                   className="w-full border rounded p-2"
-                />
                 />
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">Add Contact</Button>
                 <Button type="submit">Add Contact</Button>
               </div>
             </form>

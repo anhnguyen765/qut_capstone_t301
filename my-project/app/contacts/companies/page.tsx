@@ -1,11 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-<<<<<<< HEAD
-import { Search, UserPlus, ArrowUpDown} from "lucide-react";
-=======
 import { Search, UserPlus, ArrowUpDown, Edit} from "lucide-react";
->>>>>>> 351ba89 (Major Update (#5))
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";

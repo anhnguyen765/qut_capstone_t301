@@ -48,6 +48,50 @@ CREATE TABLE IF NOT EXISTS contacts (
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- Campaigns (stores designed emails)
+CREATE TABLE IF NOT EXISTS campaigns (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    subject VARCHAR(255) NOT NULL,
+    from_name VARCHAR(255),
+    from_email VARCHAR(255),
+    html LONGTEXT,
+    json LONGTEXT,
+    status ENUM('draft','queued','sending','sent','error') DEFAULT 'draft',
+    batch_size INT DEFAULT 75,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by INT,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Send logs (per recipient)
+CREATE TABLE IF NOT EXISTS send_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    campaign_id INT,
+    contact_id INT,
+    email VARCHAR(255),
+    status ENUM('queued','sent','failed','bounced') DEFAULT 'queued',
+    error TEXT,
+    sent_at TIMESTAMP NULL,
+    FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL,
+    INDEX idx_campaign (campaign_id),
+    INDEX idx_email (email),
+    INDEX idx_status (status)
+);
+
+-- Track opens
+CREATE TABLE IF NOT EXISTS opens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    campaign_id INT,
+    contact_id INT NULL,
+    email VARCHAR(255),
+    opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL
+);
+
+
 -- Insert a default admin user (password: admin123)
 INSERT INTO users (first_name, last_name, email, password) 
 VALUES ('Admin', 'User', 'admin@example.com', 'admin123')

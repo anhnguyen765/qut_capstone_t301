@@ -41,15 +41,16 @@ export default function RootLayout({
             <SidebarProvider>
               <AppSidebar />
               <div className="flex flex-col flex-1">
-                <main className="flex-1">
-                  <div className="flex justify-between">
-                    <ConditionalSidebarTrigger />
-                    {children}
-                    <ModeToggle />
-                  </div>
+                <header className="flex h-16 items-center gap-4 border-b bg-background px-4">
+                  <ConditionalSidebarTrigger />
+                  <div className="flex-1" />
+                  <ModeToggle />
+                </header>
+                <main className="flex-1 page-container">
+                  {children}
                 </main>
                 <footer className="bg-[var(--primary)] py-5">
-                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-[var(--primary-foreground)]">
+                  <div className="page-container text-center text-[var(--primary-foreground)]">
                     &copy; {new Date().getFullYear()} Two Bent Rods. All rights reserved.
                   </div>
                 </footer>                

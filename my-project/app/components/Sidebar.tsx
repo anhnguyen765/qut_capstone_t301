@@ -35,7 +35,9 @@ import {
   House,
   LogOut,
   User,
-  Settings
+  Settings,
+  Mail,
+  Monitor
 } from "lucide-react";
 
 import Link from "next/link";
@@ -45,15 +47,13 @@ export function AppSidebar() {
 
   const { user, logout, isAuthenticated } = useAuth();
 
-  // Don't render sidebar if not authenticated
-  if (!isAuthenticated || !user) {
-    return null;
-  }
-
+  // Show sidebar to all users, but handle logout only if authenticated
   const handleLogout = () => {
-    // Clear cookies
-    document.cookie = "authToken=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-    logout();
+    if (isAuthenticated) {
+      // Clear cookies
+      document.cookie = "authToken=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+      logout();
+    }
   };
 
   return (
@@ -70,32 +70,53 @@ export function AppSidebar() {
                 className="rounded-full text-[var(--foreground)]"
               />
               <div className="flex-1 text-left min-w-0">
-                <div className="font-semibold truncate">{user.firstName} {user.lastName}</div>
-                <div className="text-sm text-foreground truncate" title={user.email}>
-                  {user.email.length > 20 ? `${user.email.substring(0, 20)}...` : user.email}
+                <div className="font-semibold truncate">
+                  {user ? `${user.firstName} ${user.lastName}` : 'Guest User'}
+                </div>
+                <div className="text-sm text-foreground truncate" title={user?.email || 'No email'}>
+                  {user?.email ? (user.email.length > 20 ? `${user.email.substring(0, 20)}...` : user.email) : 'Not logged in'}
                 </div>
               </div>
               <ChevronDown className="h-4 w-4 text-foreground" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-[200px]">
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4 text-foreground" />
-              Profile
-            </DropdownMenuItem>
-            {user.role === 'admin' && (
-              <DropdownMenuItem asChild>
-                <Link href="/admin/users" className="flex items-center">
-                  <Settings className="mr-2 h-4 w-4 text-foreground" />
-                  Admin
-                </Link>
-              </DropdownMenuItem>
+            {isAuthenticated && user ? (
+              <>
+                <DropdownMenuItem>
+                  <User className="mr-2 h-4 w-4 text-foreground" />
+                  Profile
+                </DropdownMenuItem>
+                {user.role === 'admin' && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/users" className="flex items-center">
+                      <Settings className="mr-2 h-4 w-4 text-foreground" />
+                      Admin
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-[var(--foreground)]">
+                  <LogOut className="mr-2 h-4 w-4 text-foreground" />
+                  Logout
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/login" className="flex items-center">
+                    <User className="mr-2 h-4 w-4 text-foreground" />
+                    Login
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/register" className="flex items-center">
+                    <User className="mr-2 h-4 w-4 text-foreground" />
+                    Register
+                  </Link>
+                </DropdownMenuItem>
+              </>
             )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-[var(--foreground)]">
-              <LogOut className="mr-2 h-4 w-4 text-foreground" />
-              Logout
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarHeader>
@@ -109,6 +130,26 @@ export function AppSidebar() {
                 <Link href="/" prefetch>
                   <House className="h-5 w-5" />
                   <span className="font-semibold">Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            {/* Send Email */}
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className="px-4 py-2 gap-x-2 hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] rounded transition-colors">
+                <Link href="/send-email" prefetch>
+                  <Mail className="h-5 w-5" />
+                  <span className="font-semibold">Send Email</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            {/* Email Monitor */}
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className="px-4 py-2 gap-x-2 hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] rounded transition-colors">
+                <Link href="/email-monitor" prefetch>
+                  <Monitor className="h-5 w-5" />
+                  <span className="font-semibold">Email Monitor</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

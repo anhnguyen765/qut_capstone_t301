@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
 CREATE TABLE IF NOT EXISTS email_queue (
     id INT AUTO_INCREMENT PRIMARY KEY,
     campaign_id INT NOT NULL,
-    contact_id INT NOT NULL,
+    contact_id INT NULL,
     email VARCHAR(100) NOT NULL,
     status ENUM('pending', 'sending', 'sent', 'failed', 'retry') DEFAULT 'pending',
     attempts INT DEFAULT 0,
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS email_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     campaign_id INT NOT NULL,
     queue_id INT NOT NULL,
-    contact_id INT NOT NULL,
+    contact_id INT NULL,
     email VARCHAR(100) NOT NULL,
     action ENUM('queued', 'sent', 'failed', 'retry') NOT NULL,
     smtp_response TEXT,
@@ -115,22 +115,6 @@ CREATE TABLE IF NOT EXISTS contacts (
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- Campaigns (stores designed emails)
-CREATE TABLE IF NOT EXISTS campaigns (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    subject VARCHAR(255) NOT NULL,
-    from_name VARCHAR(255),
-    from_email VARCHAR(255),
-    html LONGTEXT,
-    json LONGTEXT,
-    status ENUM('draft','queued','sending','sent','error') DEFAULT 'draft',
-    batch_size INT DEFAULT 75,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by INT,
-    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
-);
-
 -- Send logs (per recipient)
 CREATE TABLE IF NOT EXISTS send_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -158,6 +142,22 @@ CREATE TABLE IF NOT EXISTS opens (
     FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL
 );
 
+-- Create email_schedule table for scheduled emails
+CREATE TABLE IF NOT EXISTS email_schedule (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    campaign_id INT NOT NULL,
+    scheduled_at TIMESTAMP NOT NULL,
+    status ENUM('scheduled', 'sent', 'cancelled') DEFAULT 'scheduled',
+    recipient_type ENUM('all', 'group', 'individual') DEFAULT 'all',
+    recipient_email VARCHAR(100),
+    recipient_group VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
+    INDEX idx_scheduled_at (scheduled_at),
+    INDEX idx_status (status),
+    INDEX idx_campaign_id (campaign_id)
+);
 
 -- Insert a default admin user (password: admin123)
 INSERT INTO users (first_name, last_name, email, password, role) 

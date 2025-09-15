@@ -1,0 +1,260 @@
+import { NextRequest, NextResponse } from "next/server";
+import { executeQuery } from "@/app/lib/db";
+import { emailQueueProcessor } from "@/app/lib/emailQueue";
+
+interface SendCampaignRequest {
+  campaignId: number;
+  contactIds?: number[];
+  targetGroups?: string[];
+  individualEmail?: string;
+  individualEmails?: string[];
+  sendImmediately?: boolean;
+  scheduledAt?: string;
+  subjectLine?: string;
+  senderName?: string;
+  senderEmail?: string;
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body: SendCampaignRequest = await request.json();
+    const { 
+      campaignId, 
+      contactIds, 
+      targetGroups, 
+      individualEmail, 
+      individualEmails, 
+      sendImmediately = false, 
+      scheduledAt,
+      subjectLine,
+      senderName,
+      senderEmail
+    } = body;
+
+    if (!campaignId) {
+      return NextResponse.json(
+        { error: "Campaign ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Get campaign details
+    const campaignResult = await executeQuery(
+      `SELECT * FROM campaigns WHERE id = ?`,
+      [campaignId]
+    );
+
+    if (!campaignResult || !Array.isArray(campaignResult) || campaignResult.length === 0) {
+      return NextResponse.json(
+        { error: "Campaign not found" },
+        { status: 404 }
+      );
+    }
+
+    const campaign = campaignResult[0] as any;
+
+    // Update campaign with subject line and sender info if provided
+    if (subjectLine || senderName || senderEmail) {
+      const updateFields = [];
+      const updateValues = [];
+      
+      if (subjectLine) {
+        updateFields.push('subject_line = ?');
+        updateValues.push(subjectLine);
+      }
+      if (senderName) {
+        updateFields.push('sender_name = ?');
+        updateValues.push(senderName);
+      }
+      if (senderEmail) {
+        updateFields.push('sender_email = ?');
+        updateValues.push(senderEmail);
+      }
+      
+      updateValues.push(campaignId);
+      
+      await executeQuery(
+        `UPDATE campaigns SET ${updateFields.join(', ')}, updated_at = NOW() WHERE id = ?`,
+        updateValues
+      );
+    }
+
+    // Get recipients based on selection criteria
+    let contacts: any[] = [];
+    
+    // Handle individual emails first
+    if (individualEmail || (individualEmails && individualEmails.length > 0)) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const emailsToProcess = individualEmail ? [individualEmail] : individualEmails || [];
+      
+      // Validate all email formats
+      for (const email of emailsToProcess) {
+        if (!emailRegex.test(email)) {
+          return NextResponse.json(
+            { error: `Invalid email format: ${email}` },
+            { status: 400 }
+          );
+        }
+      }
+      
+      // Create temporary contact objects for individual emails
+      const individualContacts = emailsToProcess.map(email => ({
+        id: 0, // Temporary ID for individual emails
+        email: email,
+        name: email.split('@')[0], // Use email prefix as name
+        group: 'Individual'
+      }));
+      contacts = [...contacts, ...individualContacts];
+    }
+    
+    // Handle specific contacts
+    if (contactIds && contactIds.length > 0) {
+      const placeholders = contactIds.map(() => '?').join(',');
+      const contactResult = await executeQuery(
+        `SELECT * FROM contacts WHERE id IN (${placeholders}) AND email IS NOT NULL AND email != ''`,
+        contactIds
+      );
+      contacts = [...contacts, ...(contactResult as any[])];
+    }
+    
+    // Handle specific groups
+    if (targetGroups && targetGroups.length > 0) {
+      const placeholders = targetGroups.map(() => '?').join(',');
+      const contactResult = await executeQuery(
+        `SELECT * FROM contacts WHERE \`group\` IN (${placeholders}) AND email IS NOT NULL AND email != ''`,
+        targetGroups
+      );
+      contacts = [...contacts, ...(contactResult as any[])];
+    }
+    
+    // If no specific recipients selected, send to all contacts
+    if (contacts.length === 0) {
+      const contactResult = await executeQuery(
+        `SELECT * FROM contacts WHERE email IS NOT NULL AND email != ''`,
+        []
+      );
+      contacts = contactResult as any[];
+    }
+    
+    // Remove duplicate emails
+    const uniqueContacts = contacts.filter((contact, index, self) => 
+      index === self.findIndex(c => c.email === contact.email)
+    );
+    contacts = uniqueContacts;
+
+    if (contacts.length === 0) {
+      return NextResponse.json(
+        { error: "No valid recipients found" },
+        { status: 400 }
+      );
+    }
+
+    // Update campaign status
+    await executeQuery(
+      `UPDATE campaigns SET status = ?, total_recipients = ?, updated_at = NOW() WHERE id = ?`,
+      ['scheduled', contacts.length, campaignId]
+    );
+
+    // Add emails to queue
+    for (const contact of contacts) {
+      if (contact.id === 0) {
+        // Individual email - insert with NULL contact_id
+        await executeQuery(
+          `INSERT INTO email_queue (campaign_id, contact_id, email, status, created_at) VALUES (?, NULL, ?, 'pending', NOW())`,
+          [campaignId, contact.email]
+        );
+      } else {
+        // Regular contact
+        await executeQuery(
+          `INSERT INTO email_queue (campaign_id, contact_id, email, status, created_at) VALUES (?, ?, ?, 'pending', NOW())`,
+          [campaignId, contact.id, contact.email]
+        );
+      }
+    }
+
+    // If sending immediately, trigger queue processing
+    if (sendImmediately) {
+      // Start queue processing in background
+      emailQueueProcessor.triggerProcessing().catch(error => {
+        console.error('Error triggering queue processing:', error);
+      });
+    }
+
+    // If scheduled, update campaign with scheduled time
+    if (scheduledAt && !sendImmediately) {
+      await executeQuery(
+        `UPDATE campaigns SET scheduled_at = ? WHERE id = ?`,
+        [scheduledAt, campaignId]
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: sendImmediately ? "Campaign queued and processing started" : "Campaign scheduled successfully",
+      queuedCount: contacts.length,
+      campaignId: campaignId
+    });
+
+  } catch (error) {
+    console.error("Send campaign error:", error);
+    return NextResponse.json(
+      { error: "Failed to send campaign" },
+      { status: 500 }
+    );
+  }
+}
+
+// Get campaign statistics
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const campaignId = searchParams.get('id');
+
+    if (campaignId) {
+      // Get specific campaign with queue stats
+      const campaignResult = await executeQuery(
+        `SELECT c.*, 
+         COUNT(eq.id) as total_queued,
+         SUM(CASE WHEN eq.status = 'sent' THEN 1 ELSE 0 END) as sent_count,
+         SUM(CASE WHEN eq.status = 'failed' THEN 1 ELSE 0 END) as failed_count,
+         SUM(CASE WHEN eq.status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+         SUM(CASE WHEN eq.status = 'sending' THEN 1 ELSE 0 END) as sending_count
+         FROM campaigns c
+         LEFT JOIN email_queue eq ON c.id = eq.campaign_id
+         WHERE c.id = ?
+         GROUP BY c.id`,
+        [campaignId]
+      );
+
+      if (!campaignResult || !Array.isArray(campaignResult) || campaignResult.length === 0) {
+        return NextResponse.json(
+          { error: "Campaign not found" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({ campaign: campaignResult[0] });
+    } else {
+      // Get all campaigns with basic stats
+      const campaigns = await executeQuery(
+        `SELECT c.*, 
+         COUNT(eq.id) as total_queued,
+         SUM(CASE WHEN eq.status = 'sent' THEN 1 ELSE 0 END) as sent_count,
+         SUM(CASE WHEN eq.status = 'failed' THEN 1 ELSE 0 END) as failed_count
+         FROM campaigns c
+         LEFT JOIN email_queue eq ON c.id = eq.campaign_id
+         GROUP BY c.id
+         ORDER BY c.created_at DESC`,
+        []
+      );
+
+      return NextResponse.json({ campaigns });
+    }
+  } catch (error) {
+    console.error("Get campaigns error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch campaigns" },
+      { status: 500 }
+    );
+  }
+}

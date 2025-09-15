@@ -10,6 +10,36 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Global page width with 10% margins */
+  .page-container {
+    @apply w-full mx-auto px-[10%] max-w-none;
+  }
+  
+  /* Enhanced checkbox visibility */
+  input[type="checkbox"] {
+    @apply border-2 border-gray-400 rounded;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+  }
+  
+  input[type="checkbox"]:checked {
+    @apply border-primary bg-primary;
+  }
+  
+  input[type="checkbox"]:focus {
+    @apply ring-2 ring-primary/20 outline-none;
+  }
+  
+  /* Dark mode checkbox styles */
+  .dark input[type="checkbox"] {
+    @apply border-gray-500;
+  }
+  
+  .dark input[type="checkbox"]:checked {
+    @apply border-primary bg-primary;
+  }
 }
 
 @theme inline {

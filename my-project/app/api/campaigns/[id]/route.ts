@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { executeQuery } from "@/app/lib/db";
 
 // Update a campaign by ID
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id = parseInt(params.id, 10);
+    const { id: idString } = await params;
+    const id = parseInt(idString, 10);
     if (isNaN(id)) {
       return NextResponse.json({ error: "Invalid campaign ID" }, { status: 400 });
     }

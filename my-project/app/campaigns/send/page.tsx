@@ -22,6 +22,7 @@ interface Campaign {
   sentCount: number;
   failedCount: number;
   status: string;
+  type: string;
 }
 
 export default function CampaignSender() {
@@ -33,6 +34,9 @@ export default function CampaignSender() {
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [subjectLine, setSubjectLine] = useState("");
+  const [senderName, setSenderName] = useState("2 Bent Rods");
+  const [senderEmail, setSenderEmail] = useState("campaigns@2bentrods.com.au");
 
   useEffect(() => {
     fetchCampaigns();
@@ -43,7 +47,16 @@ export default function CampaignSender() {
     try {
       const response = await fetch("/api/campaigns");
       const data = await response.json();
-      setCampaigns(data.campaigns.filter((c: Campaign) => c.type === 'email'));
+      setCampaigns(data.campaigns.map((c: any) => ({
+        id: c.id,
+        title: c.title,
+        subjectLine: c.subject_line || c.title,
+        totalRecipients: c.total_recipients || 0,
+        sentCount: c.sent_count || 0,
+        failedCount: c.failed_count || 0,
+        status: c.status,
+        type: c.type
+      })));
     } catch (error) {
       console.error("Error fetching campaigns:", error);
     }
@@ -88,11 +101,16 @@ export default function CampaignSender() {
       return;
     }
 
+    if (!subjectLine.trim()) {
+      setMessage("Please enter a subject line.");
+      return;
+    }
+
     setIsLoading(true);
     setMessage("");
 
     try {
-      const response = await fetch("/api/campaigns", {
+      const response = await fetch("/api/campaigns/send", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -100,6 +118,10 @@ export default function CampaignSender() {
         body: JSON.stringify({
           campaignId: selectedCampaign.id,
           contactIds: selectedContacts,
+          subjectLine: subjectLine,
+          senderName: senderName,
+          senderEmail: senderEmail,
+          sendImmediately: true
         }),
       });
 
@@ -178,6 +200,41 @@ export default function CampaignSender() {
                   </div>
                 </div>
               ))}
+            </div>
+            
+            {/* Email Configuration */}
+            <div className="mt-6 pt-6 border-t">
+              <h4 className="font-semibold mb-4">Email Configuration</h4>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Subject Line</label>
+                  <Input
+                    placeholder="Enter email subject line"
+                    value={subjectLine}
+                    onChange={(e) => setSubjectLine(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Sender Name</label>
+                    <Input
+                      placeholder="Sender name"
+                      value={senderName}
+                      onChange={(e) => setSenderName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Sender Email</label>
+                    <Input
+                      type="email"
+                      placeholder="sender@example.com"
+                      value={senderEmail}
+                      onChange={(e) => setSenderEmail(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

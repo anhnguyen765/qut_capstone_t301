@@ -159,6 +159,27 @@ CREATE TABLE IF NOT EXISTS email_schedule (
     INDEX idx_campaign_id (campaign_id)
 );
 
+-- Create email_sends table for tracking email send operations
+CREATE TABLE IF NOT EXISTS email_sends (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    campaign_id INT NOT NULL,
+    total_recipients INT NOT NULL DEFAULT 0,
+    sent_count INT NOT NULL DEFAULT 0,
+    failed_count INT NOT NULL DEFAULT 0,
+    pending_count INT NOT NULL DEFAULT 0,
+    status ENUM('queued', 'sending', 'completed', 'failed') DEFAULT 'queued',
+    send_type ENUM('immediate', 'scheduled') DEFAULT 'immediate',
+    scheduled_at TIMESTAMP NULL,
+    started_at TIMESTAMP NULL,
+    completed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
+    INDEX idx_campaign_id (campaign_id),
+    INDEX idx_status (status),
+    INDEX idx_created_at (created_at)
+);
+
 -- Insert a default admin user (password: admin123)
 INSERT INTO users (first_name, last_name, email, password, role) 
 VALUES ('Admin', 'User', 'admin@example.com', 'admin123', 'admin')

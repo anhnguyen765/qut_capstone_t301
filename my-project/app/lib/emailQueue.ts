@@ -32,36 +32,70 @@ class EmailQueueProcessor {
     }
 
     this.isProcessing = true;
-    console.log('Starting email queue processing...');
+    console.log('🚀 Starting email queue processing...');
 
     try {
+      // Check if email service is ready before processing
+      if (!emailService.isReady()) {
+        console.error('❌ Email service is not ready - stopping queue processing');
+        console.error('Please check SMTP configuration and restart the service');
+        return;
+      }
+
+      let totalProcessed = 0;
+      let totalFailed = 0;
+      let smtpFailureDetected = false;
+
       while (true) {
         const pendingEmails = await this.getPendingEmails();
         
         if (pendingEmails.length === 0) {
-          console.log('No pending emails to process');
+          console.log('✅ No pending emails to process');
           break;
         }
 
-        console.log(`Processing batch of ${pendingEmails.length} emails`);
-        await this.processBatch(pendingEmails);
+        console.log(`📧 Processing batch of ${pendingEmails.length} emails`);
+        
+        // Process batch and track results
+        const batchResults = await this.processBatch(pendingEmails);
+        totalProcessed += batchResults.processed;
+        totalFailed += batchResults.failed;
+
+        // Check if SMTP failure was detected in this batch
+        if (batchResults.smtpFailure) {
+          smtpFailureDetected = true;
+          console.error('❌ SMTP failure detected - stopping queue processing');
+          console.error('Please fix SMTP configuration before retrying');
+          break;
+        }
         
         // Delay between batches
         await this.delay(this.batchDelay);
       }
+
+      console.log(`📊 Queue processing completed:`);
+      console.log(`   ✅ Processed: ${totalProcessed}`);
+      console.log(`   ❌ Failed: ${totalFailed}`);
+      
+      if (smtpFailureDetected) {
+        console.log(`   🚫 Stopped due to SMTP failure`);
+      }
+
     } catch (error) {
-      console.error('Error processing email queue:', error);
+      console.error('❌ Error processing email queue:', error);
+      if (error instanceof Error) {
+        console.error(`Error details: ${error.message}`);
+      }
     } finally {
       this.isProcessing = false;
-      console.log('Email queue processing completed');
+      console.log('🏁 Email queue processing completed');
     }
   }
 
   private async getPendingEmails(): Promise<QueueItem[]> {
     const query = `
-      SELECT eq.*, c.subject_line, c.html_content, c.sender_name, c.sender_email
+      SELECT eq.*
       FROM email_queue eq
-      JOIN campaigns c ON eq.campaign_id = c.id
       WHERE eq.status IN ('pending', 'retry') 
       AND eq.attempts < eq.max_attempts
       ORDER BY eq.created_at ASC
@@ -72,13 +106,38 @@ class EmailQueueProcessor {
     return result as QueueItem[];
   }
 
-  private async processBatch(emails: QueueItem[]): Promise<void> {
+  private async processBatch(emails: QueueItem[]): Promise<{
+    processed: number;
+    failed: number;
+    smtpFailure: boolean;
+  }> {
     const promises = emails.map(email => this.processEmail(email));
-    await Promise.allSettled(promises);
+    const results = await Promise.allSettled(promises);
+    
+    let processed = 0;
+    let failed = 0;
+    let smtpFailure = false;
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        processed++;
+      } else {
+        failed++;
+        // Check if this was an SMTP-related failure
+        const error = result.reason;
+        if (error && typeof error === 'string' && error.includes('SMTP')) {
+          smtpFailure = true;
+        }
+      }
+    });
+
+    return { processed, failed, smtpFailure };
   }
 
   private async processEmail(queueItem: QueueItem): Promise<void> {
     try {
+      console.log(`📧 Processing email for: ${queueItem.email}`);
+      
       // Update status to 'sending'
       await this.updateQueueStatus(queueItem.id, 'sending');
 
@@ -103,14 +162,38 @@ class EmailQueueProcessor {
         // Update campaign stats
         await this.updateCampaignStats(queueItem.campaign_id, 'sent');
         
-        console.log(`Email sent successfully to ${queueItem.email}`);
+        console.log(`✅ Email sent successfully to ${queueItem.email}`);
       } else {
-        // Handle failure
-        await this.handleEmailFailure(queueItem, result.error || 'Unknown error');
+        // Check if this is an SMTP transport failure
+        const isSmtpFailure = result.error && result.error.includes('SMTP Transport Failed');
+        
+        if (isSmtpFailure) {
+          console.error(`❌ SMTP Transport failure for ${queueItem.email}: ${result.error}`);
+          // Don't retry SMTP failures - mark as failed immediately
+          await this.updateQueueStatus(queueItem.id, 'failed', result.error, queueItem.max_attempts);
+          await this.logEmailAction(queueItem, 'failed', result.error);
+          await this.updateCampaignStats(queueItem.campaign_id, 'failed');
+          throw new Error(`SMTP Transport Failed: ${result.error}`);
+        } else {
+          // Handle other types of failures (retry logic)
+          await this.handleEmailFailure(queueItem, result.error || 'Unknown error');
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      await this.handleEmailFailure(queueItem, errorMessage);
+      
+      // Check if this is an SMTP-related error
+      if (errorMessage.includes('SMTP')) {
+        console.error(`❌ SMTP error for ${queueItem.email}: ${errorMessage}`);
+        // Mark as failed immediately for SMTP errors
+        await this.updateQueueStatus(queueItem.id, 'failed', errorMessage, queueItem.max_attempts);
+        await this.logEmailAction(queueItem, 'failed', errorMessage);
+        await this.updateCampaignStats(queueItem.campaign_id, 'failed');
+        throw error; // Re-throw to be caught by processBatch
+      } else {
+        // Handle other errors normally
+        await this.handleEmailFailure(queueItem, errorMessage);
+      }
     }
   }
 
@@ -164,7 +247,11 @@ class EmailQueueProcessor {
 
   private async getCampaignData(campaignId: number): Promise<CampaignData> {
     const query = `
-      SELECT id, subject_line, html_content, sender_name, sender_email
+      SELECT id, 
+             COALESCE(subject_line, 'No Subject') as subject_line,
+             COALESCE(html_content, content, 'No content available') as html_content,
+             COALESCE(sender_name, 'CRM System') as sender_name,
+             COALESCE(sender_email, 'noreply@yourdomain.com') as sender_email
       FROM campaigns 
       WHERE id = ?
     `;
@@ -197,13 +284,23 @@ class EmailQueueProcessor {
   private async updateCampaignStats(campaignId: number, action: 'sent' | 'failed'): Promise<void> {
     const field = action === 'sent' ? 'sent_count' : 'failed_count';
     const query = `
-      UPDATE campaigns 
+      UPDATE email_sends 
       SET ${field} = ${field} + 1,
-          sent_at = CASE WHEN ? = 'sent' AND sent_at IS NULL THEN CURRENT_TIMESTAMP ELSE sent_at END
-      WHERE id = ?
+          pending_count = pending_count - 1,
+          status = CASE 
+            WHEN pending_count - 1 = 0 THEN 'completed'
+            ELSE status 
+          END,
+          completed_at = CASE 
+            WHEN pending_count - 1 = 0 THEN CURRENT_TIMESTAMP
+            ELSE completed_at 
+          END
+      WHERE campaign_id = ? 
+      ORDER BY created_at DESC 
+      LIMIT 1
     `;
     
-    await executeQuery(query, [action, campaignId]);
+    await executeQuery(query, [campaignId]);
   }
 
   private delay(ms: number): Promise<void> {

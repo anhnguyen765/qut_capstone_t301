@@ -149,10 +149,25 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Update campaign status
+    // Create email_sends record to track this send operation
+    const emailSendResult = await executeQuery(
+      `INSERT INTO email_sends (campaign_id, total_recipients, pending_count, status, send_type, scheduled_at, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        campaignId, 
+        contacts.length, 
+        contacts.length, 
+        sendImmediately ? 'queued' : 'queued',
+        sendImmediately ? 'immediate' : 'scheduled',
+        scheduledAt || null
+      ]
+    );
+
+    const emailSendId = (emailSendResult as any).insertId;
+
+    // Update campaign status (without touching total_recipients)
     await executeQuery(
-      `UPDATE campaigns SET status = ?, total_recipients = ?, updated_at = NOW() WHERE id = ?`,
-      ['scheduled', contacts.length, campaignId]
+      `UPDATE campaigns SET status = ?, updated_at = NOW() WHERE id = ?`,
+      ['scheduled', campaignId]
     );
 
     // Add emails to queue
@@ -170,6 +185,14 @@ export async function PUT(request: NextRequest) {
           [campaignId, contact.id, contact.email]
         );
       }
+    }
+
+    // Update email_sends status if sending immediately
+    if (sendImmediately) {
+      await executeQuery(
+        `UPDATE email_sends SET status = 'sending', started_at = NOW() WHERE id = ?`,
+        [emailSendId]
+      );
     }
 
     // If sending immediately, trigger queue processing
@@ -211,18 +234,28 @@ export async function GET(request: NextRequest) {
     const campaignId = searchParams.get('id');
 
     if (campaignId) {
-      // Get specific campaign with queue stats
+      // Get specific campaign with email_sends stats
       const campaignResult = await executeQuery(
         `SELECT c.*, 
+         es.total_recipients,
+         es.sent_count,
+         es.failed_count,
+         es.pending_count,
+         es.status as send_status,
+         es.send_type,
+         es.scheduled_at as email_scheduled_at,
+         es.started_at,
+         es.completed_at,
          COUNT(eq.id) as total_queued,
-         SUM(CASE WHEN eq.status = 'sent' THEN 1 ELSE 0 END) as sent_count,
-         SUM(CASE WHEN eq.status = 'failed' THEN 1 ELSE 0 END) as failed_count,
-         SUM(CASE WHEN eq.status = 'pending' THEN 1 ELSE 0 END) as pending_count,
-         SUM(CASE WHEN eq.status = 'sending' THEN 1 ELSE 0 END) as sending_count
+         SUM(CASE WHEN eq.status = 'sent' THEN 1 ELSE 0 END) as queue_sent_count,
+         SUM(CASE WHEN eq.status = 'failed' THEN 1 ELSE 0 END) as queue_failed_count,
+         SUM(CASE WHEN eq.status = 'pending' THEN 1 ELSE 0 END) as queue_pending_count,
+         SUM(CASE WHEN eq.status = 'sending' THEN 1 ELSE 0 END) as queue_sending_count
          FROM campaigns c
+         LEFT JOIN email_sends es ON c.id = es.campaign_id
          LEFT JOIN email_queue eq ON c.id = eq.campaign_id
          WHERE c.id = ?
-         GROUP BY c.id`,
+         GROUP BY c.id, es.id`,
         [campaignId]
       );
 
@@ -235,15 +268,25 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({ campaign: campaignResult[0] });
     } else {
-      // Get all campaigns with basic stats
+      // Get all campaigns with email_sends stats
       const campaigns = await executeQuery(
         `SELECT c.*, 
+         es.total_recipients,
+         es.sent_count,
+         es.failed_count,
+         es.pending_count,
+         es.status as send_status,
+         es.send_type,
+         es.scheduled_at as email_scheduled_at,
+         es.started_at,
+         es.completed_at,
          COUNT(eq.id) as total_queued,
-         SUM(CASE WHEN eq.status = 'sent' THEN 1 ELSE 0 END) as sent_count,
-         SUM(CASE WHEN eq.status = 'failed' THEN 1 ELSE 0 END) as failed_count
+         SUM(CASE WHEN eq.status = 'sent' THEN 1 ELSE 0 END) as queue_sent_count,
+         SUM(CASE WHEN eq.status = 'failed' THEN 1 ELSE 0 END) as queue_failed_count
          FROM campaigns c
+         LEFT JOIN email_sends es ON c.id = es.campaign_id
          LEFT JOIN email_queue eq ON c.id = eq.campaign_id
-         GROUP BY c.id
+         GROUP BY c.id, es.id
          ORDER BY c.created_at DESC`,
         []
       );

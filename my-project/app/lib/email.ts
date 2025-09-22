@@ -37,6 +37,7 @@ class EmailService {
   private transporter: nodemailer.Transporter | null = null;
   private config: EmailConfig | null = null;
   private isInitialized = false;
+  private initializationError: string | null = null;
 
   constructor() {
     this.initializeTransporter();
@@ -57,36 +58,82 @@ class EmailService {
 
       // Validate configuration
       if (!this.config.auth.pass) {
-        throw new Error('SMTP password is required');
+        const errorMsg = 'SMTP password is required. Please set SMTP_PASS environment variable.';
+        this.initializationError = errorMsg;
+        throw new Error(errorMsg);
       }
 
-      this.transporter = nodemailer.createTransporter(this.config);
+      if (!this.config.auth.user || this.config.auth.user === 'noreply@yourdomain.com') {
+        const errorMsg = 'SMTP user is required. Please set SMTP_USER environment variable.';
+        this.initializationError = errorMsg;
+        throw new Error(errorMsg);
+      }
+
+      console.log('Attempting to initialize SMTP transporter...');
+      console.log(`SMTP Host: ${this.config.host}`);
+      console.log(`SMTP Port: ${this.config.port}`);
+      console.log(`SMTP User: ${this.config.auth.user}`);
+      console.log(`SMTP Secure: ${this.config.secure}`);
+
+      this.transporter = nodemailer.createTransport(this.config);
       
       // Verify connection with timeout
+      console.log('Verifying SMTP connection...');
       await Promise.race([
         this.transporter.verify(),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('SMTP verification timeout')), 10000)
+          setTimeout(() => reject(new Error('SMTP verification timeout after 10 seconds')), 10000)
         )
       ]);
       
       this.isInitialized = true;
+      this.initializationError = null;
       console.log('SMTP connection established successfully');
     } catch (error) {
-      console.error('Failed to initialize SMTP transporter:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.initializationError = errorMessage;
       this.transporter = null;
       this.isInitialized = false;
+      
+      console.error('Failed to initialize SMTP transporter:');
+      console.error(`Error: ${errorMessage}`);
+      
+      if (error instanceof Error && error.code) {
+        console.error(`Error Code: ${error.code}`);
+      }
+      
+      if (error instanceof Error && error.response) {
+        console.error(`SMTP Response: ${error.response}`);
+      }
+
+      // Log troubleshooting information
+      console.log('\nRequired Environment Variables:');
+      console.log('- SMTP_HOST: Your SMTP server hostname');
+      console.log('- SMTP_PORT: SMTP port (usually 587 or 465)');
+      console.log('- SMTP_USER: Your email address');
+      console.log('- SMTP_PASS: Your email password or app password');
+      console.log('- SMTP_SECURE: true for port 465, false for port 587');
     }
   }
 
   async sendEmail(emailData: EmailData): Promise<EmailResult> {
+    // Check if SMTP transporter failed to initialize
     if (!this.transporter || !this.isInitialized) {
-      return { success: false, error: 'SMTP transporter not initialized' };
+      const errorMsg = this.initializationError || 'SMTP transporter not initialized';
+      console.error('Cannot send email - SMTP transporter not available:');
+      console.error(`Error: ${errorMsg}`);
+      return { 
+        success: false, 
+        error: `SMTP Transport Failed: ${errorMsg}` 
+      };
     }
 
     try {
       // Normalize recipients to array
       const recipients = Array.isArray(emailData.to) ? emailData.to : [emailData.to];
+      
+      console.log(`Attempting to send email to: ${recipients.join(', ')}`);
+      console.log(`Subject: ${emailData.subject}`);
       
       const mailOptions = {
         from: emailData.from || this.config?.auth.user,
@@ -105,6 +152,9 @@ class EmailService {
 
       const result = await this.transporter.sendMail(mailOptions);
       
+      console.log(`Email sent successfully to: ${recipients.join(', ')}`);
+      console.log(`Message ID: ${result.messageId}`);
+      
       return { 
         success: true, 
         messageId: result.messageId,
@@ -112,10 +162,27 @@ class EmailService {
         recipients: recipients
       };
     } catch (error) {
-      console.error('Email sending failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Email sending failed:');
+      console.error(`Error: ${errorMessage}`);
+      
+      if (error instanceof Error && error.code) {
+        console.error(`Error Code: ${error.code}`);
+      }
+      
+      if (error instanceof Error && error.response) {
+        console.error(`SMTP Response: ${error.response}`);
+      }
+
+      // Log detailed error information
+      console.log('\n🔍 Email Send Error Details:');
+      console.log(`Recipients: ${Array.isArray(emailData.to) ? emailData.to.join(', ') : emailData.to}`);
+      console.log(`Subject: ${emailData.subject}`);
+      console.log(`From: ${emailData.from || this.config?.auth.user}`);
+      
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: `Email Send Failed: ${errorMessage}` 
       };
     }
   }
@@ -189,6 +256,26 @@ class EmailService {
 
   isReady(): boolean {
     return this.isInitialized && this.transporter !== null;
+  }
+
+  getInitializationError(): string | null {
+    return this.initializationError;
+  }
+
+  getStatus(): {
+    isReady: boolean;
+    isInitialized: boolean;
+    hasTransporter: boolean;
+    error: string | null;
+    config: { host: string; port: number; secure: boolean; user: string } | null;
+  } {
+    return {
+      isReady: this.isReady(),
+      isInitialized: this.isInitialized,
+      hasTransporter: this.transporter !== null,
+      error: this.initializationError,
+      config: this.getConfiguration()
+    };
   }
 }
 

@@ -168,13 +168,12 @@ export default function SchoolsContacts() {
   };
 
   return (
-    <div className="min-h-screen w-full p-8 sm:p-20">
-      <header className="mb-12 flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-[var(--foreground)]">
-            Schools Contacts
-          </h1>
-        </div>
+    <div className="min-h-screen w-full py-8 px-[10%]">
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+          Schools Contacts
+        </h1>
+      </header>
         <Button
           onClick={() => setShowAddDialog(true)}
         >

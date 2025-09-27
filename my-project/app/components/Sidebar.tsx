@@ -144,31 +144,19 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
 
-            {/* Email Monitor */}
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild className="px-4 py-2 gap-x-2 hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] rounded transition-colors">
-                <Link href="/email-monitor" prefetch>
-                  <Monitor className="h-5 w-5" />
-                  <span className="font-semibold">Email Monitor</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
             {/* Marketing */}
             <Collapsible defaultOpen className="group/collapsible">
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <Link href="/campaigns" prefetch>
                     <SidebarMenuButton className="w-full px-4 py-2 gap-x-2 rounded hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">
                       <PartyPopper className="h-5 w-5" />
                       <span className="font-semibold">Marketing</span>
                       <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
                     </SidebarMenuButton>
-                  </Link>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="overflow-hidden">
                   <SidebarMenuSub>
-                    {["Campaigns", "Templates", "Newsletters"].map((item) => (
+                    {["Campaigns", "Newsletters", "Templates"].map((item) => (
                       <Link key={item} href={`/${item.toLowerCase()}`} prefetch>
                         <SidebarMenuSubItem className="px-6 py-2 rounded hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">
                           {item}

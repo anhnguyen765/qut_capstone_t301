@@ -6,7 +6,12 @@ const {
     DB_HOST,
     DB_USER,
     DB_PASS,
-    DB_NAME
+    DB_NAME,
+    SMTP_HOST,
+    SMTP_PORT,
+    SMTP_USER,
+    SMTP_PASS,
+    APP_BASE_URL
 } = process.env;
 
 const pool = mysql.createPool({
@@ -52,10 +57,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Load campaign details
-        const [campaignRows] = await pool.query<Campaign[]>(
+        const [campaignRows] = await pool.query(
             "SELECT * FROM campaigns WHERE id = ?",
             [campaignId]
-        );
+        ) as [Campaign[], any];
 
         if (campaignRows.length === 0) {
             return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
@@ -63,9 +68,9 @@ export async function POST(request: NextRequest) {
         const campaign = campaignRows[0];
 
         // Get recipients
-        const [contacts] = await pool.query<Contact[]>(
+        const [contacts] = await pool.query(
             'SELECT id, email, name FROM contacts WHERE email IS NOT NULL AND email != ""'
-        );
+        ) as [Contact[], any];
         if (contacts.length === 0) {
             return NextResponse.json({ error: "No recipients found" }, { status: 404 });
         }
@@ -74,7 +79,7 @@ export async function POST(request: NextRequest) {
         await Promise.all(
             contacts.map((c) => {
                 pool.query(
-                    'INSERT INTO send_logs (campaign_id, contact_id, email, status) VALUES (?, ?, ?)',
+                    'INSERT INTO send_logs (campaign_id, contact_id, email, status) VALUES (?, ?, ?, ?)',
                     [campaignId, c.id, c.email, 'queued']
                 )
             })
@@ -82,12 +87,19 @@ export async function POST(request: NextRequest) {
 
         // Setup Nodemailer (cPanel SMTP)
         const transporter = nodemailer.createTransport({
-            host: CPNANE_SMTP_HOST,
-            port: parseInt(CPNANE_SMTP_PORT || '587'),
-            secure: parseInt(CPNANE_SMTP_PORT || '587') === 465,
+            host: SMTP_HOST,
+            port: Number(SMTP_PORT),
+            secure: true,
             auth: {
-                user: CPNANE_SMTP_USER,
-                pass: CPNANE_SMTP_PASS
+                user: SMTP_USER,
+                pass: SMTP_PASS
+            },
+            authMethod: "LOGIN",
+            debug: true,
+            logger: true,
+            tls: {
+                rejectUnauthorized: false,
+                debug: true
             }
         });
 
@@ -117,7 +129,7 @@ export async function POST(request: NextRequest) {
 
             try {
                 const info = await transporter.sendMail({
-                    from: `${campaign.from_name} <${campaign.from_email}>`,
+                    from: `${campaign.from_name || 'CRM System'} <campaigns@2bentrods.com.au>`,
                     to: recipient.email,
                     subject: campaign.subject,
                     html: htmlWithFooter,

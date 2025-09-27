@@ -53,31 +53,9 @@ export async function PUT(request: NextRequest) {
 
     const campaign = campaignResult[0] as any;
 
-    // Update campaign with subject line and sender info if provided
-    if (subjectLine || senderName || senderEmail) {
-      const updateFields = [];
-      const updateValues = [];
-      
-      if (subjectLine) {
-        updateFields.push('subject_line = ?');
-        updateValues.push(subjectLine);
-      }
-      if (senderName) {
-        updateFields.push('sender_name = ?');
-        updateValues.push(senderName);
-      }
-      if (senderEmail) {
-        updateFields.push('sender_email = ?');
-        updateValues.push(senderEmail);
-      }
-      
-      updateValues.push(campaignId);
-      
-      await executeQuery(
-        `UPDATE campaigns SET ${updateFields.join(', ')}, updated_at = NOW() WHERE id = ?`,
-        updateValues
-      );
-    }
+    // Note: The campaigns table doesn't have subject_line, sender_name, sender_email columns
+    // These values will be used directly in the email sending process
+    // No database update needed for these fields
 
     // Get recipients based on selection criteria
     let contacts: any[] = [];
@@ -161,6 +139,14 @@ export async function PUT(request: NextRequest) {
         scheduledAt || null
       ]
     );
+    
+    // Store subject line and sender info for this send operation
+    // We'll use a simple approach: store in a JSON field or use the campaign title
+    const sendMetadata = {
+      subjectLine: subjectLine || 'No Subject',
+      senderName: senderName || 'CRM System',
+      senderEmail: 'campaigns@2bentrods.com.au'
+    };
 
     const emailSendId = (emailSendResult as any).insertId;
 
@@ -195,8 +181,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // If sending immediately, trigger queue processing
+    // If sending immediately, trigger queue processing with metadata
     if (sendImmediately) {
+      // Pass metadata to the queue processor
+      (emailQueueProcessor as any).currentSendMetadata = sendMetadata;
       // Start queue processing in background
       emailQueueProcessor.triggerProcessing().catch(error => {
         console.error('Error triggering queue processing:', error);

@@ -152,7 +152,7 @@ function LoginForm() {
     };
 
     return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-background">
+    <div className="flex min-h-screen w-full items-center justify-center bg-background py-8 px-[10%]">
             <Card className="w-full max-w-md shadow-xl rounded-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl font-bold text-center">

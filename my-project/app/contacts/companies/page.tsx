@@ -168,16 +168,14 @@ export default function CompaniesContacts() {
   };
 
   return (
-    <div className="min-h-screen w-full p-8 sm:p-20">
-      <header className="mb-12 flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-[var(--foreground)]">
-            Companies Contacts
-          </h1>
-        </div>
+    <div className="min-h-screen w-full py-8 px-[10%]">
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+          Companies Contacts
+        </h1>
       </header>
 
-      <div className="max-w-full mx-auto space-y-2 ">
+      <div className="space-y-2">
         <div className="flex gap-4">
           <div className="relative flex items-center flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
@@ -276,6 +274,10 @@ export default function CompaniesContacts() {
                 </li>
               ))
             )}
+          </ul>
+        </main>
+      </div>
+
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && contactToDelete && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40">
@@ -319,9 +321,6 @@ export default function CompaniesContacts() {
           </div>
         </div>
       )}
-          </ul>
-        </main>
-      </div>
 
       {/* Add Contact Dialog */}
       {showAddDialog && (
@@ -418,8 +417,8 @@ export default function CompaniesContacts() {
                   <Label className="block text-sm font-medium mb-1">Company Name *</Label>
                   <Input
                     type="text"
-                    value={selectedContact.name}
-                    onChange={e => setSelectedContact({ ...selectedContact, name: e.target.value })}
+                    value={selectedContact?.name || ""}
+                    onChange={e => selectedContact && setSelectedContact({ ...selectedContact, name: e.target.value })}
                     required
                     className="w-full border rounded p-2"
                   />
@@ -428,8 +427,8 @@ export default function CompaniesContacts() {
                   <Label className="block text-sm font-medium mb-1">Email *</Label>
                   <Input
                     type="email"
-                    value={selectedContact.email}
-                    onChange={e => setSelectedContact({ ...selectedContact, email: e.target.value })}
+                    value={selectedContact?.email || ""}
+                    onChange={e => selectedContact && setSelectedContact({ ...selectedContact, email: e.target.value })}
                     required
                     className="w-full border rounded p-2"
                   />
@@ -438,17 +437,17 @@ export default function CompaniesContacts() {
                   <Label className="block text-sm font-medium mb-1">Phone</Label>
                   <Input
                     type="tel"
-                    value={selectedContact.phone || ""}
-                    onChange={e => setSelectedContact({ ...selectedContact, phone: e.target.value })}
+                    value={selectedContact?.phone || ""}
+                    onChange={e => selectedContact && setSelectedContact({ ...selectedContact, phone: e.target.value })}
                     className="w-full border rounded p-2"
                   />
                 </div>
                 <div>
                   <Label className="block text-sm font-medium mb-1">Group</Label>
                   <Select
-                    value={selectedContact.group}
+                    value={selectedContact?.group || ""}
                     onValueChange={(value) =>
-                      setSelectedContact({ ...selectedContact, group: value as Contact["group"] })
+                      selectedContact && setSelectedContact({ ...selectedContact, group: value as Contact["group"] })
                     }
                   >
                     <SelectTrigger className="w-full border rounded p-2 flex justify-start items-center">
@@ -466,8 +465,8 @@ export default function CompaniesContacts() {
                 <div>
                   <Label className="block text-sm font-medium mb-1">Notes</Label>
                   <Textarea
-                    value={selectedContact.notes || ""}
-                    onChange={e => setSelectedContact({ ...selectedContact, notes: e.target.value })}
+                    value={selectedContact?.notes || ""}
+                    onChange={e => selectedContact && setSelectedContact({ ...selectedContact, notes: e.target.value })}
                     rows={3}
                     className="w-full border rounded p-2"
                   />
@@ -483,13 +482,13 @@ export default function CompaniesContacts() {
               <div className="space-y-4">
                 <div>
                   <Label className="block text-sm font-medium mb-1">Company Name</Label>
-                  <p className="text-[var(--foreground)]">{selectedContact.name}</p>
+                  <p className="text-[var(--foreground)]">{selectedContact?.name}</p>
                 </div>
                 <div>
                   <Label className="block text-sm font-medium mb-1">Email</Label>
-                  <p className="text-[var(--foreground)]">{selectedContact.email}</p>
+                  <p className="text-[var(--foreground)]">{selectedContact?.email}</p>
                 </div>
-                {selectedContact.phone && (
+                {selectedContact?.phone && (
                   <div>
                     <Label className="block text-sm font-medium mb-1">Phone</Label>
                     <p className="text-[var(--foreground)]">{selectedContact.phone}</p>
@@ -497,9 +496,9 @@ export default function CompaniesContacts() {
                 )}
                 <div>
                   <Label className="block text-sm font-medium mb-1">Group</Label>
-                  <p className="text-[var(--foreground)]">{selectedContact.group}</p>
+                  <p className="text-[var(--foreground)]">{selectedContact?.group}</p>
                 </div>
-                {selectedContact.notes && (
+                {selectedContact?.notes && (
                   <div>
                     <Label className="block text-sm font-medium mb-1">Notes</Label>
                     <p className="text-[var(--foreground)] whitespace-pre-wrap">{selectedContact.notes}</p>

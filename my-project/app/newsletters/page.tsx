@@ -128,14 +128,14 @@ export default function Newsletters() {
   };
 
   return (
-    <div className="min-h-screen w-full p-8 sm:p-20">
-      <header className="mb-12">
-        <h1 className="text-4xl font-bold text-[var(--foreground)]">
+    <div className="min-h-screen w-full py-8 px-[10%]">
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
           Newsletters
         </h1>
       </header>
 
-      <div className="max-w-full mx-auto space-y-4">
+      <div className="space-y-4">
         <div className="relative flex items-center">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
           <input

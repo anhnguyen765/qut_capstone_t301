@@ -117,10 +117,10 @@ export default function CalendarPage() {
   const handleNavigate = (date: Date) => setCurrentDate(date);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white p-0 sm:p-8 flex flex-col items-center">
-      {/* Sticky header */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur flex flex-col sm:flex-row sm:items-center sm:justify-between w-full max-w-5xl px-4 py-4 border-b border-gray-100 shadow-sm mb-4">
-        <h1 className="text-3xl font-bold tracking-tight text-blue-700 flex items-center gap-2">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white py-8 px-[10%]">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
           <svg width="28" height="28" fill="none" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#2563eb"/><path d="M7 11h10M7 15h6" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
           Scheduled Campaigns Calendar
         </h1>
@@ -129,7 +129,7 @@ export default function CalendarPage() {
         </Button>
       </div>
       {/* Month navigation */}
-      <div className="flex items-center gap-2 mb-4 w-full max-w-5xl px-4">
+      <div className="flex items-center gap-2 mb-4">
         <Button
           variant="outline"
           size="sm"
@@ -238,14 +238,14 @@ export default function CalendarPage() {
         </div>
       )}
       {/* Legend */}
-      <div className="flex flex-wrap gap-4 mb-4 text-sm w-full max-w-5xl px-4">
+      <div className="flex flex-wrap gap-4 mb-4 text-sm">
         <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded bg-blue-600 border border-blue-700" /> Scheduled</span>
         <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded bg-green-500 border border-green-700" /> Sent</span>
         <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded bg-yellow-400 border border-yellow-600" /> Pending</span>
         <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded bg-red-500 border border-red-700" /> Failed</span>
         <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 rounded bg-gray-400 border border-gray-500" /> Cancelled</span>
       </div>
-      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg p-2 sm:p-6 mb-8 border border-blue-100">
+      <div className="w-full bg-white rounded-2xl shadow-lg p-2 sm:p-6 mb-8 border border-blue-100">
         {loading ? (
           <div className="text-center text-gray-500 py-20">Loading calendar...</div>
         ) : error ? (

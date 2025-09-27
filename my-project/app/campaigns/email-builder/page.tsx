@@ -146,9 +146,11 @@ export default function EmailCampaignBuilder() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="py-8 px-[10%]">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Email Campaign Builder</h1>
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+          Email Campaign Builder
+        </h1>
         <p className="text-gray-600">Design and create email campaigns with the Unlayer editor</p>
       </div>
 

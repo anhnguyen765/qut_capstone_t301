@@ -95,8 +95,12 @@ export default function UsersPage() {
   if (loading) return <div className="p-8">Loading users...</div>;
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">User Management</h1>
+    <div className="py-8 px-[10%]">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+          User Management
+        </h1>
+      </div>
       <Button onClick={() => setShowAddDialog(true)}>Add User</Button>
       <table className="w-full mt-6 border">
         <thead>

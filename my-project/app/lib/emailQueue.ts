@@ -9,6 +9,9 @@ interface QueueItem {
   status: string;
   attempts: number;
   max_attempts: number;
+  subject_line?: string;
+  sender_name?: string;
+  sender_email?: string;
 }
 
 interface CampaignData {
@@ -24,6 +27,7 @@ class EmailQueueProcessor {
   private batchSize = 10; // Number of emails to process per batch
   private batchDelay = 2000; // Delay between batches in milliseconds
   private retryDelay = 5000; // Delay before retrying failed emails
+  public currentSendMetadata: any = null; // Store current send metadata
 
   async processQueue(): Promise<void> {
     if (this.isProcessing) {
@@ -88,6 +92,7 @@ class EmailQueueProcessor {
       }
     } finally {
       this.isProcessing = false;
+      this.currentSendMetadata = null; // Clear metadata after processing
       console.log('🏁 Email queue processing completed');
     }
   }
@@ -144,12 +149,16 @@ class EmailQueueProcessor {
       // Get campaign data
       const campaignData = await this.getCampaignData(queueItem.campaign_id);
       
-      // Send email
+      // Send email using current send metadata or defaults
+      const subject = this.currentSendMetadata?.subjectLine || campaignData.subject_line;
+      const senderName = this.currentSendMetadata?.senderName || campaignData.sender_name;
+      const senderEmail = this.currentSendMetadata?.senderEmail || campaignData.sender_email;
+      
       const result = await emailService.sendEmail({
         to: queueItem.email,
-        subject: campaignData.subject_line,
+        subject: subject,
         html: campaignData.html_content,
-        from: `${campaignData.sender_name} <${campaignData.sender_email}>`
+        from: `${senderName} <${senderEmail}>`
       });
 
       if (result.success) {
@@ -248,16 +257,22 @@ class EmailQueueProcessor {
   private async getCampaignData(campaignId: number): Promise<CampaignData> {
     const query = `
       SELECT id, 
-             COALESCE(subject_line, 'No Subject') as subject_line,
-             COALESCE(html_content, content, 'No content available') as html_content,
-             COALESCE(sender_name, 'CRM System') as sender_name,
-             COALESCE(sender_email, 'noreply@yourdomain.com') as sender_email
+             COALESCE(content, 'No content available') as html_content
       FROM campaigns 
       WHERE id = ?
     `;
     
     const result = await executeQuery(query, [campaignId]);
-    return result[0] as CampaignData;
+    const campaign = result[0] as any;
+    
+    // Return default values since the table doesn't have these columns
+    return {
+      id: campaign.id,
+      subject_line: 'No Subject', // Will be overridden by provided values
+      html_content: campaign.html_content,
+      sender_name: 'CRM System', // Will be overridden by provided values
+      sender_email: 'campaigns@2bentrods.com.au' // Will be overridden by provided values
+    };
   }
 
   private async logEmailAction(

@@ -163,7 +163,10 @@ export default function Templates() {
             </div>
           </div>
           
-          <Button className="flex-1 sm:flex-none">
+          <Button 
+            className="flex-1 sm:flex-none"
+            onClick={() => router.push('/templates/builder')}
+          >
             <Plus className="h-4 w-4 mr-2" />
             New Template
           </Button>

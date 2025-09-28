@@ -3,23 +3,14 @@ CREATE TABLE IF NOT EXISTS campaigns (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     date DATE NOT NULL,
-    type ENUM('workshop', 'event', 'community', 'special', 'email') NOT NULL,
+    type ENUM('workshop', 'event', 'community', 'special', 'email', 'template') NOT NULL,
     status ENUM('draft', 'scheduled', 'sent', 'archived') DEFAULT 'draft',
     target_groups TEXT,
     content MEDIUMTEXT,
-    design JSON,
-    html_content LONGTEXT,
-    subject_line VARCHAR(255),
-    sender_name VARCHAR(100),
-    sender_email VARCHAR(100),
+    design LONGTEXT,
     created_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    scheduled_at TIMESTAMP NULL,
-    sent_at TIMESTAMP NULL,
-    total_recipients INT DEFAULT 0,
-    sent_count INT DEFAULT 0,
-    failed_count INT DEFAULT 0,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
  
@@ -179,6 +170,8 @@ CREATE TABLE IF NOT EXISTS email_sends (
     INDEX idx_status (status),
     INDEX idx_created_at (created_at)
 );
+
+-- Note: Newsletters and templates are now stored in the campaigns table with type='email' and type='template' respectively
 
 -- Insert a default admin user (password: admin123)
 INSERT INTO users (first_name, last_name, email, password, role) 

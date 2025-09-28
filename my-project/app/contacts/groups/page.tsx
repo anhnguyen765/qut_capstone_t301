@@ -173,12 +173,7 @@ export default function GroupsContacts() {
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
           Groups Contacts
         </h1>
-        <Button
-          onClick={() => setShowAddDialog(true)}
-        >
-          <UserPlus className="h-4 w-4 mr-2" />
-          Add Group Contact
-        </Button>
+        
       </header>
 
       <div className="space-y-4">
@@ -191,6 +186,12 @@ export default function GroupsContacts() {
             onChange={(e) => setFilter(e.target.value)}
             className="w-full pl-10 pr-12 p-4 border border-[var(--border)] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
           />
+          <Button
+          onClick={() => setShowAddDialog(true)}
+        >
+          <UserPlus className="h-4 w-4 mr-2" />
+          Add Group Contact
+        </Button>
         </div>
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

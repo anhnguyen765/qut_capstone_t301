@@ -22,13 +22,17 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  console.log('AuthProvider mounted!');
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const checkAuth = async (): Promise<boolean> => {
+    console.log('checkAuth called');
     try {
       const token = localStorage.getItem('authToken');
+      console.log('Token found:', !!token);
       if (!token) {
+        console.log('No token, setting user to null');
         setUser(null);
         setIsLoading(false);
         return false;

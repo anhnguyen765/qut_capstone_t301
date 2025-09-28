@@ -8,15 +8,17 @@ import {
   PopoverTrigger,
 } from "@/app/components/ui/popover";
 import { Button } from "@/app/components/ui/button";
-import { Edit, X, Eye, Send, Archive, Tag, FileText } from "lucide-react";
+import { Edit, X, Eye, Send, Archive, Tag, FileText, Save, CheckCircle } from "lucide-react";
 import EmailEditor, { EditorRef, EmailEditorProps } from "react-email-editor";
+import { useRouter } from "next/navigation";
+import ConfirmationDialog from "@/app/components/ConfirmationDialog";
 
 type Campaign = {
   id: string;
   title: string;
   date: string;
   type: "workshop" | "event" | "community" | "special";
-  status: "draft" | "scheduled" | "sent" | "archived"; // Add status
+  status: "draft" | "finalised" | "scheduled" | "sent" | "archived";
   targetGroups?: string[]; // Which contact groups to send to
   content?: string; // Email content/template
 };
@@ -31,14 +33,21 @@ const CAMPAIGN_TYPES = [
 // Fetch campaigns from backend
 
 export default function Campaigns() {
+  const router = useRouter();
   const [filter, setFilter] = useState("");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<"date" | "type">("date");
+  const [sortBy, setSortBy] = useState<"type">("type");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [showEditor, setShowEditor] = useState(false);
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [confirmationData, setConfirmationData] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
   const [mounted, setMounted] = useState(false);
   const [emailEditorLoaded, setEmailEditorLoaded] = useState(false);
   const [emailDesign, setEmailDesign] = useState<any>(null);
@@ -101,7 +110,7 @@ export default function Campaigns() {
     );
   };
 
-  const handleSort = (field: "date" | "type") => {
+  const handleSort = (field: "type") => {
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -118,9 +127,6 @@ export default function Campaigns() {
     )
     .sort((a, b) => {
       const compareValue = sortOrder === "asc" ? 1 : -1;
-      if (sortBy === "date") {
-        return a.date > b.date ? compareValue : -compareValue;
-      }
       return a.type > b.type ? compareValue : -compareValue;
     });
 
@@ -167,25 +173,27 @@ export default function Campaigns() {
 
   const handleCloseEditor = () => {
     setShowEditor(false);
-    setSelectedCampaign(null);
+    // Don't reset selectedCampaign to keep the builder state
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "sent":
+      case "draft":
+        return "bg-yellow-100 text-yellow-800";
+      case "finalised":
         return "bg-green-100 text-green-800";
       case "scheduled":
         return "bg-blue-100 text-blue-800";
-      case "draft":
-        return "bg-yellow-100 text-yellow-800";
-      case "archived":
+      case "sent":
         return "bg-gray-100 text-gray-800";
+      case "archived":
+        return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
-  const saveEmailDesign = () => {
+  const saveEmailDesign = async (status: "draft" | "finalised") => {
     const unlayer = emailEditorRef.current?.editor;
 
     unlayer?.saveDesign((design: any) => {
@@ -194,45 +202,61 @@ export default function Campaigns() {
         const { html } = data;
         if (selectedCampaign) {
           try {
+            const campaignData = {
+              title: selectedCampaign.title,
+              date: selectedCampaign.date,
+              type: selectedCampaign.type,
+              status: status,
+              targetGroups: selectedCampaign.targetGroups || [],
+              content: html,
+              design: design,
+            };
+
             let res;
-            if (isNewCampaign) {
+            if (isNewCampaign || !selectedCampaign.id) {
               // Create new campaign
               res = await fetch('/api/campaigns', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  title: selectedCampaign.title,
-                  date: selectedCampaign.date,
-                  type: selectedCampaign.type,
-                  status: selectedCampaign.status,
-                  targetGroups: selectedCampaign.targetGroups || [],
-                  content: html,
-                  design: design,
-                }),
+                body: JSON.stringify(campaignData),
               });
             } else {
               // Update existing campaign
               res = await fetch(`/api/campaigns/${selectedCampaign.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  title: selectedCampaign.title,
-                  date: selectedCampaign.date,
-                  type: selectedCampaign.type,
-                  status: selectedCampaign.status,
-                  targetGroups: selectedCampaign.targetGroups || [],
-                  content: html,
-                  design: design,
-                }),
+                body: JSON.stringify(campaignData),
               });
             }
+            
             if (!res.ok) {
               throw new Error('Failed to save campaign');
             }
-            alert('Campaign saved successfully!');
-            setShowEditor(false);
-            setSelectedCampaign(null);
-            setIsNewCampaign(false);
+            
+            const result = await res.json();
+            const action = status === "draft" ? "saved as draft" : "finalised";
+            alert(`Campaign ${action} successfully!`);
+            
+            // Update the selected campaign with the new ID if it was created
+            if (isNewCampaign && result.id) {
+              setSelectedCampaign(prev => prev ? ({ ...prev, id: result.id, status }) : null);
+              setIsNewCampaign(false);
+            } else {
+              setSelectedCampaign(prev => prev ? ({ ...prev, status }) : null);
+            }
+            
+            // Update the campaigns list
+            setCampaigns(prev => {
+              if (isNewCampaign && result.id) {
+                return [...prev, { ...selectedCampaign, id: result.id, status }];
+              } else {
+                return prev.map(c => 
+                  c.id === selectedCampaign.id 
+                    ? { ...c, status }
+                    : c
+                );
+              }
+            });
           } catch (err) {
             alert('Error saving campaign: ' + (err instanceof Error ? err.message : err));
           }
@@ -268,6 +292,40 @@ export default function Campaigns() {
     loadEmailDesign();
   };
 
+  const deleteCampaign = async (campaignId: string) => {
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Remove campaign from the list
+        setCampaigns(prev => prev.filter(c => c.id !== campaignId));
+        setShowDetailsDialog(false);
+        setSelectedCampaign(null);
+        // Refresh the campaigns list to update status
+        fetchCampaigns();
+      } else {
+        console.error('Failed to delete campaign');
+      }
+    } catch (error) {
+      console.error('Error deleting campaign:', error);
+    }
+  };
+
+  const showDeleteConfirmation = (campaignId: string, campaignTitle: string) => {
+    setConfirmationData({
+      title: "Delete Campaign",
+      message: `Are you sure you want to delete "${campaignTitle}"? This action cannot be undone.`,
+      onConfirm: () => {
+        deleteCampaign(campaignId);
+        setShowConfirmationDialog(false);
+        setConfirmationData(null);
+      }
+    });
+    setShowConfirmationDialog(true);
+  };
+
   async function handleScheduleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setScheduleError(null);
@@ -292,24 +350,48 @@ export default function Campaigns() {
     setScheduling(true);
 
     try {
-      const res = await fetch(`/api/campaigns/${selectedCampaignId}/schedule`, {
-        method: "POST",
+      // First, ensure the campaign exists and is saved
+      const campaign = campaigns.find(c => c.id === selectedCampaignId);
+      if (!campaign) {
+        throw new Error("Campaign not found");
+      }
+
+      // Update campaign status to draft (scheduling is separate)
+      const campaignResponse = await fetch(`/api/campaigns/${selectedCampaignId}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          date: scheduleDate,
-          time: scheduleTime,
-          recipientType,
-          email: recipientType === "email" ? email : undefined,
-          group: recipientType === "group" ? group : undefined,
+          ...campaign,
+          status: "draft" // Keep as draft, scheduling is separate
         }),
       });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
+      if (!campaignResponse.ok) {
+        throw new Error("Failed to update campaign");
+      }
+
+      // Create scheduled datetime
+      const scheduledAt = `${scheduleDate}T${scheduleTime || '09:00'}:00`;
+      
+      // Create the schedule entry
+      const scheduleResponse = await fetch(`/api/email-schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaignId: selectedCampaignId,
+          scheduledAt,
+          recipientType,
+          recipientEmail: recipientType === "email" ? email : null,
+          recipientGroup: recipientType === "group" ? group : null,
+        }),
+      });
+
+      if (!scheduleResponse.ok) {
+        const data = await scheduleResponse.json().catch(() => ({}));
         throw new Error(data.error || "Failed to schedule campaign");
       }
 
-      // Optionally update campaign status in UI
+      // Update campaign status in UI to show it's scheduled
       setCampaigns((prev) =>
         prev.map((c) =>
           c.id === selectedCampaignId
@@ -395,69 +477,109 @@ export default function Campaigns() {
                 Type{" "}
                 {sortBy === "type" && <ArrowUpDown className="ml-1 h-4 w-4" />}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleSort("date")}
-                className={`${
-                  sortBy === "date"
-                    ? "bg-[var(--accent)] text-[var,--accent-foreground)]"
-                    : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
-                }`}
-              >
-                Date{" "}
-                {sortBy === "date" && <ArrowUpDown className="ml-1 h-4 w-4" />}
-              </Button>
             </div>
           </div>
 
-          <Button className="flex-1 sm:flex-none" onClick={handleNewCampaign}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Campaign
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              className="flex-1 sm:flex-none" 
+              onClick={() => router.push('/campaigns/builder')}
+              variant="outline"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Test New Campaign
+            </Button>
+            <Button className="flex-1 sm:flex-none" onClick={handleNewCampaign}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Campaign
+            </Button>
+          </div>
         </div>
 
-        <div className="bg-[var(--background)] rounded-lg shadow overflow-hidden">
-          <div className="min-w-full">
-            <div className="divide-y divide-[var(--border)]">
-              {filteredCampaigns.map((campaign) => (
-                <div
-                  key={campaign.id}
-                  className="p-4 hover:bg-[var(--accent)] transition-colors cursor-pointer"
-                  onClick={() => handleCampaignClick(campaign)}
-                >
-                  <div className="flex items-start">
-                    <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center mr-4">
-                      <span className="text-lg font-semibold text-[var(--accent-foreground)]">
-                        {campaign.title.charAt(0)}
-                      </span>
-                    </div>
-                    <div className="flex flex-col flex-1">
-                      <h4 className="font-medium text-[var(--foreground)]">
-                        {campaign.title}
-                      </h4>
-                      <div className="flex items-center gap-4 mt-1">
-                        <div className="text-sm text-[var(--foreground)] flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          {mounted ? new Date(campaign.date).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          }) : campaign.date}
-                        </div>
-                        <span className="text-sm text-accent-foreground bg-accent rounded-md px-2 py-1">
-                          {getTypeLabel(campaign.type)}
-                        </span>
-                        <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(campaign.status)}`}>
-                          {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
-                        </span>
-                      </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCampaigns.map((campaign) => (
+            <div
+              key={campaign.id}
+              className="bg-[var(--background)] rounded-lg shadow-md border border-[var(--border)] hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => handleCampaignClick(campaign)}
+            >
+              {/* Preview Section */}
+              <div className="h-48 bg-gray-100 rounded-t-lg overflow-hidden">
+                {campaign.content ? (
+                  <div 
+                    className="h-full w-full p-4 text-xs overflow-hidden"
+                    dangerouslySetInnerHTML={{ __html: campaign.content }}
+                    style={{ 
+                      transform: 'scale(0.3)', 
+                      transformOrigin: 'top left',
+                      width: '333%',
+                      height: '333%'
+                    }}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-400">
+                    <div className="text-center">
+                      <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No preview available</p>
                     </div>
                   </div>
+                )}
+              </div>
+
+              {/* Content Section */}
+              <div className="p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-semibold text-[var(--foreground)] text-lg truncate flex-1">
+                    {campaign.title}
+                  </h3>
+                  <span className={`text-xs px-2 py-1 rounded-full ml-2 ${getStatusColor(campaign.status)}`}>
+                    {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
+                  </span>
                 </div>
-              ))}
+
+                <div className="flex items-center gap-2 mb-3">
+                  <Calendar className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-gray-600">
+                    {mounted ? new Date(campaign.date).toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    }) : campaign.date}
+                  </span>
+                  <span className="text-sm text-accent-foreground bg-accent rounded-md px-2 py-1">
+                    {getTypeLabel(campaign.type)}
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/campaigns/builder?id=${campaign.id}`);
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                  {(campaign.status === 'draft' || campaign.status === 'finalised') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/send-email?campaignId=${campaign.id}`);
+                      }}
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
 
@@ -492,49 +614,22 @@ export default function Campaigns() {
             {/* Content */}
             <div className="p-6 space-y-6">
               {/* Campaign Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-gray-500" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Campaign Date</p>
-                      <p className="text-sm text-gray-600">
-                        {mounted ? new Date(selectedCampaign.date).toLocaleDateString("en-GB", {
-                          weekday: 'long',
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                        }) : selectedCampaign.date}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <Tag className="h-5 w-5 text-gray-500" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Campaign Type</p>
-                      <p className="text-sm text-gray-600">{getTypeLabel(selectedCampaign.type)}</p>
-                    </div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Tag className="h-5 w-5 text-gray-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Campaign Type</p>
+                    <p className="text-sm text-gray-600">{getTypeLabel(selectedCampaign.type)}</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Send className="h-5 w-5 text-gray-500" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Target Groups</p>
-                      <p className="text-sm text-gray-600">
-                        {selectedCampaign.targetGroups?.join(', ') || 'Not specified'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-gray-500" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Campaign ID</p>
-                      <p className="text-sm text-gray-600">#{selectedCampaign.id}</p>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <Send className="h-5 w-5 text-gray-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Target Groups</p>
+                    <p className="text-sm text-gray-600">
+                      {selectedCampaign.targetGroups?.join(', ') || 'Not specified'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -544,9 +639,10 @@ export default function Campaigns() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Email Content Preview</h3>
                 <div className="bg-gray-50 rounded-lg p-4 min-h-32">
                   {selectedCampaign.content ? (
-                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {selectedCampaign.content}
-                    </div>
+                    <div 
+                      className="text-sm text-gray-700"
+                      dangerouslySetInnerHTML={{ __html: selectedCampaign.content }}
+                    />
                   ) : (
                     <div className="text-center text-gray-500 py-8">
                       <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -561,38 +657,63 @@ export default function Campaigns() {
             {/* Footer Actions */}
             <div className="flex justify-between items-center p-6 border-t bg-gray-50">
               <div className="flex gap-2">
-                {selectedCampaign.status === 'draft' && (
+                {(selectedCampaign.status === 'draft' || selectedCampaign.status === 'finalised') && (
                   <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={() => {
-                      setShowScheduleDialog(true);
-                      setSelectedCampaignId(selectedCampaign.id);
+                      router.push(`/send-email?campaignId=${selectedCampaign.id}`);
                     }}
                   >
                     <Send className="h-4 w-4 mr-2" />
                     Schedule Email
                   </Button>
                 )}
-                {selectedCampaign.status !== 'archived' && (
-                  <Button variant="outline" size="sm">
-                    <Archive className="h-4 w-4 mr-2" />
-                    Archive
-                  </Button>
-                )}
+                 {selectedCampaign.status !== 'archived' && (
+                   <Button 
+                     variant="outline" 
+                     size="sm"
+                     onClick={() => showDeleteConfirmation(selectedCampaign.id, selectedCampaign.title)}
+                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                   >
+                     <X className="h-4 w-4 mr-2" />
+                     Delete
+                   </Button>
+                 )}
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
-                  Close
-                </Button>
-                <Button onClick={handleEditClick} className="bg-blue-600 hover:bg-blue-700 text-white">
+
+                <Button 
+                  onClick={() => {
+                    setShowDetailsDialog(false);
+                    router.push(`/campaigns/builder?id=${selectedCampaign.id}`);
+                  }} 
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Campaign
                 </Button>
               </div>
             </div>
           </div>
-        </div>
+         </div>
+       )}
+
+      {/* Confirmation Dialog */}
+      {showConfirmationDialog && confirmationData && (
+        <ConfirmationDialog
+          isOpen={showConfirmationDialog}
+          title={confirmationData.title}
+          message={confirmationData.message}
+          confirmText="Delete"
+          cancelText="Cancel"
+          onConfirm={confirmationData.onConfirm}
+          onCancel={() => {
+            setShowConfirmationDialog(false);
+            setConfirmationData(null);
+          }}
+          variant="danger"
+        />
       )}
 
       {/* Schedule Email Dialog (always rendered at root) */}
@@ -608,6 +729,7 @@ export default function Campaigns() {
                 value={selectedCampaignId}
                 onChange={e => setSelectedCampaignId(e.target.value)}
                 required
+                aria-label="Select campaign"
               >
                 <option value="">Select a campaign</option>
                 {campaigns.map((c: any) => (
@@ -621,6 +743,7 @@ export default function Campaigns() {
                 className="w-full border rounded px-3 py-2"
                 value={recipientType}
                 onChange={e => setRecipientType(e.target.value)}
+                aria-label="Select recipient type"
               >
                 <option value="all">All</option>
                 <option value="group">Group</option>
@@ -634,6 +757,7 @@ export default function Campaigns() {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
+                  aria-label="Recipient email address"
                 />
               )}
               {recipientType === "group" && (
@@ -642,6 +766,7 @@ export default function Campaigns() {
                   value={group}
                   onChange={e => setGroup(e.target.value)}
                   required
+                  aria-label="Select group"
                 >
                   <option value="">Select group</option>
                   {groups.map(g => (
@@ -659,6 +784,7 @@ export default function Campaigns() {
                   value={scheduleDate}
                   onChange={e => setScheduleDate(e.target.value)}
                   required
+                  aria-label="Schedule date"
                 />
               </div>
               <div className="flex-1">
@@ -668,6 +794,7 @@ export default function Campaigns() {
                   className="w-full border rounded px-3 py-2"
                   value={scheduleTime}
                   onChange={e => setScheduleTime(e.target.value)}
+                  aria-label="Schedule time"
                 />
               </div>
             </div>
@@ -707,6 +834,7 @@ export default function Campaigns() {
                     value={newCampaignData.date}
                     onChange={e => setNewCampaignData(d => ({ ...d, date: e.target.value }))}
                     required
+                    aria-label="Campaign date"
                   />
                 </div>
                 <div className="flex-1">
@@ -715,6 +843,7 @@ export default function Campaigns() {
                     className="w-full border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
                     value={newCampaignData.type}
                     onChange={e => setNewCampaignData(d => ({ ...d, type: e.target.value as Campaign["type"] }))}
+                    aria-label="Campaign type"
                   >
                     {CAMPAIGN_TYPES.map(t => (
                       <option key={t.value} value={t.value}>{t.label}</option>
@@ -729,8 +858,10 @@ export default function Campaigns() {
                     className="w-full border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
                     value={newCampaignData.status}
                     onChange={e => setNewCampaignData(d => ({ ...d, status: e.target.value as Campaign["status"] }))}
+                    aria-label="Campaign status"
                   >
                     <option value="draft">Draft</option>
+                    <option value="finalised">Finalised</option>
                     <option value="scheduled">Scheduled</option>
                     <option value="sent">Sent</option>
                     <option value="archived">Archived</option>
@@ -746,6 +877,7 @@ export default function Campaigns() {
                       targetGroups: e.target.value.split(",").map(s => s.trim()).filter(Boolean),
                     }))}
                     placeholder="e.g. Companies, Groups"
+                    aria-label="Target groups"
                   />
                 </div>
               </div>
@@ -838,11 +970,19 @@ export default function Campaigns() {
                 Cancel
               </Button>
               <Button 
-                onClick={saveEmailDesign}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => saveEmailDesign("draft")}
+                variant="outline"
+                className="border-primary text-primary hover:bg-primary/10"
               >
-                <Edit className="h-4 w-4 mr-2" />
-                Save Campaign
+                <Save className="h-4 w-4 mr-2" />
+                Save as Draft
+              </Button>
+              <Button 
+                onClick={() => saveEmailDesign("finalised")}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Finalise Campaign
               </Button>
             </div>
           </div>

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/contexts/AuthContext";
 import { Search, Filter, Plus, ArrowUpDown } from "lucide-react";
 import {
   Popover,
@@ -76,6 +78,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function Newsletters() {
+  const router = useRouter();
   const [filter, setFilter] = useState("");
   const [newsletters] = useState(initialNewsletters);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);

@@ -7,6 +7,7 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import { ModeToggle } from "./components/ModeToggle";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ConditionalSidebarTrigger } from "./components/ConditionalSidebarTrigger";
+import AuthGuard from "./components/AuthGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,6 +39,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
+            <AuthGuard>
             <SidebarProvider>
               <AppSidebar />
               <div className="flex flex-col flex-1">
@@ -47,7 +49,7 @@ export default function RootLayout({
                   <ModeToggle />
                 </header>
                 <main className="flex-1 page-container">
-                  {children}
+                    {children}
                 </main>
                 <footer className="bg-[var(--primary)] py-5">
                   <div className="page-container text-center text-[var(--primary-foreground)]">
@@ -56,6 +58,7 @@ export default function RootLayout({
                 </footer>                
               </div>
             </SidebarProvider>
+            </AuthGuard>
           </AuthProvider>
         </ThemeProvider>
       </body>

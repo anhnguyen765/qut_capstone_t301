@@ -16,16 +16,26 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, date, type, status, targetGroups, content, design, createdBy } = body;
+    const { 
+      title, 
+      date, 
+      type, 
+      status, 
+      targetGroups, 
+      content, 
+      design, 
+      createdBy
+    } = body;
+    
     const result = await executeQuery(
       `INSERT INTO campaigns (title, date, type, status, target_groups, content, design, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        title,
-        date,
-        type,
+        title || null,
+        date || new Date().toISOString().split('T')[0],
+        type || null,
         status || "draft",
-        Array.isArray(targetGroups) ? targetGroups.join(",") : targetGroups,
-        content,
+        Array.isArray(targetGroups) ? targetGroups.join(",") : (targetGroups || null),
+        content || null,
         design ? JSON.stringify(design) : null,
         createdBy || null,
       ]

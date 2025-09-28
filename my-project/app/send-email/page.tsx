@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -14,11 +15,7 @@ interface Campaign {
   id: number;
   title: string;
   type: string;
-  subject_line?: string;
-  html_content?: string;
   content?: string;
-  sender_name?: string;
-  sender_email?: string;
   status: string;
   created_at: string;
   total_recipients?: number;
@@ -34,6 +31,9 @@ interface Contact {
 }
 
 export default function SendEmailPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const campaignId = searchParams.get('campaignId');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [newsletters, setNewsletters] = useState<Campaign[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -46,15 +46,15 @@ export default function SendEmailPage() {
   const [messageType, setMessageType] = useState<"success" | "error" | "info">("info");
   const [showPreview, setShowPreview] = useState(false);
   const [selectedType, setSelectedType] = useState<"campaigns" | "newsletters">("campaigns");
-  
+
   // New fields for individual email and scheduling
   const [recipientType, setRecipientType] = useState<"mixed">("mixed");
-  
+
   // Fields for editing campaign details
   const [editMode, setEditMode] = useState(false);
   const [editedSubject, setEditedSubject] = useState("");
   const [editedSenderName, setEditedSenderName] = useState("");
-  
+
   // UI state for collapsible sections
   const [campaignSectionOpen, setCampaignSectionOpen] = useState(false);
   const [editSectionOpen, setEditSectionOpen] = useState(false);
@@ -65,7 +65,7 @@ export default function SendEmailPage() {
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
-  const [sendImmediately, setSendImmediately] = useState(true);
+  const [sendImmediately, setSendImmediately] = useState(false);
   const [showScheduleOptions, setShowScheduleOptions] = useState(false);
 
   useEffect(() => {
@@ -74,15 +74,26 @@ export default function SendEmailPage() {
     fetchContacts();
   }, []);
 
+  // Auto-select campaign if campaignId is provided in URL
+  useEffect(() => {
+    if (campaignId && campaigns.length > 0) {
+      const campaign = campaigns.find(c => c.id === parseInt(campaignId));
+      if (campaign) {
+        setSelectedCampaign(campaign);
+        setCampaignSectionOpen(false);
+        setEditSectionOpen(true);
+      }
+    }
+  }, [campaignId, campaigns]);
+
   const fetchCampaigns = async () => {
     try {
       const response = await fetch("/api/campaigns");
       const data = await response.json();
       // The API returns { campaigns: [...] }
       const campaignsArray = data.campaigns || [];
-      // Filter campaigns that have HTML content (check both content and html_content fields)
-      const campaignsWithHtml = campaignsArray.filter((c: Campaign) => 
-        (c.html_content && c.html_content.trim() !== "") || 
+      // Filter campaigns that have content
+      const campaignsWithHtml = campaignsArray.filter((c: Campaign) =>
         (c.content && c.content.trim() !== "")
       );
       setCampaigns(campaignsWithHtml);
@@ -99,9 +110,8 @@ export default function SendEmailPage() {
       const data = await response.json();
       // The API returns { newsletters: [...] }
       const newslettersArray = data.newsletters || [];
-      // Filter newsletters that have HTML content (check both content and html_content fields)
-      const newslettersWithHtml = newslettersArray.filter((c: Campaign) => 
-        (c.html_content && c.html_content.trim() !== "") || 
+      // Filter newsletters that have content
+      const newslettersWithHtml = newslettersArray.filter((c: Campaign) =>
         (c.content && c.content.trim() !== "")
       );
       setNewsletters(newslettersWithHtml);
@@ -128,14 +138,14 @@ export default function SendEmailPage() {
 
   const filteredContacts = (contacts || []).filter(contact => {
     const matchesSearch = contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         contact.email.toLowerCase().includes(searchTerm.toLowerCase());
+      contact.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesGroup = selectedGroup === "all" || contact.group === selectedGroup;
     return matchesSearch && matchesGroup;
   });
 
   const handleContactToggle = (contactId: number) => {
-    setSelectedContacts(prev => 
-      prev.includes(contactId) 
+    setSelectedContacts(prev =>
+      prev.includes(contactId)
         ? prev.filter(id => id !== contactId)
         : [...prev, contactId]
     );
@@ -151,27 +161,18 @@ export default function SendEmailPage() {
 
   const handleCampaignSelect = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
-    setEditedSubject(campaign.subject_line || "");
-    setEditedSenderName(campaign.sender_name || "");
+    setEditedSubject("");
+    setEditedSenderName("");
     setEditMode(false);
-    
+
     // Animate: collapse current step and expand next step
     setCampaignSectionOpen(false);
-    
-    // Check if campaign needs editing (missing subject or sender name)
-    const needsEditing = !campaign.subject_line || !campaign.sender_name;
-    
+
+    // Always jump to edit section since subject and sender are required for sending
     setTimeout(() => {
-      if (needsEditing) {
-        // Jump to edit section if campaign is incomplete
-        setEditSectionOpen(true);
-        setEditMode(true);
-        setRecipientsSectionOpen(false);
-      } else {
-        // Jump straight to recipients if campaign is complete
-        setEditSectionOpen(false);
-        setRecipientsSectionOpen(true);
-      }
+      setEditSectionOpen(true);
+      setEditMode(true);
+      setRecipientsSectionOpen(false);
     }, 200); // Small delay for smooth animation
   };
 
@@ -183,7 +184,7 @@ export default function SendEmailPage() {
   const handleEditComplete = () => {
     // Animate: collapse current step and expand next step
     setEditSectionOpen(false);
-    
+
     setTimeout(() => {
       setRecipientsSectionOpen(true);
     }, 200); // Small delay for smooth animation
@@ -218,9 +219,9 @@ export default function SendEmailPage() {
       return;
     }
 
-    // Use edited values if in edit mode, otherwise use campaign values
-    const subjectLine = editMode ? editedSubject : selectedCampaign.subject_line;
-    const senderName = editMode ? editedSenderName : selectedCampaign.sender_name;
+    // Use edited values for subject and sender
+    const subjectLine = editedSubject;
+    const senderName = editedSenderName;
     const senderEmail = 'campaigns@2bentrods.com.au'; // Always use fixed sender email
 
     // Validate campaign has required fields
@@ -230,14 +231,14 @@ export default function SendEmailPage() {
       return;
     }
 
-    if (!senderName) {
+    if (!senderName || senderName.trim() === "") {
       setMessage("Sender name is required. Please enter a sender name.");
       setMessageType("error");
       return;
     }
 
-    if (!selectedCampaign.html_content && !selectedCampaign.content) {
-      setMessage("Selected campaign has no content. Please select a campaign with HTML content.");
+    if (!selectedCampaign.content) {
+      setMessage("Selected campaign has no content. Please select a campaign with content.");
       setMessageType("error");
       return;
     }
@@ -299,12 +300,17 @@ export default function SendEmailPage() {
         const actionText = sendImmediately ? "sent" : "scheduled";
         setMessage(`Campaign ${actionText} successfully! ${data.queuedCount} emails queued for ${actionText === "sent" ? "sending" : "scheduled delivery"}.`);
         setMessageType("success");
-        
+
         // Reset all steps and form data
         resetAllSteps();
-        
+
         fetchCampaigns(); // Refresh campaign stats
         fetchNewsletters(); // Refresh newsletter stats
+
+        // Redirect to campaigns page after a short delay
+        setTimeout(() => {
+          router.push('/campaigns');
+        }, 2000);
       } else {
         setMessage("Error sending campaign: " + data.error);
         setMessageType("error");
@@ -331,7 +337,7 @@ export default function SendEmailPage() {
     setScheduleDate("");
     setScheduleTime("");
     setShowScheduleOptions(false);
-    
+
     // Reset step states to collapsed view
     setCampaignSectionOpen(false);
     setEditSectionOpen(false);
@@ -391,281 +397,29 @@ export default function SendEmailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Steps */}
         <div className="space-y-4">
-        {/* Step 1: Campaign Selection */}
-        <Card className="transition-all duration-300 ease-in-out">
-          <CardHeader 
-            className="cursor-pointer hover:bg-gray-50 transition-colors duration-200"
-            onClick={() => setCampaignSectionOpen(!campaignSectionOpen)}
-          >
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {selectedCampaign ? (
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                ) : (
-                  <Circle className="h-5 w-5 text-gray-400" />
-                )}
-                <Mail className="h-5 w-5" />
-                <span>1. Select Campaign/Newsletter</span>
-                {selectedCampaign && (
-                  <Badge variant="outline" className="ml-2">
-                    {selectedCampaign.title}
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {campaignSectionOpen ? (
-                  <ChevronDown className="h-5 w-5 transition-transform duration-200" />
-                ) : (
-                  <ChevronRight className="h-5 w-5 transition-transform duration-200" />
-                )}
-              </div>
-            </CardTitle>
-          </CardHeader>
-          {campaignSectionOpen && (
-            <CardContent>
-              <div className="space-y-4">
-                {/* Type Selection Tabs */}
-                <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-                  <button
-                    onClick={() => setSelectedType("campaigns")}
-                    className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
-                      selectedType === "campaigns"
-                        ? "bg-white text-gray-900 shadow-sm"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
-                  >
-                    Campaigns ({campaigns.length})
-                  </button>
-                  <button
-                    onClick={() => setSelectedType("newsletters")}
-                    className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
-                      selectedType === "newsletters"
-                        ? "bg-white text-gray-900 shadow-sm"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
-                  >
-                    Newsletters ({newsletters.length})
-                  </button>
-                </div>
-
-                {selectedCampaign && (
-                  <div className="p-4 border rounded-lg bg-green-50">
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="font-semibold text-green-900">Selected: {selectedCampaign.title}</h3>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <p className="text-sm">
-                        <span className="font-medium">Type:</span> {selectedCampaign.type}
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">Subject:</span> {selectedCampaign.subject_line || <span className="text-red-500 italic">No subject line</span>}
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">From:</span> {selectedCampaign.sender_name || <span className="text-red-500">No sender name</span>} &lt;campaigns@2bentrods.com.au&gt;
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">Status:</span> <Badge className={getStatusColor(selectedCampaign.status)}>{selectedCampaign.status}</Badge>
-                      </p>
-                      {(!selectedCampaign.subject_line || !selectedCampaign.sender_name) && (
-                        <div className="mt-2">
-                          <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
-                            Incomplete
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {!selectedCampaign && (
-                  <div className="space-y-3">
-                    {selectedType === "campaigns" && campaigns.length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">No campaigns with HTML content found</p>
-                    ) : selectedType === "newsletters" && newsletters.length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">No newsletters with HTML content found</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {selectedType === "campaigns" 
-                          ? campaigns.map((item: Campaign) => (
-                              <div
-                                key={item.id}
-                                className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                                  selectedCampaign?.id === item.id
-                                    ? 'border-green-500 bg-green-50'
-                                    : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                                onClick={() => handleCampaignSelect(item)}
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div className="flex-1">
-                                    <h4 className="font-medium">{item.title}</h4>
-                                    <p className="text-sm text-gray-600">
-                                      {item.subject_line || <span className="text-red-500 italic">No subject line</span>}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      From: {item.sender_name || <span className="text-red-500">No sender name</span>}
-                                    </p>
-                                  </div>
-                                  <div className="flex flex-col items-end gap-1">
-                                    <Badge className={getStatusColor(item.status)}>
-                                      {item.status}
-                                    </Badge>
-                                    {(!item.subject_line || !item.sender_name) && (
-                                      <Badge variant="destructive" className="text-xs">
-                                        Incomplete
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          : newsletters.map((item) => (
-                              <div
-                                key={item.id}
-                                className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                                  selectedCampaign?.id === item.id
-                                    ? 'border-green-500 bg-green-50'
-                                    : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                                onClick={() => handleCampaignSelect(item)}
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div className="flex-1">
-                                    <h4 className="font-medium">{item.title}</h4>
-                                    <p className="text-sm text-gray-600">
-                                      {item.subject_line || <span className="text-red-500 italic">No subject line</span>}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      From: {item.sender_name || <span className="text-red-500">No sender name</span>}
-                                    </p>
-                                  </div>
-                                  <div className="flex flex-col items-end gap-1">
-                                    <Badge className={getStatusColor(item.status)}>
-                                      {item.status}
-                                    </Badge>
-                                    {(!item.subject_line || !item.sender_name) && (
-                                      <Badge variant="destructive" className="text-xs">
-                                        Incomplete
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                        }
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          )}
-        </Card>
-
-        {/* Step 2: Edit Email Details (Optional) */}
-        {selectedCampaign && (
-          <Card className={`transition-all duration-300 ease-in-out ${(!selectedCampaign.subject_line || !selectedCampaign.sender_name) ? "" : "opacity-60"}`}>
-            <CardHeader 
-              className="cursor-pointer hover:bg-gray-50 transition-colors duration-200"
-              onClick={() => setEditSectionOpen(!editSectionOpen)}
-            >
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {(!selectedCampaign.subject_line || !selectedCampaign.sender_name) ? (
-                    editMode && editedSubject.trim() && editedSenderName.trim() ? (
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <Circle className="h-5 w-5 text-orange-500" />
-                    )
-                  ) : (
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                  )}
-                  <Mail className="h-5 w-5" />
-                  <span>2. Edit Email Details {(!selectedCampaign.subject_line || !selectedCampaign.sender_name) ? "(Required)" : "(Complete)"}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {editSectionOpen ? (
-                    <ChevronDown className="h-5 w-5 transition-transform duration-200" />
-                  ) : (
-                    <ChevronRight className="h-5 w-5 transition-transform duration-200" />
-                  )}
-                </div>
-              </CardTitle>
-            </CardHeader>
-            {editSectionOpen && (
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium">Subject Line</Label>
-                    <Input
-                      value={editedSubject}
-                      onChange={(e) => setEditedSubject(e.target.value)}
-                      placeholder="Enter subject line..."
-                      className="mt-1 text-black border-2 border-gray-300 focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Sender Name</Label>
-                    <Input
-                      value={editedSenderName}
-                      onChange={(e) => setEditedSenderName(e.target.value)}
-                      placeholder="Enter sender name..."
-                      className="mt-1 text-black border-2 border-gray-300 focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Sender Email</Label>
-                    <Input
-                      type="email"
-                      value="campaigns@2bentrods.com.au"
-                      disabled
-                      className="mt-1 bg-gray-100"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Sender email is fixed for all campaigns</p>
-                  </div>
-                  
-                  {/* Complete Edit Button */}
-                  <div className="pt-2">
-                    <Button
-                      onClick={handleEditComplete}
-                      disabled={!editedSubject.trim() || !editedSenderName.trim()}
-                      className="w-full"
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Complete Edit & Continue
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        )}
-
-        {/* Step 3: Select Recipients */}
-        {selectedCampaign && (
+          {/* Step 1: Campaign Selection */}
           <Card className="transition-all duration-300 ease-in-out">
-            <CardHeader 
+            <CardHeader
               className="cursor-pointer hover:bg-gray-50 transition-colors duration-200"
-              onClick={() => setRecipientsSectionOpen(!recipientsSectionOpen)}
+              onClick={() => setCampaignSectionOpen(!campaignSectionOpen)}
             >
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {(selectedContacts.length > 0 || selectedGroups.length > 0 || individualEmails.length > 0) ? (
+                  {selectedCampaign ? (
                     <CheckCircle className="h-5 w-5 text-green-500" />
                   ) : (
                     <Circle className="h-5 w-5 text-gray-400" />
                   )}
-                  <Users className="h-5 w-5" />
-                  <span>3. Select Recipients</span>
-                  {(selectedContacts.length > 0 || selectedGroups.length > 0 || individualEmails.length > 0) && (
+                  <Mail className="h-5 w-5" />
+                  <span>1. Select Campaign/Newsletter</span>
+                  {selectedCampaign && (
                     <Badge variant="outline" className="ml-2">
-                      {selectedContacts.length + individualEmails.length + selectedGroups.length} selected
+                      {selectedCampaign.title}
                     </Badge>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  {recipientsSectionOpen ? (
+                  {campaignSectionOpen ? (
                     <ChevronDown className="h-5 w-5 transition-transform duration-200" />
                   ) : (
                     <ChevronRight className="h-5 w-5 transition-transform duration-200" />
@@ -673,170 +427,384 @@ export default function SendEmailPage() {
                 </div>
               </CardTitle>
             </CardHeader>
-            {recipientsSectionOpen && (
+            {campaignSectionOpen && (
               <CardContent>
                 <div className="space-y-4">
+                  {/* Type Selection Tabs */}
+                  <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+                    <button
+                      onClick={() => setSelectedType("campaigns")}
+                      className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${selectedType === "campaigns"
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                        }`}
+                    >
+                      Campaigns ({campaigns.length})
+                    </button>
+                    <button
+                      onClick={() => setSelectedType("newsletters")}
+                      className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${selectedType === "newsletters"
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                        }`}
+                    >
+                      Newsletters ({newsletters.length})
+                    </button>
+                  </div>
 
-                <div className="space-y-4">
-                  {/* Individual Emails - Moved to top */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Individual Emails</Label>
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <Input
-                          type="email"
-                          placeholder="Enter email address..."
-                          value={individualEmail}
-                          onChange={(e) => setIndividualEmail(e.target.value)}
-                          className="flex-1 text-black border-2 border-gray-300 focus:border-blue-500"
-                        />
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => {
-                            if (individualEmail.trim() && !individualEmails.includes(individualEmail.trim())) {
-                              setIndividualEmails([...individualEmails, individualEmail.trim()]);
-                              setIndividualEmail("");
-                            }
-                          }}
-                          disabled={!individualEmail.trim() || individualEmails.includes(individualEmail.trim())}
-                        >
-                          Add
-                        </Button>
+                  {selectedCampaign && (
+                    <div className="p-4 border rounded-lg bg-green-50">
+                      <div className="flex justify-between items-start mb-3">
+                        <h3 className="font-semibold text-green-900">Selected: {selectedCampaign.title}</h3>
                       </div>
-                      {individualEmails.length > 0 && (
-                        <div className="max-h-24 overflow-y-auto space-y-1 border rounded p-2">
-                          {individualEmails.map((email, index) => (
-                            <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                              <span className="text-sm truncate">{email}</span>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setIndividualEmails(individualEmails.filter((_, i) => i !== index))}
+
+                      <div className="space-y-2">
+                        <p className="text-sm">
+                          <span className="font-medium">Type:</span> {selectedCampaign.type}
+                        </p>
+                        <p className="text-sm">
+                          <span className="font-medium">Status:</span> <Badge className={getStatusColor(selectedCampaign.status)}>{selectedCampaign.status}</Badge>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {!selectedCampaign && (
+                    <div className="space-y-3">
+                      {selectedType === "campaigns" && campaigns.length === 0 ? (
+                        <p className="text-gray-500 text-center py-4">No campaigns with HTML content found</p>
+                      ) : selectedType === "newsletters" && newsletters.length === 0 ? (
+                        <p className="text-gray-500 text-center py-4">No newsletters with HTML content found</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {selectedType === "campaigns"
+                            ? campaigns.map((item: Campaign) => (
+                              <div
+                                key={item.id}
+                                className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedCampaign?.id === item.id
+                                    ? 'border-green-500 bg-green-50'
+                                    : 'border-gray-200 hover:border-gray-300'
+                                  }`}
+                                onClick={() => handleCampaignSelect(item)}
                               >
-                                Remove
-                              </Button>
-                            </div>
-                          ))}
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <h4 className="font-medium">{item.title}</h4>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                            : newsletters.map((item: Campaign) => (
+                              <div
+                                key={item.id}
+                                className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedCampaign?.id === item.id
+                                    ? 'border-green-500 bg-green-50'
+                                    : 'border-gray-200 hover:border-gray-300'
+                                  }`}
+                                onClick={() => handleCampaignSelect(item)}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <h4 className="font-medium">{item.title}</h4>
+                                    <p className="text-sm text-gray-600">
+                                      <span className="text-gray-500 italic">Subject line will be entered when sending</span>
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      From: <span className="text-gray-500 italic">Sender name will be entered when sending</span>
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-col items-end gap-1">
+                                    <Badge className={getStatusColor(item.status)}>
+                                      {item.status}
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800">
+                                      Subject & Sender Required
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          }
                         </div>
                       )}
                     </div>
-                  </div>
-
-                  {/* Multiple Groups */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Select Groups</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {groups.filter(g => g !== "all").map(group => (
-                        <label key={group} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedGroups.includes(group)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedGroups([...selectedGroups, group]);
-                            } else {
-                              setSelectedGroups(selectedGroups.filter(g => g !== group));
-                            }
-                          }}
-                          className="w-4 h-4 border-2 border-gray-400 rounded focus:ring-blue-500 focus:ring-2"
-                        />
-                          <span className="text-sm">{group}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Contact Selection in Mixed Mode */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Additional Contacts</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Search contacts..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="flex-1 text-black border-2 border-gray-300 focus:border-blue-500"
-                      />
-                      <select
-                        value={selectedGroup}
-                        onChange={(e) => setSelectedGroup(e.target.value)}
-                        className="border-2 border-gray-300 rounded px-3 py-2 text-black focus:border-blue-500 font-medium"
-                        aria-label="Filter by contact group"
-                      >
-                        {groups.map(group => (
-                          <option key={group} value={group} className="font-medium">
-                            {group === "all" ? "All Groups" : group}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    {/* Contact List for Mixed Mode */}
-                    <div className="max-h-32 overflow-y-auto space-y-1 border rounded p-2">
-                      {filteredContacts.map(contact => (
-                        <div key={contact.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
-                          <Checkbox
-                            checked={selectedContacts.includes(contact.id)}
-                            onCheckedChange={() => handleContactToggle(contact.id)}
-                            className="border-2 border-gray-400 data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm truncate">{contact.name}</div>
-                            <div className="text-xs text-gray-500 truncate">{contact.email}</div>
-                          </div>
-                          <Badge variant="outline" className="text-xs">{contact.group}</Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-
-                  {/* Scheduling Options */}
-                  <div className="space-y-2">
-                    <Separator />
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Send Options</Label>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          checked={sendImmediately}
-                          onCheckedChange={(checked) => setSendImmediately(checked as boolean)}
-                          className="border-2 border-gray-400 data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600"
-                        />
-                        <Label className="text-sm">Send immediately</Label>
-                      </div>
-                      
-                      {!sendImmediately && (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label className="text-sm font-medium">Date</Label>
-                            <Input
-                              type="date"
-                              value={scheduleDate}
-                              onChange={(e) => setScheduleDate(e.target.value)}
-                              min={new Date().toISOString().split('T')[0]}
-                              className="text-black border-2 border-gray-300 focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-sm font-medium">Time</Label>
-                            <Input
-                              type="time"
-                              value={scheduleTime}
-                              onChange={(e) => setScheduleTime(e.target.value)}
-                              className="text-black border-2 border-gray-300 focus:border-blue-500"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             )}
           </Card>
-        )}
+
+          {/* Step 2: Edit Email Details (Optional) */}
+          {selectedCampaign && (
+            <Card className="transition-all duration-300 ease-in-out">
+              <CardHeader
+                className="cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+                onClick={() => setEditSectionOpen(!editSectionOpen)}
+              >
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {editMode && editedSubject.trim() && editedSenderName.trim() ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-orange-500" />
+                    )}
+                    <Mail className="h-5 w-5" />
+                    <span>2. Edit Email Details (Required)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {editSectionOpen ? (
+                      <ChevronDown className="h-5 w-5 transition-transform duration-200" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 transition-transform duration-200" />
+                    )}
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              {editSectionOpen && (
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium">Subject Line</Label>
+                      <Input
+                        value={editedSubject}
+                        onChange={(e) => setEditedSubject(e.target.value)}
+                        placeholder="Enter subject line..."
+                        className="mt-1 text-black border-2 border-gray-300 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Sender Name</Label>
+                      <Input
+                        value={editedSenderName}
+                        onChange={(e) => setEditedSenderName(e.target.value)}
+                        placeholder="Enter sender name..."
+                        className="mt-1 text-black border-2 border-gray-300 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Sender Email</Label>
+                      <Input
+                        type="email"
+                        value="campaigns@2bentrods.com.au"
+                        disabled
+                        className="mt-1 bg-gray-100"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Sender email is fixed for all campaigns</p>
+                    </div>
+
+                    {/* Complete Edit Button */}
+                    <div className="pt-2">
+                      <Button
+                        onClick={handleEditComplete}
+                        disabled={!editedSubject.trim() || !editedSenderName.trim()}
+                        className="w-full"
+                      >
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Complete Edit & Continue
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
+
+          {/* Step 3: Select Recipients */}
+          {selectedCampaign && (
+            <Card className="transition-all duration-300 ease-in-out">
+              <CardHeader
+                className="cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+                onClick={() => setRecipientsSectionOpen(!recipientsSectionOpen)}
+              >
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {(selectedContacts.length > 0 || selectedGroups.length > 0 || individualEmails.length > 0) ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-gray-400" />
+                    )}
+                    <Users className="h-5 w-5" />
+                    <span>3. Select Recipients</span>
+                    {(selectedContacts.length > 0 || selectedGroups.length > 0 || individualEmails.length > 0) && (
+                      <Badge variant="outline" className="ml-2">
+                        {selectedContacts.length + individualEmails.length + selectedGroups.length} selected
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {recipientsSectionOpen ? (
+                      <ChevronDown className="h-5 w-5 transition-transform duration-200" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 transition-transform duration-200" />
+                    )}
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              {recipientsSectionOpen && (
+                <CardContent>
+                  <div className="space-y-4">
+
+                    <div className="space-y-4">
+                      {/* Individual Emails - Moved to top */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Individual Emails</Label>
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <Input
+                              type="email"
+                              placeholder="Enter email address..."
+                              value={individualEmail}
+                              onChange={(e) => setIndividualEmail(e.target.value)}
+                              className="flex-1 text-black border-2 border-gray-300 focus:border-blue-500"
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => {
+                                if (individualEmail.trim() && !individualEmails.includes(individualEmail.trim())) {
+                                  setIndividualEmails([...individualEmails, individualEmail.trim()]);
+                                  setIndividualEmail("");
+                                }
+                              }}
+                              disabled={!individualEmail.trim() || individualEmails.includes(individualEmail.trim())}
+                            >
+                              Add
+                            </Button>
+                          </div>
+                          {individualEmails.length > 0 && (
+                            <div className="max-h-24 overflow-y-auto space-y-1 border rounded p-2">
+                              {individualEmails.map((email, index) => (
+                                <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                  <span className="text-sm truncate">{email}</span>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setIndividualEmails(individualEmails.filter((_, i) => i !== index))}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Multiple Groups */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Select Groups</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {groups.filter(g => g !== "all").map(group => (
+                            <label key={group} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedGroups.includes(group)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedGroups([...selectedGroups, group]);
+                                  } else {
+                                    setSelectedGroups(selectedGroups.filter(g => g !== group));
+                                  }
+                                }}
+                                className="w-4 h-4 border-2 border-gray-400 rounded focus:ring-blue-500 focus:ring-2"
+                              />
+                              <span className="text-sm">{group}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Contact Selection in Mixed Mode */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Additional Contacts</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Search contacts..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="flex-1 text-black border-2 border-gray-300 focus:border-blue-500"
+                          />
+                          <select
+                            value={selectedGroup}
+                            onChange={(e) => setSelectedGroup(e.target.value)}
+                            className="border-2 border-gray-300 rounded px-3 py-2 text-black focus:border-blue-500 font-medium"
+                            aria-label="Filter by contact group"
+                          >
+                            {groups.map(group => (
+                              <option key={group} value={group} className="font-medium">
+                                {group === "all" ? "All Groups" : group}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Contact List for Mixed Mode */}
+                        <div className="max-h-32 overflow-y-auto space-y-1 border rounded p-2">
+                          {filteredContacts.map(contact => (
+                            <div key={contact.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
+                              <Checkbox
+                                checked={selectedContacts.includes(contact.id)}
+                                onCheckedChange={() => handleContactToggle(contact.id)}
+                                className="border-2 border-gray-400 data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm truncate">{contact.name}</div>
+                                <div className="text-xs text-gray-500 truncate">{contact.email}</div>
+                              </div>
+                              <Badge variant="outline" className="text-xs">{contact.group}</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+
+                    {/* Scheduling Options */}
+                    <div className="space-y-2">
+                      <Separator />
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Send Options</Label>
+
+                        {!sendImmediately && (
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="text-sm font-medium">Date</Label>
+                              <Input
+                                type="date"
+                                value={scheduleDate}
+                                onChange={(e) => setScheduleDate(e.target.value)}
+                                min={new Date().toISOString().split('T')[0]}
+                                className="text-black border-2 border-gray-300 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium">Time</Label>
+                              <Input
+                                type="time"
+                                value={scheduleTime}
+                                onChange={(e) => setScheduleTime(e.target.value)}
+                                className="text-black border-2 border-gray-300 focus:border-blue-500"
+                              />
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={sendImmediately}
+                            onCheckedChange={(checked) => setSendImmediately(checked as boolean)}
+                            className="border-2 border-gray-400 data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600"
+                          />
+                          <Label className="text-sm">Send immediately</Label>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
 
         </div>
 
@@ -853,29 +821,19 @@ export default function SendEmailPage() {
             <CardContent>
               <div className="space-y-3">
                 <div>
-                  <Label className="text-sm font-medium text-gray-600">Email Title</Label>
-                  <p className="text-sm font-medium">{selectedCampaign ? selectedCampaign.title : "No email selected"}</p>
+                  <Label className="text-sm font-medium text-gray-600">Selected Campaign/Newsletter</Label>
+                  <p className="text-sm font-medium">{selectedCampaign ? selectedCampaign.title : "No campaign/newsletter selected"}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Subject Line</Label>
                   <p className="text-sm">
-                    {selectedCampaign ? (
-                      editMode ? editedSubject : selectedCampaign.subject_line || <span className="text-red-500 italic">No subject line</span>
-                    ) : (
-                      "No subject line"
-                    )}
+                    {editMode ? editedSubject : <span className="text-gray-500 italic">Enter subject line below</span>}
                   </p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-600">From</Label>
                   <p className="text-sm">
-                    {selectedCampaign ? (
-                      <>
-                        {editMode ? editedSenderName : selectedCampaign.sender_name || <span className="text-red-500">No sender name</span>} &lt;campaigns@2bentrods.com.au&gt;
-                      </>
-                    ) : (
-                      "No sender name &lt;campaigns@2bentrods.com.au&gt;"
-                    )}
+                    {editMode ? editedSenderName : <span className="text-gray-500 italic">Enter sender name below</span>} &lt;campaigns@2bentrods.com.au&gt;
                   </p>
                 </div>
                 <div>
@@ -1025,10 +983,10 @@ export default function SendEmailPage() {
                 <Button
                   onClick={sendCampaign}
                   disabled={
-                    !selectedCampaign || 
-                    (editMode ? !editedSubject.trim() : !selectedCampaign.subject_line) ||
-                    (editMode ? !editedSenderName.trim() : !selectedCampaign.sender_name) ||
-                    (!selectedCampaign.html_content && !selectedCampaign.content) ||
+                    !selectedCampaign ||
+                    !editedSubject.trim() ||
+                    !editedSenderName.trim() ||
+                    !selectedCampaign.content ||
                     (selectedContacts.length === 0 && selectedGroups.length === 0 && individualEmails.length === 0) ||
                     isLoading
                   }
@@ -1042,9 +1000,9 @@ export default function SendEmailPage() {
                   ) : (
                     <>
                       <Send className="mr-2 h-4 w-4" />
-                        {sendImmediately ? "Send" : "Schedule"} to {
-                          selectedContacts.length + individualEmails.length + selectedGroups.length
-                        } Recipient{(selectedContacts.length + individualEmails.length + selectedGroups.length) > 1 ? 's' : ''}
+                      {sendImmediately ? "Send" : "Schedule"} to {
+                        selectedContacts.length + individualEmails.length + selectedGroups.length
+                      } Recipient{(selectedContacts.length + individualEmails.length + selectedGroups.length) > 1 ? 's' : ''}
                     </>
                   )}
                 </Button>
@@ -1075,17 +1033,17 @@ export default function SendEmailPage() {
               <div className="space-y-4">
                 <div>
                   <Label className="text-sm font-medium">Subject:</Label>
-                  <p className="text-sm">{editMode ? editedSubject : selectedCampaign.subject_line}</p>
+                  <p className="text-sm">{editedSubject}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">From:</Label>
-                  <p className="text-sm">{editMode ? editedSenderName : selectedCampaign.sender_name} &lt;campaigns@2bentrods.com.au&gt;</p>
+                  <p className="text-sm">{editedSenderName} &lt;campaigns@2bentrods.com.au&gt;</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">HTML Content Preview:</Label>
-                  <div 
+                  <div
                     className="border rounded p-4 max-h-96 overflow-y-auto"
-                    dangerouslySetInnerHTML={{ __html: selectedCampaign.html_content || selectedCampaign.content || "" }}
+                    dangerouslySetInnerHTML={{ __html: selectedCampaign.content || "" }}
                   />
                 </div>
               </div>

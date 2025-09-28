@@ -481,15 +481,10 @@ export default function Campaigns() {
           </div>
 
           <div className="flex gap-2">
-            <Button 
-              className="flex-1 sm:flex-none" 
+
+            <Button className="flex-1 sm:flex-none" 
               onClick={() => router.push('/campaigns/builder')}
-              variant="outline"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Test New Campaign
-            </Button>
-            <Button className="flex-1 sm:flex-none" onClick={handleNewCampaign}>
               <Plus className="h-4 w-4 mr-2" />
               New Campaign
             </Button>

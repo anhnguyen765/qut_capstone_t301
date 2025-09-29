@@ -1,212 +1,345 @@
 "use client";
-
-import { useState } from "react";
-import { Search, Filter, Plus, ArrowUpDown } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/app/components/ui/popover";
+import { useEffect, useState, useRef } from "react";
+import EmailEditor, { EditorRef } from 'react-email-editor';
 import { Button } from "@/app/components/ui/button";
 
-type Template = {
-  id: string;
-  name: string;
-  description: string;
-  category: "announcement" | "newsletter" | "event" | "promotion";
-};
+// ...removed TemplateForm...
 
-const initialTemplates: Template[] = [
-  {
-    id: "1",
-    name: "Announcement Template",
-    description: "A template for sending out important announcements to your audience.",
-    category: "announcement"
-  },
-  {
-    id: "2",
-    name: "Newsletter Template",
-    description: "A reusable newsletter layout for regular updates and news.",
-    category: "newsletter"
-  },
-  {
-    id: "3",
-    name: "Event Invitation",
-    description: "Invite your contacts to events with this customizable invitation template.",
-    category: "event"
-  },
-  {
-    id: "4",
-    name: "Special Promotion",
-    description: "Promote your special offers and deals with this engaging template.",
-    category: "promotion"
-  },
-  {
-    id: "5",
-    name: "Monthly Newsletter",
-    description: "Keep your audience updated with monthly news and updates.",
-    category: "newsletter"
-  },
-  {
-    id: "6",
-    name: "Product Launch",
-    description: "Announce new products or services with this impactful template.",
-    category: "announcement"
-  }
-];
+export default function TemplatesPage() {
+  const [search, setSearch] = useState("");
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string|null>(null);
+  const [showEditor, setShowEditor] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editTemplate, setEditTemplate] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const emailEditorRef = useRef<EditorRef>(null);
+  const [templateName, setTemplateName] = useState("");
+  const [templateSubject, setTemplateSubject] = useState("");
 
-const CATEGORIES = [
-  { label: "Announcement", value: "announcement" },
-  { label: "Newsletter", value: "newsletter" },
-  { label: "Event", value: "event" },
-  { label: "Promotion", value: "promotion" }
-];
+  useEffect(() => {
+    fetch("/api/templates")
+      .then(res => res.json())
+      .then(data => {
+        setTemplates(data.templates || []);
+        setError(null);
+      })
+      .catch(() => setError("Failed to load templates."))
+      .finally(() => setLoading(false));
+  }, []);
 
-export default function Templates() {
-  const [filter, setFilter] = useState("");
-  const [templates] = useState(initialTemplates);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<"name" | "category">("name");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
-    );
+  // Open editor for new or edit
+  const openEditor = (template?: any) => {
+    setEditTemplate(template || null);
+    setTemplateName(template?.name || "");
+    setTemplateSubject(template?.subject || "");
+    setShowForm(true);
   };
 
-  const handleSort = (field: "name" | "category") => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(field);
-      setSortOrder("asc");
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setShowForm(false);
+    setShowEditor(true);
+    setTimeout(() => {
+      if (editTemplate?.content && emailEditorRef.current && emailEditorRef.current.editor) {
+        try {
+          emailEditorRef.current.editor.loadDesign(JSON.parse(editTemplate.content));
+        } catch {}
+      } else if (emailEditorRef.current && emailEditorRef.current.editor) {
+        emailEditorRef.current.editor.loadDesign({
+          counters: {},
+          body: {
+            id: '',
+            rows: [],
+            headers: [],
+            footers: [],
+            values: {}
+          }
+        });
+      }
+    }, 300);
+  };
+
+  const handleSave = async () => {
+    if (!templateName || !templateSubject) return;
+    if (emailEditorRef.current?.editor) {
+      emailEditorRef.current.editor.exportHtml(async (data: any) => {
+        const { design, html } = data;
+        const method = editTemplate ? "PUT" : "POST";
+        const body = editTemplate ? { id: editTemplate.id, name: templateName, subject: templateSubject, content: JSON.stringify(design), html } : { name: templateName, subject: templateSubject, content: JSON.stringify(design), html };
+        await fetch("/api/templates", {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        setShowEditor(false);
+        setEditTemplate(null);
+        setLoading(true);
+        fetch("/api/templates")
+          .then(res => res.json())
+          .then(data => {
+            setTemplates(data.templates || []);
+            setError(null);
+          })
+          .catch(() => setError("Failed to load templates."))
+          .finally(() => setLoading(false));
+      });
     }
   };
 
-  const filteredTemplates = templates
-    .filter(
-      (t) =>
-        (selectedCategories.length === 0 || selectedCategories.includes(t.category)) &&
-        (t.name.toLowerCase().includes(filter.toLowerCase()) ||
-          t.description.toLowerCase().includes(filter.toLowerCase()))
-    )
-    .sort((a, b) => {
-      const compareValue = sortOrder === "asc" ? 1 : -1;
-      return a[sortBy] > b[sortBy] ? compareValue : -compareValue;
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Delete this template?")) return;
+    await fetch("/api/templates", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
     });
+    setLoading(true);
+    fetch("/api/templates")
+      .then(res => res.json())
+      .then(data => {
+        setTemplates(data.templates || []);
+        setError(null);
+      })
+      .catch(() => setError("Failed to load templates."))
+      .finally(() => setLoading(false));
+  };
 
   return (
     <div className="min-h-screen w-full p-8 sm:p-20">
       <header className="mb-12">
-        <h1 className="text-4xl font-bold text-[var(--foreground)]">
-          Templates
-        </h1>
+        <h1 className="text-4xl font-bold text-[var(--foreground)]">Email Templates</h1>
       </header>
 
       <div className="max-w-full mx-auto space-y-4">
         <div className="relative flex items-center">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
           <input
             type="text"
             placeholder="Search templates..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="w-full pl-10 pr-12 p-4 border border-[var(--border)] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-4 pr-12 p-4 border border-[var(--border)] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
           />
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-[var(--accent)] rounded-md">
-                <Filter className="h-5 w-5 text-[var(--foreground)]" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-48 p-2" align="end">
-              <div className="space-y-2">
-                {CATEGORIES.map((category) => (
-                  <label key={category.value} className="flex items-center space-x-2 p-2 hover:bg-[var(--accent)] rounded-md cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedCategories.includes(category.value)}
-                      onChange={() => handleCategoryChange(category.value)}
-                      className="accent-[var(--primary)]"
-                    />
-                    <span className="text-[var(--foreground)]">{category.label}</span>
-                  </label>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-[var(--foreground)]">Sort by:</span>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleSort("name")}
-                className={`${sortBy === "name" ? "bg-[var(--accent)] text-[var(--accent-foreground)]" : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"}`}
-              >
-                Name {sortBy === "name" && <ArrowUpDown className="ml-1 h-4 w-4" />}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleSort("category")}
-                className={`${sortBy === "category" ? "bg-[var(--accent)] text-[var(--accent-foreground)]" : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"}`}
-              >
-                Category {sortBy === "category" && <ArrowUpDown className="ml-1 h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-          
-          <Button className="flex-1 sm:flex-none">
-            <Plus className="h-4 w-4 mr-2" />
-            New Template
+          <Button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 bg-background hover:bg-[var(--accent)] rounded-md" onClick={() => openEditor()}>
+            + New Template
           </Button>
         </div>
-
-        <main className="mx-auto mt-6">
-          {filteredTemplates.length === 0 ? (
-            <div className="text-center p-8 bg-[var(--background)] rounded-lg shadow">
-              <p className="text-[var(--foreground)]">No templates found.</p>
+        {/* ...existing code for showForm and showEditor... */}
+        {showForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-8 border">
+              <h2 className="text-2xl font-bold mb-6 text-blue-700">{editTemplate ? "Edit Template" : "New Template"}</h2>
+              <form className="space-y-6" onSubmit={handleFormSubmit}>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Name</label>
+                  <input
+                    className="w-full border rounded px-3 py-2"
+                    value={templateName}
+                    onChange={e => setTemplateName(e.target.value)}
+                    required
+                    placeholder="Template Name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Subject</label>
+                  <input
+                    className="w-full border rounded px-3 py-2"
+                    value={templateSubject}
+                    onChange={e => setTemplateSubject(e.target.value)}
+                    required
+                    placeholder="Email Subject"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button type="button" className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300" onClick={() => { setShowForm(false); setEditTemplate(null); }}>Cancel</button>
+                  <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700">Continue</button>
+                </div>
+              </form>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-              {filteredTemplates.map((template) => (
-                <div
-                  key={template.id}
-                  className="bg-[var(--background)] rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
+          </div>
+        )}
+        {showEditor && (
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-gray-900">
+            {/* Header */}
+            <div className="w-full max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center p-6 border-b border-gray-200 bg-white dark:bg-gray-900 z-10">
+              <div className="mb-4 sm:mb-0">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                  {editTemplate ? `Edit Template: ${templateName}` : 'Create Template'}
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Design your email template using the drag-and-drop editor
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => { setShowEditor(false); setEditTemplate(null); }}>
+                Cancel
+              </Button>
+            </div>
+            {/* Editor - Responsive and centered */}
+            <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col min-h-[60vh]" style={{ minHeight: '60vh' }}>
+              {/* Removed name and subject header for unified look */}
+              <EmailEditor
+                ref={emailEditorRef}
+                options={{
+                  appearance: {
+                    theme: 'light',
+                    panels: {
+                      tools: {
+                        dock: 'left'
+                      }
+                    }
+                  },
+                  projectId: 1234,
+                  locale: 'en-US',
+                  features: {
+                    preview: true,
+                    stockImages: true
+                  }
+                }}
+                style={{ height: '60vh', width: '100%' }}
+              />
+            </div>
+            {/* Footer */}
+            <div className="w-full max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center p-6 border-t border-gray-200 bg-gray-50 dark:bg-gray-800 z-10 gap-4">
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    const unlayer = emailEditorRef.current?.editor;
+                    unlayer?.showPreview({ device: 'desktop' });
+                  }}
                 >
-                  <div className="h-40 bg-[var(--accent)] flex items-center justify-center">
-                    <span className="text-4xl font-bold text-[var(--accent-foreground)]">
-                      {template.name.charAt(0)}
-                    </span>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-semibold text-[var(--foreground)] mb-2">
-                      {template.name}
-                    </h3>
-                    <p className="text-[var(--foreground)] text-sm mb-4">
-                      {template.description}
-                    </p>
-                    <span className="inline-block px-3 py-1 rounded-full text-xs bg-[var(--muted)] text-[var(--muted-foreground)] capitalize">
-                      {template.category}
-                    </span>
-                  </div>
-                  <div className="px-6 pb-6">
-                    <Button className="w-full" variant="outline">
-                      Use Template
-                    </Button>
+                  Preview
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    const unlayer = emailEditorRef.current?.editor;
+                    unlayer?.exportHtml((data: any) => {
+                      const { html } = data;
+                      const blob = new Blob([html], { type: 'text/html' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${templateName || 'template'}.html`;
+                      a.click();
+                    });
+                  }}
+                >
+                  Export HTML
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => { setShowEditor(false); setEditTemplate(null); }}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSave}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Save Template
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Details popup removed */}
+        {loading ? (
+          <div>Loading...</div>
+        ) : error ? (
+          <div className="text-red-600">{error}</div>
+        ) : (
+          <div className="bg-[var(--background)] rounded-lg shadow overflow-hidden">
+            <div className="min-w-full">
+              <div className="divide-y divide-[var(--border)]">
+                {templates.filter(t =>
+                  t.name.toLowerCase().includes(search.toLowerCase()) ||
+                  t.subject.toLowerCase().includes(search.toLowerCase()) ||
+                  t.content.toLowerCase().includes(search.toLowerCase())
+                ).length === 0 ? (
+                  <div className="text-gray-500 p-6">No templates found.</div>
+                ) : (
+                  templates.filter(t =>
+                    t.name.toLowerCase().includes(search.toLowerCase()) ||
+                    t.subject.toLowerCase().includes(search.toLowerCase()) ||
+                    t.content.toLowerCase().includes(search.toLowerCase())
+                  ).map(t => (
+                    <div
+                      key={t.id}
+                      className="p-4 hover:bg-[var(--accent)] transition-colors cursor-pointer"
+                      onClick={() => {
+                        setSelectedTemplate(t);
+                        setShowDetailsDialog(true);
+                      }}
+                    >
+                      <div className="flex items-start">
+                        <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center mr-4">
+                          <span className="text-lg font-semibold text-[var(--accent-foreground)]">
+                            {t.name?.charAt(0) || 'T'}
+                          </span>
+                        </div>
+                        <div className="flex flex-col flex-1">
+                          <h4 className="font-medium text-[var(--foreground)]">{t.name}</h4>
+                          <div className="flex items-center gap-4 mt-1">
+                            <div className="text-sm text-[var(--foreground)] flex items-center gap-2">
+                              {t.subject}
+                            </div>
+                            <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+                              Template
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Details Modal */}
+        {showDetailsDialog && selectedTemplate && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-8 border">
+              <h2 className="text-2xl font-bold mb-6 text-blue-700">Template Details</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Name</label>
+                  <div className="text-lg font-bold">{selectedTemplate.name}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Subject</label>
+                  <div className="text-md">{selectedTemplate.subject}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Preview</label>
+                  <div className="bg-gray-50 rounded p-4 text-sm max-h-48 overflow-auto">
+                    {selectedTemplate.content ? (
+                      <pre className="whitespace-pre-wrap">{selectedTemplate.content}</pre>
+                    ) : (
+                      <span className="text-gray-500">No content available</span>
+                    )}
                   </div>
                 </div>
-              ))}
+              </div>
+              <div className="flex justify-end gap-2 pt-6">
+                <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>Close</Button>
+                <Button onClick={() => {
+                  window.location.href = `/campaigns?templateId=${selectedTemplate.id}`;
+                }}>Use Template</Button>
+                <Button variant="outline" onClick={() => {
+                  setShowDetailsDialog(false);
+                  openEditor(selectedTemplate);
+                }}>Edit</Button>
+                <Button variant="destructive" onClick={async () => {
+                  setShowDetailsDialog(false);
+                  await handleDelete(selectedTemplate.id);
+                }}>Delete</Button>
+              </div>
             </div>
-          )}
-        </main>
+          </div>
+        )}
       </div>
     </div>
   );

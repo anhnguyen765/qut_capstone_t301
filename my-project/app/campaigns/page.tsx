@@ -19,6 +19,7 @@ type Campaign = {
   status: "draft" | "scheduled" | "sent" | "archived"; // Add status
   targetGroups?: string[]; // Which contact groups to send to
   content?: string; // Email content/template
+  design?: any; // Email editor design object
 };
 
 const CAMPAIGN_TYPES = [
@@ -31,6 +32,53 @@ const CAMPAIGN_TYPES = [
 // Fetch campaigns from backend
 
 export default function Campaigns() {
+  // Templates for new campaign form
+  const [templatesList, setTemplatesList] = useState<any[]>([]);
+  useEffect(() => {
+    fetch('/api/templates')
+      .then(res => res.json())
+      .then(data => setTemplatesList(data.templates || []));
+  }, []);
+  // Prefill campaign creation with template if templateId is present in query
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const templateId = params.get('templateId');
+      if (templateId) {
+        fetch(`/api/templates`)
+          .then(res => res.json())
+          .then(data => {
+            const template = data.templates.find((t: any) => String(t.id) === String(templateId));
+            if (template) {
+              setShowNewCampaignForm(true);
+              setNewCampaignData({
+                title: template.name || '',
+                date: new Date().toISOString().slice(0, 10),
+                type: 'event',
+                status: 'draft',
+                targetGroups: [],
+              });
+              setEmailDesign(template.content ? JSON.parse(template.content) : null);
+              // Remove templateId from URL after loading
+              params.delete('templateId');
+              window.history.replaceState({}, '', `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`);
+              // Open the editor immediately and load the design
+              setSelectedCampaign({
+                id: '',
+                title: template.name || '',
+                date: new Date().toISOString().slice(0, 10),
+                type: 'event',
+                status: 'draft',
+                targetGroups: [],
+                content: '',
+              });
+              setIsNewCampaign(true);
+              setShowEditor(true);
+            }
+          });
+      }
+    }
+  }, []);
   const [filter, setFilter] = useState("");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -49,26 +97,26 @@ export default function Campaigns() {
     date: string;
     type: string;
     status: string;
-    targetGroups: string[]; // <-- Fix: use string[] instead of never[]
+    targetGroups: string[];
+    templateId?: string;
   }>({
     title: '',
     date: new Date().toISOString().slice(0, 10),
     type: 'event',
     status: 'draft',
     targetGroups: [],
+    templateId: '',
   });
-    // --- Schedule Email Dialog State (from calendar page) ---
-    const [showScheduleDialog, setShowScheduleDialog] = useState(false);
-    const [scheduleCampaigns, setScheduleCampaigns] = useState<any[]>([]);
-    const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
-    const [recipientType, setRecipientType] = useState("all");
-    const [email, setEmail] = useState("");
-    const [group, setGroup] = useState("");
-    const groups = ["Companies", "Private", "Groups", "OSHC", "Schools"];
-    const [scheduleDate, setScheduleDate] = useState("");
-    const [scheduleTime, setScheduleTime] = useState("");
-    const [scheduling, setScheduling] = useState(false);
-    const [scheduleError, setScheduleError] = useState<string|null>(null);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
+  const [recipientType, setRecipientType] = useState("all");
+  const [email, setEmail] = useState("");
+  const [group, setGroup] = useState("");
+  const groups = ["Companies", "Private", "Groups", "OSHC", "Schools"];
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+  const [scheduling, setScheduling] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string|null>(null);
   const editorRef = useRef<EditorRef>(null);
   const emailEditorRef = useRef<EditorRef>(null);
 
@@ -167,7 +215,11 @@ export default function Campaigns() {
 
   const handleCloseEditor = () => {
     setShowEditor(false);
-    setSelectedCampaign(null);
+    if (selectedCampaign) {
+      setShowDetailsDialog(true);
+    } else {
+      setSelectedCampaign(null);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -194,7 +246,7 @@ export default function Campaigns() {
         const { html } = data;
         if (selectedCampaign) {
           try {
-            let res;
+            let res, savedCampaign;
             if (isNewCampaign) {
               // Create new campaign
               res = await fetch('/api/campaigns', {
@@ -210,6 +262,13 @@ export default function Campaigns() {
                   design: design,
                 }),
               });
+              const result = await res.json();
+              savedCampaign = {
+                ...selectedCampaign,
+                id: result.id || '',
+                content: html,
+                design: design,
+              };
             } else {
               // Update existing campaign
               res = await fetch(`/api/campaigns/${selectedCampaign.id}`, {
@@ -225,13 +284,19 @@ export default function Campaigns() {
                   design: design,
                 }),
               });
+              savedCampaign = {
+                ...selectedCampaign,
+                content: html,
+                design: design,
+              };
             }
             if (!res.ok) {
               throw new Error('Failed to save campaign');
             }
             alert('Campaign saved successfully!');
             setShowEditor(false);
-            setSelectedCampaign(null);
+            setSelectedCampaign(savedCampaign);
+            setShowDetailsDialog(true);
             setIsNewCampaign(false);
           } catch (err) {
             alert('Error saving campaign: ' + (err instanceof Error ? err.message : err));
@@ -265,7 +330,12 @@ export default function Campaigns() {
 
   const onEmailEditorReady = () => {
     setEmailEditorLoaded(true);
-    loadEmailDesign();
+    // Always load the template design if present when editor is ready
+    if (emailDesign) {
+      emailEditorRef.current?.editor?.loadDesign(emailDesign);
+    } else {
+      loadEmailDesign();
+    }
   };
 
   async function handleScheduleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -433,9 +503,7 @@ export default function Campaigns() {
                       </span>
                     </div>
                     <div className="flex flex-col flex-1">
-                      <h4 className="font-medium text-[var(--foreground)]">
-                        {campaign.title}
-                      </h4>
+                      <h4 className="font-medium text-[var(--foreground)]">{campaign.title}</h4>
                       <div className="flex items-center gap-4 mt-1">
                         <div className="text-sm text-[var(--foreground)] flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
@@ -580,6 +648,36 @@ export default function Campaigns() {
                     Archive
                   </Button>
                 )}
+                <Button variant="destructive" size="sm" onClick={async () => {
+                  if (window.confirm('Are you sure you want to delete this campaign?')) {
+                    // Replace with actual delete logic
+                    await fetch(`/api/campaigns/${selectedCampaign.id}`, {
+                      method: 'DELETE',
+                    });
+                    setShowDetailsDialog(false);
+                    setSelectedCampaign(null);
+                    // Optionally refresh campaigns list
+                    fetch("/api/campaigns")
+                      .then((res) => res.json())
+                      .then((data) => {
+                        if (Array.isArray(data.campaigns)) {
+                          setCampaigns(
+                            data.campaigns.map((c: any) => ({
+                              id: String(c.id),
+                              title: c.title,
+                              date: c.date,
+                              type: c.type,
+                              status: c.status,
+                              targetGroups: c.target_groups ? c.target_groups.split(",") : [],
+                              content: c.content,
+                            }))
+                          );
+                        }
+                      });
+                  }
+                }}>
+                  Delete
+                </Button>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
@@ -688,6 +786,37 @@ export default function Campaigns() {
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-8 border border-[var(--border)]">
             <h2 className="text-3xl font-bold mb-6 text-center text-[var(--foreground)]">Create New Campaign</h2>
             <form onSubmit={handleNewCampaignFormSubmit} className="space-y-6">
+              {/* Optional template selection */}
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-[var(--foreground)]">Template (optional)</label>
+                <select
+                  className="w-full border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
+                  value={newCampaignData.templateId || ''}
+                  onChange={async e => {
+                    const templateId = e.target.value;
+                    if (!templateId) {
+                      setNewCampaignData(d => ({ ...d, templateId: '', title: '', }));
+                      setEmailDesign(null);
+                      return;
+                    }
+                    const template = templatesList.find((t: any) => String(t.id) === String(templateId));
+                    if (template) {
+                      setNewCampaignData(d => ({
+                        ...d,
+                        templateId,
+                        title: template.name || '',
+                      }));
+                      setEmailDesign(template.content ? JSON.parse(template.content) : null);
+                    }
+                  }}
+                >
+                  <option value="">No template</option>
+                  {templatesList.map((t: any) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+              {/* ...existing code for title, date, type, status, target groups... */}
               <div>
                 <label className="block text-sm font-semibold mb-2 text-[var(--foreground)]">Title</label>
                 <input
@@ -760,9 +889,9 @@ export default function Campaigns() {
 
       {/* Editor Dialog */}
       {showEditor && selectedCampaign && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-gray-900">
+        <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900">
           {/* Header */}
-          <div className="w-full max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center p-6 border-b border-[var(--border)] bg-white dark:bg-gray-900 z-10">
+          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-b border-[var(--border)] bg-white dark:bg-gray-900 z-10">
             <div className="mb-4 sm:mb-0">
               <h2 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">
                 {isNewCampaign ? 'Create Campaign' : `Edit Campaign: ${selectedCampaign.title}`}
@@ -776,8 +905,8 @@ export default function Campaigns() {
             </Button>
           </div>
 
-          {/* Editor - Responsive and centered */}
-          <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col min-h-[60vh]" style={{ minHeight: '60vh' }}>
+          {/* Editor - Fullscreen */}
+          <div className="flex-1 flex flex-col" style={{ minHeight: 0 }}>
             <EmailEditor
               ref={emailEditorRef}
               onReady={onEmailEditorReady}
@@ -797,12 +926,12 @@ export default function Campaigns() {
                   stockImages: true
                 }
               }}
-              style={{ height: '60vh', width: '100%' }}
+              style={{ flex: 1, width: '100%', height: '100%' }}
             />
           </div>
 
           {/* Footer */}
-          <div className="w-full max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center p-6 border-t border-[var(--border)] bg-gray-50 dark:bg-gray-800 z-10 gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-t border-[var(--border)] bg-gray-50 dark:bg-gray-800 z-10 gap-4">
             <div className="flex gap-2">
               <Button 
                 variant="outline" 

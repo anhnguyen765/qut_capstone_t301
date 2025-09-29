@@ -1,11 +1,11 @@
 export default function Analytics() {
     return (
-      <div className="min-h-screen p-8 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-        <header className="mb-12">
-          <h1 className="text-4xl font-bold text-center sm:text-left text-[var(--foreground)]">
+      <div className="min-h-screen py-8 px-[10%] font-[family-name:var(--font-geist-sans)]">
+        <header className="mb-6">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
             Analytics
           </h1>
-          <p className="text-lg text-center sm:text-left max-w-2xl text-[var(--muted-foreground)]">
+          <p className="text-gray-600">
             Gain insights into your business performance with detailed analytics and reports.
           </p>
         </header>

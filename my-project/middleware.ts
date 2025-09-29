@@ -62,6 +62,15 @@ export async function middleware(request: NextRequest) {
       throw new Error("Token expired");
     }
 
+    // Check if accessing admin routes
+    if (pathname.startsWith("/admin")) {
+      // Check if user has admin role
+      if (payload.role !== "admin") {
+        const homeUrl = new URL("/", request.url);
+        return NextResponse.redirect(homeUrl);
+      }
+    }
+
     // Token is valid, allow access
     return NextResponse.next();
   } catch (error) {

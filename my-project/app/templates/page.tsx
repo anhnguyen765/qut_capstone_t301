@@ -108,12 +108,14 @@ export default function TemplatesPage() {
   };
 
   return (
-    <div className="min-h-screen w-full p-8 sm:p-20">
-      <header className="mb-12">
-        <h1 className="text-4xl font-bold text-[var(--foreground)]">Email Templates</h1>
+    <div className="min-h-screen w-full py-8 px-[10%]">
+      <header className="mb-6">
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+          Templates
+        </h1>
       </header>
 
-      <div className="max-w-full mx-auto space-y-4">
+      <div className="space-y-4">
         <div className="relative flex items-center">
           <input
             type="text"
@@ -172,75 +174,46 @@ export default function TemplatesPage() {
                   Design your email template using the drag-and-drop editor
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => { setShowEditor(false); setEditTemplate(null); }}>
-                Cancel
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-[var(--foreground)]">Sort by:</span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSort("name")}
+                className={`${sortBy === "name" ? "bg-[var(--accent)] text-[var(--accent-foreground)]" : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"}`}
+              >
+                Name {sortBy === "name" && <ArrowUpDown className="ml-1 h-4 w-4" />}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSort("category")}
+                className={`${sortBy === "category" ? "bg-[var(--accent)] text-[var(--accent-foreground)]" : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"}`}
+              >
+                Category {sortBy === "category" && <ArrowUpDown className="ml-1 h-4 w-4" />}
               </Button>
             </div>
-            {/* Editor - Responsive and centered */}
-            <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col min-h-[60vh]" style={{ minHeight: '60vh' }}>
-              {/* Removed name and subject header for unified look */}
-              <EmailEditor
-                ref={emailEditorRef}
-                options={{
-                  appearance: {
-                    theme: 'light',
-                    panels: {
-                      tools: {
-                        dock: 'left'
-                      }
-                    }
-                  },
-                  projectId: 1234,
-                  locale: 'en-US',
-                  features: {
-                    preview: true,
-                    stockImages: true
-                  }
-                }}
-                style={{ height: '60vh', width: '100%' }}
-              />
-            </div>
-            {/* Footer */}
-            <div className="w-full max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center p-6 border-t border-gray-200 bg-gray-50 dark:bg-gray-800 z-10 gap-4">
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    const unlayer = emailEditorRef.current?.editor;
-                    unlayer?.showPreview({ device: 'desktop' });
-                  }}
-                >
-                  Preview
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => {
-                    const unlayer = emailEditorRef.current?.editor;
-                    unlayer?.exportHtml((data: any) => {
-                      const { html } = data;
-                      const blob = new Blob([html], { type: 'text/html' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `${templateName || 'template'}.html`;
-                      a.click();
-                    });
-                  }}
-                >
-                  Export HTML
-                </Button>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => { setShowEditor(false); setEditTemplate(null); }}>
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleSave}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  Save Template
-                </Button>
-              </div>
+          </div>
+          
+          <Button 
+            className="flex-1 sm:flex-none"
+            onClick={() => router.push('/templates/builder')}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Template
+          </Button>
+        </div>
+
+        <main className="mx-auto mt-6">
+          {filteredTemplates.length === 0 ? (
+            <div className="text-center p-8 bg-[var(--background)] rounded-lg shadow">
+              <p className="text-[var(--foreground)]">No templates found.</p>
             </div>
           </div>
         )}

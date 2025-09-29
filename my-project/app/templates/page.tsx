@@ -1,319 +1,505 @@
+// Clean, working TemplatesPage with feature parity
 "use client";
-import { useEffect, useState, useRef } from "react";
-import EmailEditor, { EditorRef } from 'react-email-editor';
+import React, { useState, useEffect, useRef } from "react";
+import EmailEditor, { EditorRef } from "react-email-editor";
 import { Button } from "@/app/components/ui/button";
+import { Card } from "@/app/components/ui/card";
+import { Input } from "@/app/components/ui/input";
+import { Dialog } from "@/app/components/ui/dialog";
+import ConfirmationDialog from "@/app/components/ConfirmationDialog";
+import { Skeleton } from "@/app/components/ui/skeleton";
 
-// ...removed TemplateForm...
+type Template = {
+  id: string;
+  name: string;
+  subject: string;
+  description?: string;
+  html: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export default function TemplatesPage() {
-  const [search, setSearch] = useState("");
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string|null>(null);
+  // Helper to fetch templates from API
+  const fetchTemplates = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/templates");
+      if (!res.ok) throw new Error("Failed to fetch templates");
+      const data = await res.json();
+      const arr = Array.isArray(data) ? data : Array.isArray(data.templates) ? data.templates : [];
+      setTemplates(arr);
+      setFilteredTemplates(arr);
+      setLoading(false);
+    } catch (err: any) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+  // Local state for modal/editor visibility
+  const [showNameModal, setShowNameModal] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [editTemplate, setEditTemplate] = useState<any>(null);
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  // State for name/subject modal
+  const [modalName, setModalName] = useState<string>("");
+  const [modalSubject, setModalSubject] = useState<string>("");
+  const [modalError, setModalError] = useState<string | null>(null);
   const emailEditorRef = useRef<EditorRef>(null);
-  const [templateName, setTemplateName] = useState("");
-  const [templateSubject, setTemplateSubject] = useState("");
+  const [emailEditorLoaded, setEmailEditorLoaded] = useState(false);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
+    setLoading(true);
     fetch("/api/templates")
-      .then(res => res.json())
-      .then(data => {
-        setTemplates(data.templates || []);
-        setError(null);
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch templates");
+        return res.json();
       })
-      .catch(() => setError("Failed to load templates."))
-      .finally(() => setLoading(false));
+      .then((data) => {
+        // Defensive: ensure data is always an array
+        const arr = Array.isArray(data) ? data : Array.isArray(data.templates) ? data.templates : [];
+        setTemplates(arr);
+        setFilteredTemplates(arr);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
   }, []);
 
-  // Open editor for new or edit
-  const openEditor = (template?: any) => {
-    setEditTemplate(template || null);
-    setTemplateName(template?.name || "");
-    setTemplateSubject(template?.subject || "");
-    setShowForm(true);
+  useEffect(() => {
+    if (!search) {
+      setFilteredTemplates(templates);
+    } else {
+      setFilteredTemplates(
+        templates.filter((t) =>
+          t.name.toLowerCase().includes(search.toLowerCase()) ||
+          t.subject.toLowerCase().includes(search.toLowerCase())
+        )
+      );
+    }
+  }, [search, templates]);
+
+  const handleOpenDetails = (template: Template) => {
+    // Always use the database values for createdAt/updatedAt
+    setSelectedTemplate({
+      ...template,
+      createdAt: template.createdAt,
+      updatedAt: template.updatedAt,
+    });
+    setShowDetails(true);
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setShowForm(false);
+  // Open name/subject modal before editor
+  const handleOpenEditor = (mode: "create" | "edit", template?: Template) => {
+    setEditorMode(mode);
+    if (mode === "edit" && template) {
+      setSelectedTemplate(template);
+      setModalName(template.name);
+      setModalSubject(template.subject);
+      setShowNameModal(true);
+    } else {
+      setSelectedTemplate(null);
+      setModalName("");
+      setModalSubject("");
+      setShowNameModal(true);
+    }
+  };
+  // Confirm name/subject and open editor
+  const handleNameModalConfirm = () => {
+    if (!modalName.trim() || !modalSubject.trim()) {
+      setModalError("Name and subject are required.");
+      return;
+    }
+    setModalError(null);
+    // Do not set selectedTemplate here for create; only for edit
+    setShowNameModal(false);
     setShowEditor(true);
-    setTimeout(() => {
-      if (editTemplate?.content && emailEditorRef.current && emailEditorRef.current.editor) {
-        try {
-          emailEditorRef.current.editor.loadDesign(JSON.parse(editTemplate.content));
-        } catch {}
-      } else if (emailEditorRef.current && emailEditorRef.current.editor) {
-        emailEditorRef.current.editor.loadDesign({
-          counters: {},
-          body: {
-            id: '',
-            rows: [],
-            headers: [],
-            footers: [],
-            values: {}
-          }
-        });
-      }
-    }, 300);
   };
 
-  const handleSave = async () => {
-    if (!templateName || !templateSubject) return;
-    if (emailEditorRef.current?.editor) {
-      emailEditorRef.current.editor.exportHtml(async (data: any) => {
-        const { design, html } = data;
-        const method = editTemplate ? "PUT" : "POST";
-        const body = editTemplate ? { id: editTemplate.id, name: templateName, subject: templateSubject, content: JSON.stringify(design), html } : { name: templateName, subject: templateSubject, content: JSON.stringify(design), html };
-        await fetch("/api/templates", {
-          method,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        setShowEditor(false);
-        setEditTemplate(null);
-        setLoading(true);
-        fetch("/api/templates")
-          .then(res => res.json())
-          .then(data => {
-            setTemplates(data.templates || []);
-            setError(null);
-          })
-          .catch(() => setError("Failed to load templates."))
-          .finally(() => setLoading(false));
+  const handleOpenDelete = (template: Template) => {
+    setSelectedTemplate(template);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDelete = async () => {
+    console.log('handleDelete called, selectedTemplate:', selectedTemplate);
+    const idStr = selectedTemplate && selectedTemplate.id !== undefined ? String(selectedTemplate.id) : "";
+    if (!selectedTemplate || !idStr.trim()) {
+      setError("Invalid template id for deletion.");
+      return;
+    }
+    setLoading(true);
+    setShowDeleteDialog(false);
+    try {
+      const res = await fetch(`/api/templates`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: idStr }),
       });
+      if (!res.ok) throw new Error("Failed to delete template");
+      setTemplates((prev) => prev.filter((t) => String(t.id) !== idStr));
+      setSelectedTemplate(null);
+      setLoading(false);
+    } catch (err: any) {
+      setError(err.message);
+      setLoading(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Delete this template?")) return;
-    await fetch("/api/templates", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
+  const handleSave = async (status: "draft" | "finalised" = "draft") => {
+    const unlayer = emailEditorRef.current?.editor;
+    if (!unlayer) return;
+    unlayer.saveDesign((design: any) => {
+      unlayer.exportHtml(async (data: any) => {
+        const { html } = data;
+        const name = (selectedTemplate?.name ?? modalName ?? "") || "";
+        const subject = (selectedTemplate?.subject ?? modalSubject ?? "") || "";
+        const content = typeof html === "string" ? html : "";
+        if (typeof name !== "string" || typeof subject !== "string" || typeof content !== "string" || !name.trim() || !subject.trim() || !content.trim()) {
+          setError("Name, subject, and content are required.");
+          return;
+        }
+        setLoading(true);
+        setShowEditor(false);
+        try {
+          const body = { name, subject, content };
+          const res = await fetch(
+            "/api/templates",
+            {
+              method: editorMode === "edit" ? "PUT" : "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(
+                editorMode === "edit"
+                  ? { ...body, id: selectedTemplate?.id }
+                  : body
+              ),
+            }
+          );
+          if (!res.ok) throw new Error("Failed to save template");
+          const newTemplate = await res.json();
+          if (editorMode === "edit") {
+            setTemplates((prev) =>
+              prev.map((t) => (t.id === newTemplate.id ? newTemplate : t))
+            );
+          } else {
+            setTemplates((prev) => [newTemplate, ...prev]);
+          }
+    setLoading(false);
+    // Refresh templates after save
+    await fetchTemplates();
+        } catch (err: any) {
+          setError(err.message);
+          setLoading(false);
+        }
+      });
     });
-    setLoading(true);
-    fetch("/api/templates")
-      .then(res => res.json())
-      .then(data => {
-        setTemplates(data.templates || []);
-        setError(null);
-      })
-      .catch(() => setError("Failed to load templates."))
-      .finally(() => setLoading(false));
   };
 
   return (
-    <div className="min-h-screen w-full py-8 px-[10%]">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-          Templates
-        </h1>
-      </header>
-
-      <div className="space-y-4">
-        <div className="relative flex items-center">
-          <input
-            type="text"
-            placeholder="Search templates..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-4 pr-12 p-4 border border-[var(--border)] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
-          />
-          <Button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 bg-background hover:bg-[var(--accent)] rounded-md" onClick={() => openEditor()}>
-            + New Template
-          </Button>
+  <div className="p-8">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Email Templates</h1>
+        <Button onClick={() => { console.log('Create Template button clicked'); handleOpenEditor("create"); }}>Create Template</Button>
+      </div>
+      {loading && (
+        <>
+          <Skeleton className="h-10 w-full mb-4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="h-32 w-full" />
+            ))}
+          </div>
+        </>
+      )}
+      {error && (
+        <div className="mb-4 text-red-500">Error: {error}</div>
+      )}
+      <Input
+        placeholder="Search templates..."
+        value={search}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+        className="mb-6"
+      />
+      {filteredTemplates.length === 0 ? (
+        <div className="text-gray-500">No templates found.</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredTemplates.map((template, idx) => (
+            <Card key={template.id ?? idx} className="p-4 flex flex-col justify-between">
+              <div>
+                <h2 className="text-lg font-semibold mb-2">{template.name}</h2>
+                <div className="text-sm text-gray-600 mb-2">{template.subject}</div>
+                <div className="text-xs text-gray-400 mb-2">{template.description}</div>
+              </div>
+              <div className="flex gap-2 mt-2">
+                <Button size="sm" variant="outline" onClick={() => handleOpenDetails(template)}>
+                  Details
+                </Button>
+                <Button size="sm" onClick={() => handleOpenEditor("edit", template)}>
+                  Edit
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => handleOpenDelete(template)}>
+                  Delete
+                </Button>
+              </div>
+            </Card>
+          ))}
         </div>
-        {/* ...existing code for showForm and showEditor... */}
-        {showForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-8 border">
-              <h2 className="text-2xl font-bold mb-6 text-blue-700">{editTemplate ? "Edit Template" : "New Template"}</h2>
-              <form className="space-y-6" onSubmit={handleFormSubmit}>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Name</label>
-                  <input
-                    className="w-full border rounded px-3 py-2"
-                    value={templateName}
-                    onChange={e => setTemplateName(e.target.value)}
-                    required
-                    placeholder="Template Name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Subject</label>
-                  <input
-                    className="w-full border rounded px-3 py-2"
-                    value={templateSubject}
-                    onChange={e => setTemplateSubject(e.target.value)}
-                    required
-                    placeholder="Email Subject"
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button type="button" className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300" onClick={() => { setShowForm(false); setEditTemplate(null); }}>Cancel</button>
-                  <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700">Continue</button>
-                </div>
-              </form>
+      )}
+
+      {/* Details Modal */}
+      <Dialog open={showDetails} onOpenChange={setShowDetails}>
+        {selectedTemplate && (
+          <div className="p-6">
+            <h2 className="text-xl font-bold mb-2">{selectedTemplate.name}</h2>
+            <div className="mb-2">Description: {selectedTemplate.description || selectedTemplate.subject}</div>
+            <div className="mb-2">Created: {selectedTemplate.createdAt && !isNaN(Date.parse(selectedTemplate.createdAt)) ? new Date(selectedTemplate.createdAt).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Unknown'}</div>
+            <div className="mb-2">Updated: {selectedTemplate.updatedAt && !isNaN(Date.parse(selectedTemplate.updatedAt)) ? new Date(selectedTemplate.updatedAt).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Unknown'}</div>
+            <div className="border p-2 bg-gray-50 mt-4">
+              <div dangerouslySetInnerHTML={{ __html: selectedTemplate.html }} />
             </div>
+            <Button className="mt-4" onClick={() => setShowDetails(false)}>
+              Close
+            </Button>
           </div>
         )}
-        {showEditor && (
-          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-gray-900">
-            {/* Header */}
-            <div className="w-full max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center p-6 border-b border-gray-200 bg-white dark:bg-gray-900 z-10">
-              <div className="mb-4 sm:mb-0">
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  {editTemplate ? `Edit Template: ${templateName}` : 'Create Template'}
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Design your email template using the drag-and-drop editor
-                </p>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
+      </Dialog>
 
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-[var(--foreground)]">Sort by:</span>
+      {/* Create/Edit Modal with drag-and-drop editor */}
+      {showEditor && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-b border-[var(--border)] bg-white dark:bg-gray-900 z-10">
+            <div className="mb-4 sm:mb-0">
+              <h2 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">
+                {editorMode === "edit" && selectedTemplate ? `Edit Template: ${selectedTemplate.name}` : "Create Template"}
+              </h2>
+              <p className="text-sm text-[var(--muted-foreground)] mt-1">
+                Design your email template using the drag-and-drop editor
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setShowEditor(false)}>
+              Close
+            </Button>
+          </div>
+
+          {/* Editor - Fullscreen */}
+          <div className="flex-1 flex flex-col" style={{ minHeight: 0 }}>
+            <EmailEditor
+              ref={emailEditorRef}
+              onReady={() => {
+                setEmailEditorLoaded(true);
+                // Load design if editing
+                if (editorMode === "edit" && selectedTemplate && emailEditorRef.current?.editor) {
+                  try {
+                    // Try to parse design from html if available
+                    if (selectedTemplate.html) {
+                      let design = null;
+                      try {
+                        design = JSON.parse(selectedTemplate.html);
+                      } catch {}
+                      if (design) {
+                        emailEditorRef.current.editor.loadDesign(design);
+                        return;
+                      }
+                    }
+                  } catch {}
+                  // Fallback to blank design
+                  emailEditorRef.current.editor.loadDesign({
+                    counters: {},
+                    body: { id: '', rows: [], headers: [], footers: [], values: {} }
+                  });
+                } else if (emailEditorRef.current?.editor) {
+                  emailEditorRef.current.editor.loadDesign({
+                    counters: {},
+                    body: { id: '', rows: [], headers: [], footers: [], values: {} }
+                  });
+                }
+              }}
+              options={{
+                appearance: {
+                  theme: 'light',
+                  panels: { tools: { dock: 'left' } }
+                },
+                projectId: 1234,
+                locale: 'en-US',
+                features: { preview: true, stockImages: true }
+              }}
+              style={{ flex: 1, width: '100%', height: '100%' }}
+            />
+          </div>
+
+          {/* Footer */}
+          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-t border-[var(--border)] bg-gray-50 dark:bg-gray-800 z-10 gap-4">
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                size="sm"
-                onClick={() => handleSort("name")}
-                className={`${sortBy === "name" ? "bg-[var(--accent)] text-[var(--accent-foreground)]" : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"}`}
+                onClick={() => {
+                  const unlayer = emailEditorRef.current?.editor;
+                  unlayer?.showPreview({ device: 'desktop' });
+                }}
               >
-                Name {sortBy === "name" && <ArrowUpDown className="ml-1 h-4 w-4" />}
+                Preview
               </Button>
               <Button
                 variant="outline"
-                size="sm"
-                onClick={() => handleSort("category")}
-                className={`${sortBy === "category" ? "bg-[var(--accent)] text-[var(--accent-foreground)]" : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"}`}
+                onClick={() => {
+                  const unlayer = emailEditorRef.current?.editor;
+                  unlayer?.exportHtml((data: any) => {
+                    const { html } = data;
+                    const blob = new Blob([html], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${selectedTemplate?.name || 'template'}.html`;
+                    a.click();
+                  });
+                }}
               >
-                Category {sortBy === "category" && <ArrowUpDown className="ml-1 h-4 w-4" />}
+                Export HTML
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowEditor(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => handleSave("draft")}
+                variant="outline"
+                className="border-primary text-primary hover:bg-primary/10"
+              >
+                Save as Draft
+              </Button>
+              <Button onClick={() => handleSave("finalised")}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                Finalise Template
               </Button>
             </div>
           </div>
-          
-          <Button 
-            className="flex-1 sm:flex-none"
-            onClick={() => router.push('/templates/builder')}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Template
-          </Button>
         </div>
+      )}
 
-        <main className="mx-auto mt-6">
-          {filteredTemplates.length === 0 ? (
-            <div className="text-center p-8 bg-[var(--background)] rounded-lg shadow">
-              <p className="text-[var(--foreground)]">No templates found.</p>
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        title="Delete Template"
+        message="Are you sure you want to delete this template? This action cannot be undone."
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteDialog(false)}
+      />
+
+      {/* Name/Subject Modal - Create/Edit Template */}
+      {showNameModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <h2 className="text-xl font-bold mb-4">{editorMode === "edit" ? "Edit Template Info" : "Create Template"}</h2>
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1" htmlFor="template-name">Template Name</label>
+              <input
+                id="template-name"
+                type="text"
+                className="w-full border rounded px-3 py-2"
+                value={modalName}
+                onChange={e => setModalName(e.target.value)}
+                required
+                placeholder="e.g. Welcome Email, Newsletter, Promotion"
+                aria-label="Template Name"
+              />
+              <span className="text-xs text-gray-500">Give your template a descriptive name.</span>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-1" htmlFor="template-description">Description</label>
+              <input
+                id="template-description"
+                type="text"
+                className="w-full border rounded px-3 py-2"
+                value={modalSubject}
+                onChange={e => setModalSubject(e.target.value)}
+                required
+                placeholder="e.g. Welcome message, Monthly update, Booking info"
+                aria-label="Description"
+              />
+              <span className="text-xs text-gray-500">A short description for this template.</span>
+            </div>
+            {modalError && <div className="text-red-600 mb-2">{modalError}</div>}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowNameModal(false)}>Cancel</Button>
+              <Button onClick={handleNameModalConfirm} className="bg-primary text-white">Continue</Button>
             </div>
           </div>
-        )}
-        {/* Details popup removed */}
-        {loading ? (
-          <div>Loading...</div>
-        ) : error ? (
-          <div className="text-red-600">{error}</div>
-        ) : (
-          <div className="bg-[var(--background)] rounded-lg shadow overflow-hidden">
-            <div className="min-w-full">
-              <div className="divide-y divide-[var(--border)]">
-                {templates.filter(t =>
-                  t.name.toLowerCase().includes(search.toLowerCase()) ||
-                  t.subject.toLowerCase().includes(search.toLowerCase()) ||
-                  t.content.toLowerCase().includes(search.toLowerCase())
-                ).length === 0 ? (
-                  <div className="text-gray-500 p-6">No templates found.</div>
-                ) : (
-                  templates.filter(t =>
-                    t.name.toLowerCase().includes(search.toLowerCase()) ||
-                    t.subject.toLowerCase().includes(search.toLowerCase()) ||
-                    t.content.toLowerCase().includes(search.toLowerCase())
-                  ).map(t => (
-                    <div
-                      key={t.id}
-                      className="p-4 hover:bg-[var(--accent)] transition-colors cursor-pointer"
-                      onClick={() => {
-                        setSelectedTemplate(t);
-                        setShowDetailsDialog(true);
-                      }}
-                    >
-                      <div className="flex items-start">
-                        <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center mr-4">
-                          <span className="text-lg font-semibold text-[var(--accent-foreground)]">
-                            {t.name?.charAt(0) || 'T'}
-                          </span>
-                        </div>
-                        <div className="flex flex-col flex-1">
-                          <h4 className="font-medium text-[var(--foreground)]">{t.name}</h4>
-                          <div className="flex items-center gap-4 mt-1">
-                            <div className="text-sm text-[var(--foreground)] flex items-center gap-2">
-                              {t.subject}
-                            </div>
-                            <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
-                              Template
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-        {/* Details Modal */}
-        {showDetailsDialog && selectedTemplate && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-8 border">
-              <h2 className="text-2xl font-bold mb-6 text-blue-700">Template Details</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Name</label>
-                  <div className="text-lg font-bold">{selectedTemplate.name}</div>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Subject</label>
-                  <div className="text-md">{selectedTemplate.subject}</div>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Preview</label>
-                  <div className="bg-gray-50 rounded p-4 text-sm max-h-48 overflow-auto">
-                    {selectedTemplate.content ? (
-                      <pre className="whitespace-pre-wrap">{selectedTemplate.content}</pre>
-                    ) : (
-                      <span className="text-gray-500">No content available</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 pt-6">
-                <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>Close</Button>
-                <Button onClick={() => {
-                  window.location.href = `/campaigns?templateId=${selectedTemplate.id}`;
-                }}>Use Template</Button>
-                <Button variant="outline" onClick={() => {
-                  setShowDetailsDialog(false);
-                  openEditor(selectedTemplate);
-                }}>Edit</Button>
-                <Button variant="destructive" onClick={async () => {
-                  setShowDetailsDialog(false);
-                  await handleDelete(selectedTemplate.id);
-                }}>Delete</Button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function TemplateEditor({
+  mode,
+  template,
+  onSave,
+  onCancel,
+}: {
+  mode: "create" | "edit";
+  template: Template | null;
+  onSave: (template: Partial<Template>) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(template?.name || "");
+  const [subject, setSubject] = useState(template?.subject || "");
+  const [description, setDescription] = useState(template?.description || "");
+  const [html, setHtml] = useState(template?.html || "");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({ name, subject, description, html });
+  };
+
+
+  return (
+    <form className="p-6" onSubmit={handleSubmit}>
+      <h2 className="text-xl font-bold mb-4">{mode === "edit" ? "Edit" : "Create"} Template</h2>
+      <Input
+        placeholder="Template name"
+        value={name}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+        className="mb-4"
+        required
+      />
+      <Input
+        placeholder="Email subject"
+        value={subject}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSubject(e.target.value)}
+        className="mb-4"
+        required
+      />
+      <Input
+        placeholder="Short description"
+        value={description}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
+        className="mb-4"
+      />
+      <textarea
+        placeholder="Email HTML content"
+        value={html}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setHtml(e.target.value)}
+        className="mb-4 w-full h-32 border rounded"
+        required
+      />
+      <div className="flex gap-2 mt-4">
+        <Button type="submit">Save</Button>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 }

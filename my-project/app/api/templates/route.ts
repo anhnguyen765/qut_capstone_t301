@@ -17,7 +17,11 @@ export async function POST(req: NextRequest) {
     "INSERT INTO templates (name, subject, content) VALUES (?, ?, ?)",
     [name, subject, content]
   );
-  return NextResponse.json({ success: true });
+  // Fetch the newly created template (assume auto-increment id)
+  const rows = await executeQuery(
+    "SELECT * FROM templates WHERE id = LAST_INSERT_ID()"
+  );
+  return NextResponse.json(rows[0] || { success: true });
 }
 
 // PUT: Update a template
@@ -30,7 +34,12 @@ export async function PUT(req: NextRequest) {
     "UPDATE templates SET name=?, subject=?, content=? WHERE id=?",
     [name, subject, content, id]
   );
-  return NextResponse.json({ success: true });
+  // Fetch the updated template
+  const rows = await executeQuery(
+    "SELECT * FROM templates WHERE id = ?",
+    [id]
+  );
+  return NextResponse.json(rows[0] || { success: true });
 }
 
 // DELETE: Delete a template

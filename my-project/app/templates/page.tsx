@@ -1,4 +1,3 @@
-// Clean, working TemplatesPage with feature parity
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import EmailEditor, { EditorRef } from "react-email-editor";
@@ -8,8 +7,10 @@ import { Input } from "@/app/components/ui/input";
 import { Dialog } from "@/app/components/ui/dialog";
 import ConfirmationDialog from "@/app/components/ConfirmationDialog";
 import { Skeleton } from "@/app/components/ui/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
+import { MoreVertical, Edit, Trash2, Info, Calendar, FileText } from "lucide-react";
 
-type Template = {
+type Template = { 
   id: string;
   name: string;
   subject: string;
@@ -223,53 +224,160 @@ export default function TemplatesPage() {
       {error && (
         <div className="mb-4 text-red-500">Error: {error}</div>
       )}
-      <Input
-        placeholder="Search templates..."
-        value={search}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-        className="mb-6"
-      />
+      <div className="flex items-center gap-2 mb-6">
+        <Input
+          placeholder="Search templates..."
+          value={search}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+          className="flex-1"
+        />
+        <Button variant="outline" size="sm">
+          <Info className="h-4 w-4 mr-1" />
+          Filter
+        </Button>
+      </div>
       {filteredTemplates.length === 0 ? (
-        <div className="text-gray-500">No templates found.</div>
+        <div className="flex flex-col items-center justify-center py-16">
+          <FileText className="h-12 w-12 mb-4 text-gray-300" />
+          <div className="text-gray-500 text-lg mb-2">No templates found.</div>
+          <div className="text-xs text-gray-400">Create a new template to get started.</div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTemplates.map((template, idx) => (
-            <Card key={template.id ?? idx} className="p-4 flex flex-col justify-between">
-              <div>
-                <h2 className="text-lg font-semibold mb-2">{template.name}</h2>
-                <div className="text-sm text-gray-600 mb-2">{template.subject}</div>
-                <div className="text-xs text-gray-400 mb-2">{template.description}</div>
+            <div
+              key={template.id ?? idx}
+              className="bg-[var(--background)] rounded-lg shadow-md border border-[var(--border)] hover:shadow-lg transition-shadow cursor-pointer overflow-hidden flex flex-col"
+              onClick={() => setSelectedTemplate(template)}
+            >
+              {/* Preview Section */}
+              <div className="h-48 bg-gray-100 rounded-t-lg overflow-hidden">
+                {template.html ? (
+                  <div
+                    className="h-full w-full p-4 text-xs overflow-hidden"
+                    dangerouslySetInnerHTML={{ __html: template.html }}
+                    style={{
+                      transform: 'scale(0.3)',
+                      transformOrigin: 'top left',
+                      width: '333%',
+                      height: '333%'
+                    }}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-400">
+                    <div className="text-center">
+                      <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No preview available</p>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex gap-2 mt-2">
-                <Button size="sm" variant="outline" onClick={() => handleOpenDetails(template)}>
-                  Details
-                </Button>
-                <Button size="sm" onClick={() => handleOpenEditor("edit", template)}>
-                  Edit
-                </Button>
-                <Button size="sm" variant="destructive" onClick={() => handleOpenDelete(template)}>
-                  Delete
-                </Button>
+              {/* Content Section */}
+              <div className="p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-semibold text-[var(--foreground)] text-lg truncate flex-1">
+                    {template.name}
+                  </h3>
+                  <span className="text-xs px-2 py-1 rounded-full ml-2 bg-blue-100 text-blue-800">
+                    Draft
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">{template.description || template.subject}</div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-3 w-3 text-gray-400" />
+                  <span className="text-xs text-gray-400">{template.createdAt ? new Date(template.createdAt).toLocaleDateString('en-AU', { dateStyle: 'medium' }) : 'Unknown'}</span>
+                  <Edit className="h-3 w-3 text-gray-400 ml-2" />
+                  <span className="text-xs text-gray-400">{template.updatedAt ? new Date(template.updatedAt).toLocaleDateString('en-AU', { dateStyle: 'medium' }) : 'Unknown'}</span>
+                </div>
               </div>
-            </Card>
+            </div>
           ))}
         </div>
       )}
 
       {/* Details Modal */}
-      <Dialog open={showDetails} onOpenChange={setShowDetails}>
+      <Dialog open={!!selectedTemplate} onOpenChange={open => { if (!open) setSelectedTemplate(null); }}>
         {selectedTemplate && (
-          <div className="p-6">
-            <h2 className="text-xl font-bold mb-2">{selectedTemplate.name}</h2>
-            <div className="mb-2">Description: {selectedTemplate.description || selectedTemplate.subject}</div>
-            <div className="mb-2">Created: {selectedTemplate.createdAt && !isNaN(Date.parse(selectedTemplate.createdAt)) ? new Date(selectedTemplate.createdAt).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Unknown'}</div>
-            <div className="mb-2">Updated: {selectedTemplate.updatedAt && !isNaN(Date.parse(selectedTemplate.updatedAt)) ? new Date(selectedTemplate.updatedAt).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Unknown'}</div>
-            <div className="border p-2 bg-gray-50 mt-4">
-              <div dangerouslySetInnerHTML={{ __html: selectedTemplate.html }} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+              {/* Header */}
+              <div className="flex justify-between items-start p-6 border-b">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-[var(--accent)] flex items-center justify-center">
+                    <span className="text-xl font-semibold text-[var(--accent-foreground)]">
+                      {selectedTemplate.name?.[0]?.toUpperCase() ?? "T"}
+                    </span>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">{selectedTemplate.name}</h2>
+                    <span className="inline-block text-xs px-3 py-1 rounded-full mt-1 bg-blue-100 text-blue-800">
+                      Template
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedTemplate(null)}
+                >
+                  <span className="text-lg">×</span>
+                </Button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-6">
+                {/* Template Info */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="h-5 w-5 text-gray-500">📄</span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Description</p>
+                      <p className="text-sm text-gray-600">{selectedTemplate.description || selectedTemplate.subject}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="h-5 w-5 text-gray-500">📅</span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Created</p>
+                      <p className="text-sm text-gray-600">{selectedTemplate.createdAt && !isNaN(Date.parse(selectedTemplate.createdAt)) ? new Date(selectedTemplate.createdAt).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Unknown'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="h-5 w-5 text-gray-500">📝</span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Updated</p>
+                      <p className="text-sm text-gray-600">{selectedTemplate.updatedAt && !isNaN(Date.parse(selectedTemplate.updatedAt)) ? new Date(selectedTemplate.updatedAt).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Unknown'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email Content Preview */}
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Email Content Preview</h3>
+                  <div className="bg-gray-50 rounded-lg p-4 min-h-32">
+                    {selectedTemplate.html ? (
+                      <div 
+                        className="text-sm text-gray-700"
+                        dangerouslySetInnerHTML={{ __html: selectedTemplate.html }}
+                      />
+                    ) : (
+                      <div className="text-center text-gray-500 py-8">
+                        <span className="h-12 w-12 mx-auto mb-2 opacity-50">📭</span>
+                        <p>No content available</p>
+                        <p className="text-xs">Click "Edit Template" to add content</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="flex gap-2 p-6 border-t justify-end">
+                <Button size="sm" variant="outline" onClick={() => { setShowEditor(true); setEditorMode('edit'); }}>✏️ Edit</Button>
+                <Button size="sm" variant="destructive" onClick={() => { setShowDeleteDialog(true); }}>🗑️ Delete</Button>
+                <Button size="sm" onClick={() => setSelectedTemplate(null)}>Close</Button>
+              </div>
             </div>
-            <Button className="mt-4" onClick={() => setShowDetails(false)}>
-              Close
-            </Button>
           </div>
         )}
       </Dialog>
@@ -289,6 +397,34 @@ export default function TemplatesPage() {
             </div>
             <Button variant="outline" size="sm" onClick={() => setShowEditor(false)}>
               Close
+            </Button>
+            <input
+              type="file"
+              accept="application/json"
+              style={{ display: 'none' }}
+              id="import-design-input"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  const text = await file.text();
+                  const design = JSON.parse(text);
+                  if (emailEditorRef.current?.editor) {
+                    emailEditorRef.current.editor.loadDesign(design);
+                  }
+                } catch (err) {
+                  alert('Failed to import design: ' + (err instanceof Error ? err.message : String(err)));
+                }
+                e.target.value = '';
+              }}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => document.getElementById('import-design-input')?.click()}
+              className="ml-2"
+            >
+              Import Design
             </Button>
           </div>
 
@@ -339,35 +475,7 @@ export default function TemplatesPage() {
           </div>
 
           {/* Footer */}
-          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-t border-[var(--border)] bg-gray-50 dark:bg-gray-800 z-10 gap-4">
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  const unlayer = emailEditorRef.current?.editor;
-                  unlayer?.showPreview({ device: 'desktop' });
-                }}
-              >
-                Preview
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  const unlayer = emailEditorRef.current?.editor;
-                  unlayer?.exportHtml((data: any) => {
-                    const { html } = data;
-                    const blob = new Blob([html], { type: 'text/html' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${selectedTemplate?.name || 'template'}.html`;
-                    a.click();
-                  });
-                }}
-              >
-                Export HTML
-              </Button>
-            </div>
+          <div className="flex flex-col sm:flex-row justify-end items-center p-6 border-t border-[var(--border)] bg-gray-50 dark:bg-gray-800 z-10 gap-4">
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setShowEditor(false)}>
                 Cancel

@@ -21,6 +21,35 @@ type Template = {
 };
 
 export default function TemplatesPage() {
+  // Handler for EmailEditor onReady event
+  const onEmailEditorReady = () => {
+    setEmailEditorLoaded(true);
+    // Optionally, load design if editing
+    if (editorMode === "edit" && selectedTemplate && emailEditorRef.current?.editor) {
+      try {
+        if (selectedTemplate.html) {
+          let design = null;
+          try {
+            design = JSON.parse(selectedTemplate.html);
+          } catch {}
+          if (design) {
+            emailEditorRef.current.editor.loadDesign(design);
+            return;
+          }
+        }
+      } catch {}
+      // Fallback to blank design
+      emailEditorRef.current.editor.loadDesign({
+        counters: {},
+        body: { id: '', rows: [], headers: [], footers: [], values: {} }
+      });
+    } else if (emailEditorRef.current?.editor) {
+      emailEditorRef.current.editor.loadDesign({
+        counters: {},
+        body: { id: '', rows: [], headers: [], footers: [], values: {} }
+      });
+    }
+  };
   // Helper to fetch templates from API
   const fetchTemplates = async () => {
     setLoading(true);
@@ -206,7 +235,7 @@ export default function TemplatesPage() {
   };
 
   return (
-  <div className="p-8">
+  <div className="w-full px-0 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Email Templates</h1>
         <Button onClick={() => { console.log('Create Template button clicked'); handleOpenEditor("create"); }}>Create Template</Button>
@@ -216,7 +245,7 @@ export default function TemplatesPage() {
           <Skeleton className="h-10 w-full mb-4" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-32 w-full" />
+              <Skeleton key={i} className="h-32 w-full rounded-lg" />
             ))}
           </div>
         </>
@@ -247,14 +276,15 @@ export default function TemplatesPage() {
           {filteredTemplates.map((template, idx) => (
             <div
               key={template.id ?? idx}
-              className="bg-[var(--background)] rounded-lg shadow-md border border-[var(--border)] hover:shadow-lg transition-shadow cursor-pointer overflow-hidden flex flex-col"
+              className="bg-[var(--background)] rounded-lg shadow-md border border-[var(--border)] hover:shadow-lg transition-shadow cursor-pointer overflow-hidden flex flex-col min-h-[260px] max-h-[340px]"
+              style={{ minWidth: '260px', maxWidth: '400px' }}
               onClick={() => setSelectedTemplate(template)}
             >
               {/* Preview Section */}
-              <div className="h-48 bg-gray-100 rounded-t-lg overflow-hidden">
+              <div className="h-40 bg-gray-100 rounded-t-lg overflow-hidden flex items-center justify-center">
                 {template.html ? (
                   <div
-                    className="h-full w-full p-4 text-xs overflow-hidden"
+                    className="h-full w-full p-2 text-xs overflow-hidden"
                     dangerouslySetInnerHTML={{ __html: template.html }}
                     style={{
                       transform: 'scale(0.3)',
@@ -266,23 +296,23 @@ export default function TemplatesPage() {
                 ) : (
                   <div className="h-full flex items-center justify-center text-gray-400">
                     <div className="text-center">
-                      <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No preview available</p>
+                      <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                      <p className="text-xs">No preview available</p>
                     </div>
                   </div>
                 )}
               </div>
               {/* Content Section */}
-              <div className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-[var(--foreground)] text-lg truncate flex-1">
+              <div className="p-3 flex flex-col gap-2">
+                <div className="flex items-start justify-between">
+                  <h3 className="font-semibold text-[var(--foreground)] text-base truncate flex-1">
                     {template.name}
                   </h3>
                   <span className="text-xs px-2 py-1 rounded-full ml-2 bg-blue-100 text-blue-800">
                     Draft
                   </span>
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">{template.description || template.subject}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{template.description || template.subject}</div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-3 w-3 text-gray-400" />
                   <span className="text-xs text-gray-400">{template.createdAt ? new Date(template.createdAt).toLocaleDateString('en-AU', { dateStyle: 'medium' }) : 'Unknown'}</span>
@@ -384,10 +414,10 @@ export default function TemplatesPage() {
 
       {/* Create/Edit Modal with drag-and-drop editor */}
       {showEditor && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900">
+        <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900 w-full max-w-none px-4 py-3 gap-4" style={{ maxHeight: '100vh' }}>
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-b border-[var(--border)] bg-white dark:bg-gray-900 z-10">
-            <div className="mb-4 sm:mb-0">
+          <div className="w-full mx-auto flex flex-col sm:flex-row justify-between items-center border-b border-[var(--border)] bg-white dark:bg-gray-900 z-10" style={{ flex: '0 0 auto' }}>
+            <div className="mb-4 sm:mb-0 w-full max-w-2xl mx-auto">
               <h2 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">
                 {editorMode === "edit" && selectedTemplate ? `Edit Template: ${selectedTemplate.name}` : "Create Template"}
               </h2>
@@ -395,102 +425,96 @@ export default function TemplatesPage() {
                 Design your email template using the drag-and-drop editor
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowEditor(false)}>
-              Close
-            </Button>
-            <input
-              type="file"
-              accept="application/json"
-              style={{ display: 'none' }}
-              id="import-design-input"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                try {
-                  const text = await file.text();
-                  const design = JSON.parse(text);
-                  if (emailEditorRef.current?.editor) {
-                    emailEditorRef.current.editor.loadDesign(design);
-                  }
-                } catch (err) {
-                  alert('Failed to import design: ' + (err instanceof Error ? err.message : String(err)));
-                }
-                e.target.value = '';
-              }}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => document.getElementById('import-design-input')?.click()}
-              className="ml-2"
-            >
-              Import Design
-            </Button>
           </div>
 
-          {/* Editor - Fullscreen */}
-          <div className="flex-1 flex flex-col" style={{ minHeight: 0 }}>
-            <EmailEditor
-              ref={emailEditorRef}
-              onReady={() => {
-                setEmailEditorLoaded(true);
-                // Load design if editing
-                if (editorMode === "edit" && selectedTemplate && emailEditorRef.current?.editor) {
-                  try {
-                    // Try to parse design from html if available
-                    if (selectedTemplate.html) {
-                      let design = null;
-                      try {
-                        design = JSON.parse(selectedTemplate.html);
-                      } catch {}
-                      if (design) {
-                        emailEditorRef.current.editor.loadDesign(design);
-                        return;
-                      }
-                    }
-                  } catch {}
-                  // Fallback to blank design
-                  emailEditorRef.current.editor.loadDesign({
-                    counters: {},
-                    body: { id: '', rows: [], headers: [], footers: [], values: {} }
-                  });
-                } else if (emailEditorRef.current?.editor) {
-                  emailEditorRef.current.editor.loadDesign({
-                    counters: {},
-                    body: { id: '', rows: [], headers: [], footers: [], values: {} }
-                  });
-                }
-              }}
-              options={{
-                appearance: {
-                  theme: 'light',
-                  panels: { tools: { dock: 'left' } }
-                },
-                projectId: 1234,
-                locale: 'en-US',
-                features: { preview: true, stockImages: true }
-              }}
-              style={{ flex: 1, width: '100%', height: '100%' }}
-            />
-          </div>
+          <div className="w-full mx-auto flex-1 flex flex-col overflow-auto gap-4">
+                      <EmailEditor
+                        ref={emailEditorRef}
+                        onReady={onEmailEditorReady}
+                        options={{
+                          appearance: {
+                            theme: 'light',
+                            panels: {
+                              tools: {
+                                dock: 'left'
+                              }
+                            }
+                          },
+                          projectId: 1234,
+                          locale: 'en-US',
+                          features: {
+                            preview: true,
+                            stockImages: true
+                          }
+                        }}
+                        style={{ height: '100%', width: '100%', marginBottom: 0 }}
+                      />
+                    </div>
 
           {/* Footer */}
-          <div className="flex flex-col sm:flex-row justify-end items-center p-6 border-t border-[var(--border)] bg-gray-50 dark:bg-gray-800 z-10 gap-4">
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowEditor(false)}>
-                Cancel
-              </Button>
-              <Button onClick={() => handleSave("draft")}
-                variant="outline"
-                className="border-primary text-primary hover:bg-primary/10"
-              >
-                Save as Draft
-              </Button>
-              <Button onClick={() => handleSave("finalised")}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                Finalise Template
-              </Button>
+          <div className="w-full mx-auto flex flex-col sm:flex-row justify-between items-center z-20 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-4 py-3" style={{ position: 'sticky', bottom: 0, flex: '0 0 auto' }}>
+            <div className="w-full flex flex-row justify-between items-center gap-2">
+              {/* Left: Import & Export */}
+              <div className="flex gap-2">
+                <input
+                  type="file"
+                  accept="application/json"
+                  style={{ display: 'none' }}
+                  id="import-design-input"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const text = await file.text();
+                      const design = JSON.parse(text);
+                      if (emailEditorRef.current?.editor) {
+                        emailEditorRef.current.editor.loadDesign(design);
+                      }
+                    } catch (err) {
+                      alert('Failed to import design: ' + (err instanceof Error ? err.message : String(err)));
+                    }
+                    e.target.value = '';
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('import-design-input')?.click()}
+                >
+                  Import
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Export design logic
+                    if (emailEditorRef.current?.editor) {
+                      emailEditorRef.current.editor.exportHtml(data => {
+                        const blob = new Blob([data.design ? JSON.stringify(data.design) : ''], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'template-design.json';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      });
+                    }
+                  }}
+                >
+                  Export
+                </Button>
+              </div>
+              {/* Right: Close & Save */}
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowEditor(false)}>
+                  Close
+                </Button>
+                <Button onClick={() => handleSave("finalised")}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  Save
+                </Button>
+              </div>
             </div>
           </div>
         </div>

@@ -424,7 +424,7 @@ export default function Campaigns() {
   }
 
   return (
-    <div className="min-h-screen w-full py-8 px-[10%]">
+    <div className="w-full max-w-5xl mx-auto px-4 py-8">
       <header className="mb-6">
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
           Email Campaigns

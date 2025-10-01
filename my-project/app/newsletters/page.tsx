@@ -131,7 +131,7 @@ export default function Newsletters() {
   };
 
   return (
-    <div className="min-h-screen w-full py-8 px-[10%]">
+  <div className="w-full max-w-5xl mx-auto px-4 py-8">
       <header className="mb-6">
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
           Newsletters
@@ -207,35 +207,36 @@ export default function Newsletters() {
               <p className="text-[var(--foreground)]">No newsletters found.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredNewsletters.map((newsletter) => (
                 <div
                   key={newsletter.id}
-                  className="bg-[var(--background)] rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
+                  className="bg-[var(--background)] rounded-lg shadow-md border border-[var(--border)] hover:shadow-lg transition-shadow cursor-pointer overflow-hidden flex flex-col min-h-[260px] max-h-[340px]"
+                  style={{ minWidth: '260px', maxWidth: '400px' }}
                 >
                   <div className="h-40 bg-[var(--accent)] flex items-center justify-center">
                     <span className="text-4xl font-bold text-[var(--accent-foreground)]">
                       {newsletter.title.charAt(0)}
                     </span>
                   </div>
-                  <div className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-xl font-semibold text-[var(--foreground)]">
+                  <div className="p-3 flex flex-col gap-2">
+                    <div className="flex justify-between items-start">
+                      <h3 className="text-base font-semibold text-[var(--foreground)]">
                         {newsletter.title}
                       </h3>
-                      <span className={`inline-block px-3 py-1 rounded-full text-xs capitalize ${getStatusColor(newsletter.status)}`}>
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs capitalize ${getStatusColor(newsletter.status)}`}>
                         {newsletter.status}
                       </span>
                     </div>
-                    <p className="text-[var(--foreground)] text-sm mb-4">
+                    <p className="text-xs text-[var(--foreground)] truncate">
                       {newsletter.description}
                     </p>
-                    <div className="flex justify-between items-center text-sm text-[var(--muted-foreground)]">
+                    <div className="flex justify-between items-center text-xs text-[var(--muted-foreground)]">
                       <span>{new Date(newsletter.date).toLocaleDateString()}</span>
                       <span>{newsletter.recipients.toLocaleString()} recipients</span>
                     </div>
                   </div>
-                  <div className="px-6 pb-6">
+                  <div className="px-3 pb-3">
                     <Button className="w-full" variant="outline">
                       {newsletter.status === "draft" ? "Edit" : newsletter.status === "scheduled" ? "Manage" : "View Report"}
                     </Button>

@@ -52,6 +52,31 @@ declare global {
 }
 
 export default function CampaignBuilder() {
+  // ...existing code...
+  const [showPreview, setShowPreview] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
+  // Prevent background scroll when editor is open
+  useEffect(() => {
+    if (showEditor) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+    }
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, [showEditor]);
+  // Prevent background scroll when editor is open
+  useEffect(() => {
+    if (showEditor) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+    }
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, [showEditor]);
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -74,8 +99,6 @@ export default function CampaignBuilder() {
   const [editor, setEditor] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [showPreview, setShowPreview] = useState(false);
-  const [showEditor, setShowEditor] = useState(false);
   const [emailEditorLoaded, setEmailEditorLoaded] = useState(false);
   const [emailDesign, setEmailDesign] = useState<any>(null);
   const emailEditorRef = useRef<EditorRef>(null);
@@ -242,7 +265,7 @@ export default function CampaignBuilder() {
   };
 
   return (
-    <div className="py-8 px-[10%]">
+    <div className="py-8 px-0 w-full max-w-none">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
           <Target className="h-8 w-8" />
@@ -419,9 +442,9 @@ export default function CampaignBuilder() {
 
       {/* Editor Dialog */}
       {showEditor && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-gray-900">
+  <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900 w-full max-w-none px-4 py-3 gap-4" style={{ maxHeight: '100vh' }}>
           {/* Header */}
-          <div className="w-full max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center p-6 border-b border-[var(--border)] bg-white dark:bg-gray-900 z-10">
+          <div className="w-full mx-auto flex flex-col sm:flex-row justify-between items-center border-b border-[var(--border)] bg-white dark:bg-gray-900 z-10" style={{ flex: '0 0 auto' }}>
             <div className="mb-4 sm:mb-0">
               <h2 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">
                 Campaign Builder
@@ -436,7 +459,7 @@ export default function CampaignBuilder() {
           </div>
 
           {/* Editor - Responsive and centered */}
-          <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col min-h-[60vh]" style={{ minHeight: '60vh' }}>
+          <div className="w-full mx-auto flex-1 flex flex-col overflow-auto gap-4">
             <EmailEditor
               ref={emailEditorRef}
               onReady={onEmailEditorReady}
@@ -456,12 +479,12 @@ export default function CampaignBuilder() {
                   stockImages: true
                 }
               }}
-              style={{ height: '60vh', width: '100%' }}
+              style={{ height: '100%', width: '100%', marginBottom: 0 }}
             />
           </div>
 
           {/* Footer */}
-          <div className="w-full max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center p-6 border-t border-[var(--border)] bg-gray-50 dark:bg-gray-800 z-10 gap-4">
+          <div className="w-full mx-auto flex flex-col sm:flex-row justify-between items-center z-20 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-4 py-3" style={{ position: 'sticky', bottom: 0, flex: '0 0 auto' }}>
             <div className="flex gap-2">
               <Button 
                 variant="outline" 

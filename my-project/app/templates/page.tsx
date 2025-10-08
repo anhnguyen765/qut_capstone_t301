@@ -8,29 +8,33 @@ import { Dialog } from "@/app/components/ui/dialog";
 import ConfirmationDialog from "@/app/components/ConfirmationDialog";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
-import { MoreVertical, Edit, Trash2, Info, Calendar, FileText } from "lucide-react";
+import { MoreVertical, Edit, Trash2, Info, Calendar, FileText, Search } from "lucide-react";
 
-type Template = { 
+type Template = {
   id: string;
   name: string;
   subject: string;
-  description?: string;
-  html: string;
-  createdAt: string;
-  updatedAt: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export default function TemplatesPage() {
+  // Sorting state and handler (copied from /campaigns)
+  const [sortBy, setSortBy] = useState<"name" | "created_at" | "updated_at">("created_at");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  // ...existing code...
+  // ...existing code...
   // Handler for EmailEditor onReady event
   const onEmailEditorReady = () => {
     setEmailEditorLoaded(true);
     // Optionally, load design if editing
     if (editorMode === "edit" && selectedTemplate && emailEditorRef.current?.editor) {
       try {
-        if (selectedTemplate.html) {
+        if (selectedTemplate.content) {
           let design = null;
           try {
-            design = JSON.parse(selectedTemplate.html);
+            design = JSON.parse(selectedTemplate.content);
           } catch {}
           if (design) {
             emailEditorRef.current.editor.loadDesign(design);
@@ -57,7 +61,7 @@ export default function TemplatesPage() {
       const res = await fetch("/api/templates");
       if (!res.ok) throw new Error("Failed to fetch templates");
       const data = await res.json();
-      const arr = Array.isArray(data) ? data : Array.isArray(data.templates) ? data.templates : [];
+      const arr = (Array.isArray(data) ? data : Array.isArray(data.templates) ? data.templates : []);
       setTemplates(arr);
       setFilteredTemplates(arr);
       setLoading(false);
@@ -77,6 +81,26 @@ export default function TemplatesPage() {
   const [emailEditorLoaded, setEmailEditorLoaded] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([]);
+  // Sorted templates (must be after filteredTemplates is defined)
+  const sortedTemplates = [...filteredTemplates].sort((a, b) => {
+    let aValue: string | number = a[sortBy] || "";
+    let bValue: string | number = b[sortBy] || "";
+    if (sortBy === "created_at" || sortBy === "updated_at") {
+      aValue = new Date(aValue as string).getTime();
+      bValue = new Date(bValue as string).getTime();
+    }
+    if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
+    if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
+    return 0;
+  });
+  const handleSort = (field: "name" | "created_at" | "updated_at") => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(field);
+      setSortOrder("asc");
+    }
+  };
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -119,12 +143,7 @@ export default function TemplatesPage() {
   }, [search, templates]);
 
   const handleOpenDetails = (template: Template) => {
-    // Always use the database values for createdAt/updatedAt
-    setSelectedTemplate({
-      ...template,
-      createdAt: template.createdAt,
-      updatedAt: template.updatedAt,
-    });
+    setSelectedTemplate(template);
     setShowDetails(true);
   };
 
@@ -215,7 +234,13 @@ export default function TemplatesPage() {
             }
           );
           if (!res.ok) throw new Error("Failed to save template");
-          const newTemplate = await res.json();
+          const newTemplateRaw = await res.json();
+          // Map DB fields to frontend fields
+          const newTemplate = {
+            ...newTemplateRaw,
+            createdAt: newTemplateRaw.created_at || newTemplateRaw.createdAt,
+            updatedAt: newTemplateRaw.updated_at || newTemplateRaw.updatedAt,
+          };
           if (editorMode === "edit") {
             setTemplates((prev) =>
               prev.map((t) => (t.id === newTemplate.id ? newTemplate : t))
@@ -223,9 +248,9 @@ export default function TemplatesPage() {
           } else {
             setTemplates((prev) => [newTemplate, ...prev]);
           }
-    setLoading(false);
-    // Refresh templates after save
-    await fetchTemplates();
+          setLoading(false);
+          // Refresh templates after save
+          await fetchTemplates();
         } catch (err: any) {
           setError(err.message);
           setLoading(false);
@@ -238,7 +263,6 @@ export default function TemplatesPage() {
   <div className="w-full px-0 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Email Templates</h1>
-        <Button onClick={() => { console.log('Create Template button clicked'); handleOpenEditor("create"); }}>Create Template</Button>
       </div>
       {loading && (
         <>
@@ -253,19 +277,67 @@ export default function TemplatesPage() {
       {error && (
         <div className="mb-4 text-red-500">Error: {error}</div>
       )}
-      <div className="flex items-center gap-2 mb-6">
-        <Input
+      {/* Search bar with icon and filter popover (like campaigns) */}
+      <div className="relative flex items-center mb-4">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
+        <input
+          type="text"
           placeholder="Search templates..."
           value={search}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-          className="flex-1"
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full pl-10 pr-12 p-4 border border-[var(--border)] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
         />
-        <Button variant="outline" size="sm">
-          <Info className="h-4 w-4 mr-1" />
-          Filter
-        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 bg-background hover:bg-[var(--accent)] rounded-md">
+              <Info className="h-5 w-5 text-foreground" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-48 p-2" align="end">
+            <div className="space-y-2">
+              {/* Example filter: add more as needed */}
+              <label className="flex items-center space-x-2 p-2 hover:bg-[var(--accent)] rounded-md cursor-pointer">
+                <input type="checkbox" className="accent-[var(--primary)]" disabled />
+                <span className="text-foreground">Filter (coming soon)</span>
+              </label>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
-      {filteredTemplates.length === 0 ? (
+
+      {/* Sort row with create button */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-[var(--foreground)]">Sort by:</span>
+          <div className="flex gap-2">
+            <Button
+              variant={sortBy === "name" ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleSort("name")}
+            >
+              Name {sortBy === "name" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+            </Button>
+            <Button
+              variant={sortBy === "created_at" ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleSort("created_at")}
+            >
+              Created {sortBy === "created_at" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+            </Button>
+            <Button
+              variant={sortBy === "updated_at" ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleSort("updated_at")}
+            >
+              Updated {sortBy === "updated_at" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+            </Button>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={() => handleOpenEditor("create")}>Create Template</Button>
+        </div>
+      </div>
+      {sortedTemplates.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <FileText className="h-12 w-12 mb-4 text-gray-300" />
           <div className="text-gray-500 text-lg mb-2">No templates found.</div>
@@ -273,7 +345,7 @@ export default function TemplatesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTemplates.map((template, idx) => (
+          {sortedTemplates.map((template, idx) => (
             <div
               key={template.id ?? idx}
               className="bg-[var(--background)] rounded-lg shadow-md border border-[var(--border)] hover:shadow-lg transition-shadow cursor-pointer overflow-hidden flex flex-col min-h-[260px] max-h-[340px]"
@@ -282,10 +354,10 @@ export default function TemplatesPage() {
             >
               {/* Preview Section */}
               <div className="h-40 bg-gray-100 rounded-t-lg overflow-hidden flex items-center justify-center">
-                {template.html ? (
+                {template.content ? (
                   <div
                     className="h-full w-full p-2 text-xs overflow-hidden"
-                    dangerouslySetInnerHTML={{ __html: template.html }}
+                    dangerouslySetInnerHTML={{ __html: template.content }}
                     style={{
                       transform: 'scale(0.3)',
                       transformOrigin: 'top left',
@@ -312,12 +384,20 @@ export default function TemplatesPage() {
                     Draft
                   </span>
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{template.description || template.subject}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{template.subject}</div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-3 w-3 text-gray-400" />
-                  <span className="text-xs text-gray-400">{template.createdAt ? new Date(template.createdAt).toLocaleDateString('en-AU', { dateStyle: 'medium' }) : 'Unknown'}</span>
+                  <span className="text-xs text-gray-400">{
+                    template.created_at && !isNaN(Date.parse(template.created_at))
+                      ? new Date(template.created_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })
+                      : 'Unknown'
+                  }</span>
                   <Edit className="h-3 w-3 text-gray-400 ml-2" />
-                  <span className="text-xs text-gray-400">{template.updatedAt ? new Date(template.updatedAt).toLocaleDateString('en-AU', { dateStyle: 'medium' }) : 'Unknown'}</span>
+                  <span className="text-xs text-gray-400">{
+                    template.updated_at && !isNaN(Date.parse(template.updated_at))
+                      ? new Date(template.updated_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })
+                      : 'Unknown'
+                  }</span>
                 </div>
               </div>
             </div>
@@ -362,21 +442,29 @@ export default function TemplatesPage() {
                     <span className="h-5 w-5 text-gray-500">📄</span>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Description</p>
-                      <p className="text-sm text-gray-600">{selectedTemplate.description || selectedTemplate.subject}</p>
+                      <p className="text-sm text-gray-600">{selectedTemplate.subject}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="h-5 w-5 text-gray-500">📅</span>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Created</p>
-                      <p className="text-sm text-gray-600">{selectedTemplate.createdAt && !isNaN(Date.parse(selectedTemplate.createdAt)) ? new Date(selectedTemplate.createdAt).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Unknown'}</p>
+                      <p className="text-sm text-gray-600">{
+                          selectedTemplate.created_at && !isNaN(Date.parse(selectedTemplate.created_at))
+                            ? new Date(selectedTemplate.created_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })
+                            : 'Unknown'
+                        }</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="h-5 w-5 text-gray-500">📝</span>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Updated</p>
-                      <p className="text-sm text-gray-600">{selectedTemplate.updatedAt && !isNaN(Date.parse(selectedTemplate.updatedAt)) ? new Date(selectedTemplate.updatedAt).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' }) : 'Unknown'}</p>
+                      <p className="text-sm text-gray-600">{
+                          selectedTemplate.updated_at && !isNaN(Date.parse(selectedTemplate.updated_at))
+                            ? new Date(selectedTemplate.updated_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })
+                            : 'Unknown'
+                        }</p>
                     </div>
                   </div>
                 </div>
@@ -385,10 +473,10 @@ export default function TemplatesPage() {
                 <div className="border-t pt-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Email Content Preview</h3>
                   <div className="bg-gray-50 rounded-lg p-4 min-h-32">
-                    {selectedTemplate.html ? (
+                    {selectedTemplate.content ? (
                       <div 
                         className="text-sm text-gray-700"
-                        dangerouslySetInnerHTML={{ __html: selectedTemplate.html }}
+                        dangerouslySetInnerHTML={{ __html: selectedTemplate.content }}
                       />
                     ) : (
                       <div className="text-center text-gray-500 py-8">
@@ -574,64 +662,4 @@ export default function TemplatesPage() {
   );
 }
 
-function TemplateEditor({
-  mode,
-  template,
-  onSave,
-  onCancel,
-}: {
-  mode: "create" | "edit";
-  template: Template | null;
-  onSave: (template: Partial<Template>) => void;
-  onCancel: () => void;
-}) {
-  const [name, setName] = useState(template?.name || "");
-  const [subject, setSubject] = useState(template?.subject || "");
-  const [description, setDescription] = useState(template?.description || "");
-  const [html, setHtml] = useState(template?.html || "");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({ name, subject, description, html });
-  };
-
-
-  return (
-    <form className="p-6" onSubmit={handleSubmit}>
-      <h2 className="text-xl font-bold mb-4">{mode === "edit" ? "Edit" : "Create"} Template</h2>
-      <Input
-        placeholder="Template name"
-        value={name}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-        className="mb-4"
-        required
-      />
-      <Input
-        placeholder="Email subject"
-        value={subject}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSubject(e.target.value)}
-        className="mb-4"
-        required
-      />
-      <Input
-        placeholder="Short description"
-        value={description}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
-        className="mb-4"
-      />
-      <textarea
-        placeholder="Email HTML content"
-        value={html}
-        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setHtml(e.target.value)}
-        className="mb-4 w-full h-32 border rounded"
-        required
-      />
-      <div className="flex gap-2 mt-4">
-        <Button type="submit">Save</Button>
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
-    </form>
-  );
-}

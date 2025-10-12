@@ -11,15 +11,16 @@ export async function GET() {
         phone,
         \`group\`,
         notes,
+        opt1,
+        opt2,
+        opt3,
         created_at,
         updated_at
       FROM contacts 
       ORDER BY created_at DESC
     `);
-
     // Ensure we return an array
     const contactsArray = Array.isArray(contacts) ? contacts : [];
-    
     return NextResponse.json(contactsArray);
   } catch (error) {
     console.error("Error fetching contacts:", error);
@@ -34,7 +35,10 @@ export async function POST(request: Request) {
       email,
       phone,
       group = 'Private',
-      notes
+      notes,
+      opt1 = false,
+      opt2 = false,
+      opt3 = false
     } = await request.json();
 
     // Validate required fields
@@ -69,14 +73,20 @@ export async function POST(request: Request) {
         email, 
         phone, 
         \`group\`, 
-        notes
-      ) VALUES (?, ?, ?, ?, ?)
+        notes,
+        opt1,
+        opt2,
+        opt3
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       name,
       email,
       phone || null,
       group,
-      notes || null
+      notes || null,
+      !!opt1,
+      !!opt2,
+      !!opt3
     ]) as any;
 
     return NextResponse.json({ 

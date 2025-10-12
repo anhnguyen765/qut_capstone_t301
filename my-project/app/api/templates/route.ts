@@ -38,8 +38,8 @@ export async function PUT(req: NextRequest) {
   const rows = await executeQuery(
     "SELECT * FROM templates WHERE id = ?",
     [id]
-  );
-  return NextResponse.json(rows[0] || { success: true });
+  ) as any[];
+  return NextResponse.json((rows && rows[0]) ? rows[0] : { success: true });
 }
 
 // DELETE: Delete a template

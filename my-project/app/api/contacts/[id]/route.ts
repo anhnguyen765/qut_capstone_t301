@@ -14,6 +14,9 @@ export async function GET(
         phone,
         \`group\`,
         notes,
+        opt1,
+        opt2,
+        opt3,
         created_at,
         updated_at
       FROM contacts 
@@ -48,7 +51,10 @@ export async function PUT(
       email,
       phone,
       group,
-      notes
+      notes,
+      opt1 = false,
+      opt2 = false,
+      opt3 = false
     } = await request.json();
 
     // Validate required fields
@@ -79,7 +85,7 @@ export async function PUT(
 
     const result = await executeQuery(`
       UPDATE contacts 
-      SET name = ?, email = ?, phone = ?, \`group\` = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+      SET name = ?, email = ?, phone = ?, \`group\` = ?, notes = ?, opt1 = ?, opt2 = ?, opt3 = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `, [
       name,
@@ -87,6 +93,9 @@ export async function PUT(
       phone || null,
       group,
       notes || null,
+      !!opt1,
+      !!opt2,
+      !!opt3,
       params.id
     ]) as any;
 

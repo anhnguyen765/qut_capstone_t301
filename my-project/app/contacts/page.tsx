@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Filter, UserPlus, ArrowUpDown, Upload, Edit, Eye, ChevronDown, Trash2 } from "lucide-react";
+import { Search, Filter, UserPlus, ArrowUpDown, Upload, Edit, Eye, ChevronDown, Trash2, Download } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -472,6 +472,42 @@ export default function Contacts() {
             >
               <Upload className="h-4 w-4 text-[var(--foreground)]" />
               Import
+            </Button>
+            <Button
+              className="flex-1 sm:flex-none"
+              variant="outline"
+              onClick={() => {
+                // Export all contacts as CSV (matching import format)
+                if (!contacts.length) return;
+                const headers = [
+                  'name','email','phone','group','notes','opt1','opt2','opt3'
+                ];
+                const csvRows = [
+                  headers.join(','),
+                  ...contacts.map(contact =>
+                    headers.map(h => {
+                      let val = contact[h as keyof typeof contact];
+                      if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE';
+                      if (val === undefined || val === null) return '';
+                      // Escape quotes and commas
+                      return `"${String(val).replace(/"/g, '""')}"`;
+                    }).join(',')
+                  )
+                ];
+                const csvContent = csvRows.join('\r\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'contacts_export.csv');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+              }}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Export
             </Button>
             <Button
               className="flex-1 sm:flex-none"

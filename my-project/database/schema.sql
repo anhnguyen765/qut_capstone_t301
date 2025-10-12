@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     date DATE NOT NULL,
-    type ENUM('workshop', 'event', 'community', 'special', 'email', 'template') NOT NULL,
+    type ENUM('app', 'classes', 'fishing_comps', 'oshc_vacation_care', 'promotion', 'other', 'email', 'template') NOT NULL,
     status ENUM('draft', 'scheduled', 'sent', 'archived') DEFAULT 'draft',
     target_groups TEXT,
     content MEDIUMTEXT,

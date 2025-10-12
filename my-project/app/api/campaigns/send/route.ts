@@ -53,10 +53,6 @@ export async function PUT(request: NextRequest) {
 
     const campaign = campaignResult[0] as any;
 
-    // Note: The campaigns table doesn't have subject_line, sender_name, sender_email columns
-    // These values will be used directly in the email sending process
-    // No database update needed for these fields
-
     // Get recipients based on selection criteria
     let contacts: any[] = [];
     
@@ -158,7 +154,13 @@ export async function PUT(request: NextRequest) {
 
     // Add emails to queue
     for (const contact of contacts) {
-      if (contact.id === 0) {
+      // Ensure contact has required properties
+      if (!contact || !contact.email) {
+        console.warn('Skipping contact with missing email:', contact);
+        continue;
+      }
+      
+      if (contact.id === 0 || contact.id === null || contact.id === undefined) {
         // Individual email - insert with NULL contact_id
         await executeQuery(
           `INSERT INTO email_queue (campaign_id, contact_id, email, status, created_at) VALUES (?, NULL, ?, 'pending', NOW())`,

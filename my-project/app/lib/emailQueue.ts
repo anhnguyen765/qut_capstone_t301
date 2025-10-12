@@ -263,6 +263,12 @@ class EmailQueueProcessor {
     `;
     
     const result = await executeQuery(query, [campaignId]);
+    
+    // Check if campaign exists
+    if (!result || !Array.isArray(result) || result.length === 0) {
+      throw new Error(`Campaign with ID ${campaignId} not found`);
+    }
+    
     const campaign = result[0] as any;
     
     // Return default values since the table doesn't have these columns

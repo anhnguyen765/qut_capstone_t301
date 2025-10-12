@@ -17,7 +17,7 @@ interface Campaign {
   id?: number;
   title: string;
   description: string;
-  type: "workshop" | "event" | "community" | "special" | "promotion";
+  type: "app" | "classes" | "fishing_comps" | "oshc_vacation_care" | "promotion" | "other";
   status: "draft" | "finalised";
   design: any;
   content: string;
@@ -30,11 +30,12 @@ interface Campaign {
 }
 
 const CAMPAIGN_TYPES = [
-  { label: "Workshop", value: "workshop" },
-  { label: "Event", value: "event" },
-  { label: "Community", value: "community" },
-  { label: "Special", value: "special" },
+  { label: "App", value: "app" },
+  { label: "Classes", value: "classes" },
+  { label: "Fishing Comps", value: "fishing_comps" },
+  { label: "OSHC/Vacation Care", value: "oshc_vacation_care" },
   { label: "Promotion", value: "promotion" },
+  { label: "Other", value: "other" },
 ];
 
 const TARGET_GROUPS = [
@@ -86,7 +87,7 @@ export default function CampaignBuilder() {
     id: undefined,
     title: "",
     description: "",
-    type: "workshop",
+    type: "app",
     status: "draft",
     design: null,
     content: "",
@@ -139,7 +140,7 @@ export default function CampaignBuilder() {
           id: campaignData.id,
           title: campaignData.title || "",
           description: campaignData.description || "",
-          type: campaignData.type || "workshop",
+          type: campaignData.type || "app",
           status: campaignData.status || "draft",
           design: campaignData.design ? JSON.parse(campaignData.design) : null,
           content: campaignData.content || "",

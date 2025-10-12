@@ -40,7 +40,7 @@ type Campaign = {
     batch_size: number;
 }
 
-function chunkArray(array: T[], size: number): T[][] {
+function chunkArray<T>(array: T[], size: number): T[][] {
     const chunks: T[][] = [];
     for (let i = 0; i < array.length; i += size) {
         chunks.push(array.slice(i, i + size));
@@ -115,6 +115,12 @@ export async function POST(request: NextRequest) {
         const delayMs = 2000;
 
         const sendSingle = async (recipient: Contact) => {
+            // Ensure recipient has required properties
+            if (!recipient || !recipient.email || recipient.id === undefined || recipient.id === null) {
+                console.warn('Skipping recipient with missing data:', recipient);
+                return;
+            }
+            
             const unsubscribeToken = Buffer.from(`${recipient.email}:${recipient.id}`).toString('base64');
             const unsubscribeUrl = `${APP_BASE_URL}/api/unsubscribe?e=${encodeURIComponent(unsubscribeToken)}&c=${campaignId}`;
             const trackingUrl = `${APP_BASE_URL}/api/track-open?c=${campaignId}&e=${encodeURIComponent(recipient.email)}`;
@@ -170,6 +176,12 @@ export async function POST(request: NextRequest) {
             queued: contacts.length,
             batches: batches.length,
         });
+    } catch (error) {
+        console.error("Send campaign error:", error);
+        return NextResponse.json(
+            { error: "Failed to send campaign" },
+            { status: 500 }
+        );
     }
 }
 

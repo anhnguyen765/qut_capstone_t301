@@ -17,7 +17,7 @@ type Campaign = {
   id: string;
   title: string;
   date: string;
-  type: "workshop" | "event" | "community" | "special";
+  type: "app" | "classes" | "fishing_comps" | "oshc_vacation_care" | "promotion" | "other";
   status: "draft" | "finalised" | "scheduled" | "sent" | "archived";
   targetGroups?: string[]; // Which contact groups to send to
   content?: string; // Email content/template
@@ -25,10 +25,12 @@ type Campaign = {
 };
 
 const CAMPAIGN_TYPES = [
-  { label: "Workshop", value: "workshop" },
-  { label: "Event", value: "event" },
-  { label: "Community", value: "community" },
-  { label: "Special", value: "special" },
+  { label: "App", value: "app" },
+  { label: "Classes", value: "classes" },
+  { label: "Fishing Comps", value: "fishing_comps" },
+  { label: "OSHC/Vacation Care", value: "oshc_vacation_care" },
+  { label: "Promotion", value: "promotion" },
+  { label: "Other", value: "other" },
 ];
 
 // Fetch campaigns from backend
@@ -64,7 +66,7 @@ export default function Campaigns() {
   }>({
     title: '',
     date: new Date().toISOString().slice(0, 10),
-    type: 'event',
+    type: 'app',
     status: 'draft',
     targetGroups: [],
     templateId: '',
@@ -151,7 +153,7 @@ export default function Campaigns() {
     setNewCampaignData({
       title: '',
       date: new Date().toISOString().slice(0, 10),
-      type: 'event',
+      type: 'app',
       status: 'draft',
       targetGroups: [],
     });

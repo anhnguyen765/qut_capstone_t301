@@ -6,7 +6,9 @@
     "dev": "cross-env NODE_ENV=development next dev",
     "build": "cross-env NODE_ENV=production next build",
     "start": "cross-env NODE_ENV=production next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate:campaign-types": "node scripts/migrate-campaign-types.js",
+    "test:campaign-types": "node scripts/test-campaign-types.js"
   },
   "dependencies": {
     "@prisma/client": "^6.8.2",
@@ -33,7 +35,7 @@
     "lucide-react": "^0.507.0",
     "moment": "^2.30.1",
     "mysql2": "^3.14.1",
-    "next": "15.3.1",
+    "next": "^15.5.4",
     "next-themes": "^0.4.6",
     "nodemailer": "^7.0.6",
     "react": "^19.0.0",
@@ -47,6 +49,7 @@
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.17.57",
+    "@types/nodemailer": "^7.0.2",
     "@types/react": "^19",
     "@types/react-big-calendar": "^1.16.2",
     "@types/react-dom": "^19",

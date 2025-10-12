@@ -200,7 +200,7 @@ export default function EmailCampaignBuilder() {
         },
         body: JSON.stringify({
           ...campaign,
-          type: "event",
+          type: "app",
           date: new Date().toISOString().split('T')[0],
           createdBy: user?.userId
         }),

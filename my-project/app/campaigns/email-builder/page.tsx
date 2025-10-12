@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
@@ -35,8 +35,11 @@ export default function EmailCampaignBuilder() {
     htmlContent: "",
     status: "draft"
   });
+  const [campaignLoaded, setCampaignLoaded] = useState(false);
   
   const [editor, setEditor] = useState<any>(null);
+  const [editorReady, setEditorReady] = useState(false);
+  const designLoadedRef = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -46,6 +49,25 @@ export default function EmailCampaignBuilder() {
     script.src = "https://unpkg.com/unlayer@latest/dist/unlayer.js";
     script.onload = initializeEditor;
     document.head.appendChild(script);
+
+    // Fetch campaign data from API (replace with your actual API endpoint and logic)
+    const fetchCampaign = async () => {
+      try {
+        // Example: fetch the latest campaign for the user (customize as needed)
+        const res = await fetch("/api/campaigns?latest=1");
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            setCampaign({ ...data[0] });
+          }
+        }
+      } catch (err) {
+        // Optionally handle error
+      } finally {
+        setCampaignLoaded(true);
+      }
+    };
+    fetchCampaign();
 
     return () => {
       document.head.removeChild(script);
@@ -64,10 +86,75 @@ export default function EmailCampaignBuilder() {
           window.location.protocol + "//" + window.location.host + "/unlayer.css"
         ]
       });
-
       setEditor(editorInstance);
+      // Listen for Unlayer's editor:ready event
+      if (editorInstance.addEventListener) {
+        editorInstance.addEventListener('editor:ready', () => {
+          console.log('Unlayer editor:ready event fired');
+          setEditorReady(true);
+        });
+      } else {
+        // Fallback: try to set ready after a short delay
+        setTimeout(() => {
+          if (editorInstance && typeof editorInstance.loadDesign === 'function') {
+            console.log('Fallback: editor instance appears ready');
+            setEditorReady(true);
+          }
+        }, 1000);
+      }
     }
   };
+
+  // Load design into editor only after editor is truly ready and campaign.design is available
+  useEffect(() => {
+    if (
+      editor &&
+      editorReady &&
+      campaignLoaded &&
+      campaign.design &&
+      !designLoadedRef.current
+    ) {
+      try {
+        const designObj = campaign.design;
+        // Unlayer expects a design object with a 'body' property (and usually 'body.rows' or 'body.contents')
+        if (!designObj || typeof designObj !== 'object') {
+          console.warn('Design object is not an object:', designObj);
+          setMessage('Design data is not a valid object.');
+          return;
+        }
+        if (!designObj.body || !Array.isArray(designObj.body.rows)) {
+          console.warn('Design object is missing body.rows:', designObj);
+          setMessage('Design data is missing required Unlayer properties (body.rows).');
+          return;
+        }
+        if (designObj.body.rows.length === 0) {
+          console.warn('Design object loaded but body.rows is empty:', designObj);
+          setMessage('Design loaded, but it is empty. Please add content and save again.');
+          // Still load the empty design so the user can edit
+          editor.loadDesign(designObj);
+          designLoadedRef.current = true;
+          return;
+        }
+        if (typeof editor.loadDesign !== 'function') {
+          console.error('Editor does not have loadDesign method:', editor);
+          setMessage('Editor is not ready for loading design.');
+          return;
+        }
+        console.log('Attempting to load design:', designObj);
+        editor.loadDesign(designObj);
+        setMessage("Design loaded from database.");
+        designLoadedRef.current = true;
+      } catch (error) {
+        setMessage("Error loading design from database: " + error);
+        console.error('Error loading design:', error);
+      }
+    } else {
+      if (!editor) console.log('Editor not set');
+      if (!editorReady) console.log('Editor not ready');
+      if (!campaignLoaded) console.log('Campaign not loaded');
+      if (!campaign.design) console.log('No campaign design to load');
+    }
+  }, [editor, editorReady, campaignLoaded, campaign.design]);
 
   const saveDesign = async () => {
     if (!editor) return;

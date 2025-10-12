@@ -105,10 +105,17 @@ export default function CampaignBuilder() {
 
   const onEmailEditorReady = () => {
     setEmailEditorLoaded(true);
-    // Load existing design if available
+    const unlayer = emailEditorRef.current?.editor;
+    // Only load the design if it exists
     if (campaign.design) {
-      const unlayer = emailEditorRef.current?.editor;
-      unlayer?.loadDesign(campaign.design);
+      try {
+        console.log('Attempting to load campaign design:', campaign.design);
+        unlayer?.loadDesign(campaign.design);
+      } catch (err) {
+        console.error('Failed to load campaign design:', err, campaign.design);
+      }
+    } else {
+      console.warn('No campaign design to load.');
     }
   };
 
@@ -162,12 +169,21 @@ export default function CampaignBuilder() {
 
     setIsLoading(true);
     setMessage("Saving campaign...");
-    
+
     try {
-      // Get current design from editor if it's open
       let html = campaign.content;
+      let design = campaign.design;
+      // Always get the latest design and html from the editor if it's open
       if (showEditor && emailEditorRef.current?.editor) {
         const unlayer = emailEditorRef.current.editor;
+        // Get the design
+        await new Promise((resolve) => {
+          unlayer.saveDesign((data: any) => {
+            design = data;
+            resolve(data);
+          });
+        });
+        // Get the HTML
         await new Promise((resolve) => {
           unlayer.exportHtml((data: any) => {
             html = data.html;
@@ -177,19 +193,15 @@ export default function CampaignBuilder() {
       }
 
       const campaignData = {
-        title: campaign.title,
-        type: campaign.type,
-        status: campaign.status,
-        targetGroups: campaign.targetGroups,
+        ...campaign,
         content: html,
-        design: campaign.design,
+        design,
         createdBy: user?.userId
       };
 
       // Create or update campaign
       let response;
       if (campaign.id) {
-        // Update existing campaign
         response = await fetch(`/api/campaigns/${campaign.id}`, {
           method: "PUT",
           headers: {
@@ -198,7 +210,6 @@ export default function CampaignBuilder() {
           body: JSON.stringify(campaignData),
         });
       } else {
-        // Create new campaign
         response = await fetch("/api/campaigns", {
           method: "POST",
           headers: {
@@ -212,10 +223,8 @@ export default function CampaignBuilder() {
         const result = await response.json();
         const action = campaign.id ? "updated" : "saved";
         setMessage(`Campaign ${action} successfully!`);
-        setCampaign(prev => ({ ...prev, id: result.id || prev.id, content: html }));
-        setShowEditor(false); // Exit back to builder
-        
-        // Redirect to campaigns page after a short delay
+        setCampaign(prev => ({ ...prev, id: result.id || prev.id, content: html, design }));
+        setShowEditor(false);
         setTimeout(() => {
           router.push('/campaigns');
         }, 1500);

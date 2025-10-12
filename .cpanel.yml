@@ -2,7 +2,7 @@
 deployment:
   tasks:
     # 1. Define the target deployment path on your cPanel account.
-    - export DEPLOYPATH=/home/bentrod2/crm/
+    - export DEPLOYPATH=/home/bentrod2/repositories/qut_capstone_t301/
 
     # 2. Clean the deployment directory before copying new files.
     - /bin/rm -rf $DEPLOYPATH/*

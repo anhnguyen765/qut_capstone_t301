@@ -1,0 +1,23 @@
+---
+deployment:
+  tasks:
+    # 1. Define the target deployment path on cPanel account.
+    - export DEPLOYPATH=/home/bentrod2/public_html/
+    
+    # 2. Navigate into the Next.js project directory.
+    - cd my-project
+
+    # 3. Install project dependencies.
+    - npm install
+
+    # 4. Build the Next.js application for production.
+    - npm run build
+
+    # 5. Copy the standalone build output to the public_html directory.
+    - /bin/cp -r .next/standalone/* $DEPLOYPATH
+
+    # 6. Copy the static assets and public directory content.
+    - /bin/cp -r .next/static/* $DEPLOYPATH/static
+    - /bin/cp -r public/* $DEPLOYPATH
+
+    - rm -rf .next

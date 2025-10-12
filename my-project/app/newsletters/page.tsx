@@ -266,13 +266,15 @@ export default function Newsletters() {
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4 py-8">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-          Newsletters
-        </h1>
-      </header>
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)] pb-4 mb-6">
+        <header className="mb-4">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+            Newsletters
+          </h1>
+        </header>
 
-      <div className="space-y-4">
+        <div className="space-y-4">
         <div className="relative flex items-center">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
           <input
@@ -323,13 +325,18 @@ export default function Newsletters() {
               </Button>
             </div>
           </div>
-          <Button className="flex-1 sm:flex-none" onClick={handleNewNewsletter}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Newsletter
-          </Button>
+          <div className="flex gap-2">
+            <Button className="flex-1 sm:flex-none" onClick={handleNewNewsletter}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Newsletter
+            </Button>
+          </div>
         </div>
+        </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Newsletters Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredNewsletters.map((newsletter) => (
             <div
               key={newsletter.id}
@@ -400,7 +407,6 @@ export default function Newsletters() {
               </div>
             </div>
           ))}
-        </div>
       </div>
 
       {/* Newsletter Details Dialog */}

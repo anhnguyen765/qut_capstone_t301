@@ -39,6 +39,7 @@ export default function Campaigns() {
   const router = useRouter();
   const [filter, setFilter] = useState("");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [templatesList, setTemplatesList] = useState<any[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<"type">("type");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -104,7 +105,18 @@ export default function Campaigns() {
             }))
           );
         }
-      });
+      })
+      .catch((err) => console.error("Failed to fetch campaigns:", err));
+
+    // Fetch templates from backend
+    fetch("/api/templates")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.templates)) {
+          setTemplatesList(data.templates);
+        }
+      })
+      .catch((err) => console.error("Failed to fetch templates:", err));
   }, []);
 
   const handleTypeChange = (type: string) => {
@@ -427,13 +439,15 @@ export default function Campaigns() {
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4 py-8">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-          Email Campaigns
-        </h1>
-      </header>
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)] pb-4 mb-6">
+        <header className="mb-4">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+            Email Campaigns
+          </h1>
+        </header>
 
-      <div className="space-y-4">
+        <div className="space-y-4">
         <div className="relative flex items-center">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
           <input
@@ -491,7 +505,6 @@ export default function Campaigns() {
           </div>
 
           <div className="flex gap-2">
-
             <Button className="flex-1 sm:flex-none" 
               onClick={() => router.push('/campaigns/builder')}
             >
@@ -500,8 +513,11 @@ export default function Campaigns() {
             </Button>
           </div>
         </div>
+        </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Campaigns Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCampaigns.map((campaign) => (
             <div
               key={campaign.id}
@@ -585,7 +601,6 @@ export default function Campaigns() {
               </div>
             </div>
           ))}
-        </div>
       </div>
 
       {/* Campaign Details Dialog */}
@@ -840,7 +855,7 @@ export default function Campaigns() {
                         templateId,
                         title: template.name || '',
                       }));
-                      setEmailDesign(template.content ? JSON.parse(template.content) : null);
+                      setEmailDesign(template.design ? JSON.parse(template.design) : null);
                     }
                   }}
                 >

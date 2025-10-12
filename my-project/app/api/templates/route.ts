@@ -3,51 +3,112 @@ import { executeQuery } from "@/app/lib/db";
 
 // GET: List all templates
 export async function GET() {
-  const rows = await executeQuery("SELECT * FROM templates ORDER BY updated_at DESC");
-  return NextResponse.json({ templates: rows });
+  try {
+    const templates = await executeQuery(
+      "SELECT * FROM templates ORDER BY updated_at DESC"
+    );
+    return NextResponse.json({ templates });
+  } catch (error) {
+    console.error("Fetch templates error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch templates" },
+      { status: 500 }
+    );
+  }
 }
 
 // POST: Create a new template
-export async function POST(req: NextRequest) {
-  const { name, subject, content } = await req.json();
-  if (!name || !subject || !content) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { name, subject, design } = body;
+
+    if (!name || !subject || !design) {
+      return NextResponse.json(
+        { error: "Name, subject, and design are required" },
+        { status: 400 }
+      );
+    }
+
+    const result = await executeQuery(
+      `INSERT INTO templates (name, subject, design) VALUES (?, ?, ?)`,
+      [name.trim(), subject.trim(), JSON.stringify(design)]
+    );
+
+    const templateId = (result as any)?.insertId;
+
+    return NextResponse.json({
+      success: true,
+      message: "Template created successfully",
+      templateId: templateId
+    });
+  } catch (error) {
+    console.error("Create template error:", error);
+    return NextResponse.json(
+      { error: "Failed to create template" },
+      { status: 500 }
+    );
   }
-  await executeQuery(
-    "INSERT INTO templates (name, subject, content) VALUES (?, ?, ?)",
-    [name, subject, content]
-  );
-  // Fetch the newly created template (assume auto-increment id)
-  const rows = await executeQuery(
-    "SELECT * FROM templates WHERE id = LAST_INSERT_ID()"
-  );
-  return NextResponse.json(rows[0] || { success: true });
 }
 
 // PUT: Update a template
-export async function PUT(req: NextRequest) {
-  const { id, name, subject, content } = await req.json();
-  if (!id || !name || !subject || !content) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, name, subject, design } = body;
+
+    if (!id || !name || !subject || !design) {
+      return NextResponse.json(
+        { error: "ID, name, subject, and design are required" },
+        { status: 400 }
+      );
+    }
+
+    await executeQuery(
+      `UPDATE templates SET name = ?, subject = ?, design = ?, updated_at = NOW() WHERE id = ?`,
+      [name.trim(), subject.trim(), JSON.stringify(design), id]
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: "Template updated successfully"
+    });
+  } catch (error) {
+    console.error("Update template error:", error);
+    return NextResponse.json(
+      { error: "Failed to update template" },
+      { status: 500 }
+    );
   }
-  await executeQuery(
-    "UPDATE templates SET name=?, subject=?, content=? WHERE id=?",
-    [name, subject, content, id]
-  );
-  // Fetch the updated template
-  const rows = await executeQuery(
-    "SELECT * FROM templates WHERE id = ?",
-    [id]
-  ) as any[];
-  return NextResponse.json((rows && rows[0]) ? rows[0] : { success: true });
 }
 
 // DELETE: Delete a template
-export async function DELETE(req: NextRequest) {
-  const { id } = await req.json();
-  if (!id) {
-    return NextResponse.json({ error: "Missing id" }, { status: 400 });
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Template ID is required" },
+        { status: 400 }
+      );
+    }
+
+    await executeQuery(
+      `DELETE FROM templates WHERE id = ?`,
+      [id]
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: "Template deleted successfully"
+    });
+  } catch (error) {
+    console.error("Delete template error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete template" },
+      { status: 500 }
+    );
   }
-  await executeQuery("DELETE FROM templates WHERE id=?", [id]);
-  return NextResponse.json({ success: true });
 }

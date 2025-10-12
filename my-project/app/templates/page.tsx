@@ -8,13 +8,13 @@ import { Dialog } from "@/app/components/ui/dialog";
 import ConfirmationDialog from "@/app/components/ConfirmationDialog";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
-import { MoreVertical, Edit, Trash2, Info, Calendar, FileText, Search } from "lucide-react";
+import { MoreVertical, Edit, Trash2, Info, Calendar, FileText, Search, Filter } from "lucide-react";
 
 type Template = {
   id: string;
   name: string;
   subject: string;
-  content: string;
+  design: string;
   created_at: string;
   updated_at: string;
 };
@@ -31,10 +31,10 @@ export default function TemplatesPage() {
     // Optionally, load design if editing
     if (editorMode === "edit" && selectedTemplate && emailEditorRef.current?.editor) {
       try {
-        if (selectedTemplate.content) {
+        if (selectedTemplate.design) {
           let design = null;
           try {
-            design = JSON.parse(selectedTemplate.content);
+            design = JSON.parse(selectedTemplate.design);
           } catch {}
           if (design) {
             emailEditorRef.current.editor.loadDesign(design);
@@ -212,15 +212,15 @@ export default function TemplatesPage() {
         const { html } = data;
         const name = (selectedTemplate?.name ?? modalName ?? "") || "";
         const subject = (selectedTemplate?.subject ?? modalSubject ?? "") || "";
-        const content = typeof html === "string" ? html : "";
-        if (typeof name !== "string" || typeof subject !== "string" || typeof content !== "string" || !name.trim() || !subject.trim() || !content.trim()) {
-          setError("Name, subject, and content are required.");
+        const design = typeof html === "string" ? html : "";
+        if (typeof name !== "string" || typeof subject !== "string" || typeof design !== "string" || !name.trim() || !subject.trim() || !design.trim()) {
+          setError("Name, subject, and design are required.");
           return;
         }
         setLoading(true);
         setShowEditor(false);
         try {
-          const body = { name, subject, content };
+          const body = { name, subject, design };
           const res = await fetch(
             "/api/templates",
             {
@@ -260,25 +260,18 @@ export default function TemplatesPage() {
   };
 
   return (
-  <div className="w-full px-0 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Email Templates</h1>
-      </div>
-      {loading && (
-        <>
-          <Skeleton className="h-10 w-full mb-4" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-32 w-full rounded-lg" />
-            ))}
-          </div>
-        </>
-      )}
-      {error && (
-        <div className="mb-4 text-red-500">Error: {error}</div>
-      )}
-      {/* Search bar with icon and filter popover (like campaigns) */}
-      <div className="relative flex items-center mb-4">
+    <div className="w-full max-w-5xl mx-auto px-4 py-8">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)] pb-4 mb-6">
+        <header className="mb-4">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+            Email Templates
+          </h1>
+        </header>
+
+        <div className="space-y-4">
+          {/* Search bar with icon and filter popover (like campaigns) */}
+          <div className="relative flex items-center">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
         <input
           type="text"
@@ -290,7 +283,7 @@ export default function TemplatesPage() {
         <Popover>
           <PopoverTrigger asChild>
             <Button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 bg-background hover:bg-[var(--accent)] rounded-md">
-              <Info className="h-5 w-5 text-foreground" />
+              <Filter className="h-5 w-5 text-foreground" />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-48 p-2" align="end">
@@ -303,10 +296,9 @@ export default function TemplatesPage() {
             </div>
           </PopoverContent>
         </Popover>
-      </div>
+          </div>
 
-      {/* Sort row with create button */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-2">
           <span className="text-sm text-[var(--foreground)]">Sort by:</span>
           <div className="flex gap-2">
@@ -333,10 +325,27 @@ export default function TemplatesPage() {
             </Button>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => handleOpenEditor("create")}>Create Template</Button>
+          <div className="flex gap-2">
+            <Button onClick={() => handleOpenEditor("create")}>Create Template</Button>
+          </div>
+        </div>
         </div>
       </div>
+
+      {/* Loading and Error States */}
+      {loading && (
+        <>
+          <Skeleton className="h-10 w-full mb-4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="h-32 w-full rounded-lg" />
+            ))}
+          </div>
+        </>
+      )}
+      {error && (
+        <div className="mb-4 text-red-500">Error: {error}</div>
+      )}
       {sortedTemplates.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <FileText className="h-12 w-12 mb-4 text-gray-300" />
@@ -354,10 +363,10 @@ export default function TemplatesPage() {
             >
               {/* Preview Section */}
               <div className="h-40 bg-gray-100 rounded-t-lg overflow-hidden flex items-center justify-center">
-                {template.content ? (
+                {template.design ? (
                   <div
                     className="h-full w-full p-2 text-xs overflow-hidden"
-                    dangerouslySetInnerHTML={{ __html: template.content }}
+                    dangerouslySetInnerHTML={{ __html: template.design }}
                     style={{
                       transform: 'scale(0.3)',
                       transformOrigin: 'top left',
@@ -473,16 +482,16 @@ export default function TemplatesPage() {
                 <div className="border-t pt-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Email Content Preview</h3>
                   <div className="bg-gray-50 rounded-lg p-4 min-h-32">
-                    {selectedTemplate.content ? (
+                    {selectedTemplate.design ? (
                       <div 
                         className="text-sm text-gray-700"
-                        dangerouslySetInnerHTML={{ __html: selectedTemplate.content }}
+                        dangerouslySetInnerHTML={{ __html: selectedTemplate.design }}
                       />
                     ) : (
                       <div className="text-center text-gray-500 py-8">
                         <span className="h-12 w-12 mx-auto mb-2 opacity-50">📭</span>
-                        <p>No content available</p>
-                        <p className="text-xs">Click "Edit Template" to add content</p>
+                        <p>No design available</p>
+                        <p className="text-xs">Click "Edit Template" to add design</p>
                       </div>
                     )}
                   </div>

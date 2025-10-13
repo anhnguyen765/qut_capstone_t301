@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, UserPlus, ArrowUpDown, Edit, Eye, Trash2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, UserPlus, ArrowUpDown, Edit, Eye, Trash2, Download } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -28,6 +28,67 @@ const GROUPS = [
 ];
 
 export default function CompaniesContacts() {
+  // CSV utility functions
+  function contactsToCSV(contacts: Contact[]): string {
+    const header = ["name", "email", "phone", "group", "notes"];
+    const rows = contacts.map(c =>
+      header.map(field => `"${(c[field as keyof Contact] || "").toString().replace(/"/g, '""')}"`).join(",")
+    );
+    return [header.join(","), ...rows].join("\n");
+  }
+
+  function csvToContacts(csv: string): Contact[] {
+    const [headerLine, ...lines] = csv.trim().split(/\r?\n/);
+    const headers = headerLine.split(",").map(h => h.replace(/^"|"$/g, ""));
+    return lines.map(line => {
+      const values = line.match(/("[^"]*(""[^"]*)*"|[^,]*)/g)?.map(v => v.replace(/^"|"$/g, "").replace(/""/g, '"')) || [];
+      const obj: any = {};
+      headers.forEach((h, i) => { obj[h] = values[i] || ""; });
+      return obj as Contact;
+    });
+  }
+
+  // File input ref for import
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Export contacts as CSV
+  const handleExport = () => {
+    const csv = contactsToCSV(contacts);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "company_contacts.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Import contacts from CSV
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = (event.target && (event.target as FileReader).result) as string;
+      const importedContacts = csvToContacts(text).map(c => ({ ...c, group: "Companies" }));
+      // Optionally, send each to API
+      for (const contact of importedContacts) {
+        await fetch("/api/contacts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(contact),
+        });
+      }
+      // Refresh contacts
+      const response = await fetch("/api/contacts");
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setContacts(data.filter((contact: Contact) => contact.group === "Companies"));
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+    reader.readAsText(file);
+  };
   const [filter, setFilter] = useState("");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [sortBy, setSortBy] = useState<"name" | "email">("name");
@@ -168,6 +229,7 @@ export default function CompaniesContacts() {
   };
 
   return (
+
     <div className="min-h-screen w-full py-8 px-[10%]">
       <header className="mb-6">
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
@@ -180,12 +242,19 @@ export default function CompaniesContacts() {
           <div className="relative flex items-center flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
             <Input
-            type="text"
-            placeholder="Search companies..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="pl-10 pr-4 placeholder:text-grey dark:placeholder:text-white/80"
-          />
+              type="text"
+              placeholder="Search companies..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="pl-10 pr-4 placeholder:text-grey dark:placeholder:text-white/80"
+            />
+          </div>
+          {/* Export CSV Button */}
+          <div className="flex gap-2 items-center">
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
           </div>
           <Button
             onClick={() => setShowAddDialog(true)}

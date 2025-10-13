@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, UserPlus, ArrowUpDown, Edit, Eye, Trash2 } from "lucide-react";
+import { Search, UserPlus, ArrowUpDown, Edit, Eye, Trash2, Download } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -28,6 +28,26 @@ const GROUPS = [
 ];
 
 export default function GroupsContacts() {
+  // CSV utility function for export
+  function contactsToCSV(contacts: Contact[]): string {
+    const header = ["name", "email", "phone", "group", "notes"];
+    const rows = contacts.map(c =>
+      header.map(field => `"${(c[field as keyof Contact] || "").toString().replace(/"/g, '""')}"`).join(",")
+    );
+    return [header.join(","), ...rows].join("\n");
+  }
+
+  // Export contacts as CSV
+  const handleExport = () => {
+    const csv = contactsToCSV(contacts);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "group_contacts.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   const [filter, setFilter] = useState("");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [sortBy, setSortBy] = useState<"name" | "email">("name");
@@ -177,7 +197,7 @@ export default function GroupsContacts() {
       </header>
 
       <div className="space-y-4">
-        <div className="relative flex items-center flex-1">
+        <div className="relative flex items-center flex-1 gap-2">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
           <Input
             type="text"
@@ -186,12 +206,14 @@ export default function GroupsContacts() {
             onChange={(e) => setFilter(e.target.value)}
             className="w-full pl-10 pr-12 p-4 border border-[var(--border)] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
           />
-          <Button
-          onClick={() => setShowAddDialog(true)}
-        >
-          <UserPlus className="h-4 w-4 mr-2" />
-          Add Group Contact
-        </Button>
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Button onClick={() => setShowAddDialog(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Group Contact
+          </Button>
         </div>
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

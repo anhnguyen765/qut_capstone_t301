@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, UserPlus, ArrowUpDown, Edit, Eye, Trash2 } from "lucide-react";
+import { Search, UserPlus, ArrowUpDown, Edit, Eye, Trash2, Download } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -28,6 +28,26 @@ const GROUPS = [
 ];
 
 export default function SchoolsContacts() {
+  // CSV utility function for export
+  function contactsToCSV(contacts: Contact[]): string {
+    const header = ["name", "email", "phone", "group", "notes"];
+    const rows = contacts.map(c =>
+      header.map(field => `"${(c[field as keyof Contact] || "").toString().replace(/"/g, '""')}"`).join(",")
+    );
+    return [header.join(","), ...rows].join("\n");
+  }
+
+  // Export contacts as CSV
+  const handleExport = () => {
+    const csv = contactsToCSV(contacts);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "school_contacts.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   const [filter, setFilter] = useState("");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [sortBy, setSortBy] = useState<"name" | "email">("name");
@@ -178,22 +198,24 @@ export default function SchoolsContacts() {
 
       <div className="space-y-2">
         <div className="flex gap-4">
-          <div className="relative flex items-center flex-1">
+          <div className="relative flex items-center flex-1 gap-2">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
             <Input
-            type="text"
-            placeholder="Search school contacts..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="pl-10 pr-4 placeholder:text-grey dark:placeholder:text-white/80"
-          />
+              type="text"
+              placeholder="Search school contacts..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="pl-10 pr-4 placeholder:text-grey dark:placeholder:text-white/80"
+            />
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button onClick={() => setShowAddDialog(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add School Contact
+            </Button>
           </div>
-          <Button
-            onClick={() => setShowAddDialog(true)}
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add School Contact
-          </Button>
         </div>
 
 

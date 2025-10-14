@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Filter, Plus, ArrowUpDown, Calendar } from "lucide-react";
+import { Search, Filter, Plus, ArrowUpDown } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/app/components/ui/popover";
 import { Button } from "@/app/components/ui/button";
-import { Edit, X, Eye, Send, Archive, Tag, FileText, Save, CheckCircle } from "lucide-react";
+import { Edit, X, Eye, Send, Archive, Tag, FileText, Save, CheckCircle, Copy } from "lucide-react";
 import EmailEditor, { EditorRef, EmailEditorProps } from "react-email-editor";
 import { useRouter } from "next/navigation";
 import ConfirmationDialog from "@/app/components/ConfirmationDialog";
@@ -22,6 +22,8 @@ type Campaign = {
   targetGroups?: string[]; // Which contact groups to send to
   content?: string; // Email content/template
   design?: any; // Email editor design object
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 const CAMPAIGN_TYPES = [
@@ -41,7 +43,7 @@ export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [templatesList, setTemplatesList] = useState<any[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<"type">("type");
+  const [sortBy, setSortBy] = useState<"type" | "createdAt" | "updatedAt">("type");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
@@ -77,6 +79,7 @@ export default function Campaigns() {
   const [recipientType, setRecipientType] = useState("all");
   const [email, setEmail] = useState("");
   const [group, setGroup] = useState("");
+  const [notification, setNotification] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   const groups = ["Companies", "Private", "Groups", "OSHC", "Schools"];
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
@@ -89,24 +92,7 @@ export default function Campaigns() {
   useEffect(() => {
     setMounted(true);
     // Fetch campaigns from backend
-    fetch("/api/campaigns")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data.campaigns)) {
-          setCampaigns(
-            data.campaigns.map((c: any) => ({
-              id: String(c.id),
-              title: c.title,
-              date: c.date,
-              type: c.type,
-              status: c.status,
-              targetGroups: c.target_groups ? c.target_groups.split(",") : [],
-              content: c.content,
-            }))
-          );
-        }
-      })
-      .catch((err) => console.error("Failed to fetch campaigns:", err));
+    fetchCampaigns();
 
     // Fetch templates from backend
     fetch("/api/templates")
@@ -119,13 +105,84 @@ export default function Campaigns() {
       .catch((err) => console.error("Failed to fetch templates:", err));
   }, []);
 
+  const fetchCampaigns = async () => {
+    try {
+      const res = await fetch("/api/campaigns");
+      const data = await res.json();
+      if (Array.isArray(data.campaigns)) {
+        setCampaigns(
+          data.campaigns.map((c: any) => ({
+            id: String(c.id),
+            title: c.title,
+            date: c.date,
+            type: c.type,
+            status: c.status,
+            targetGroups: c.target_groups ? c.target_groups.split(",") : [],
+            content: c.content,
+            createdAt: c.created_at || c.createdAt,
+            updatedAt: c.updated_at || c.updatedAt,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to fetch campaigns:", err);
+    }
+  };
+
+  const duplicateCampaign = async (campaignId: string, defaultTitle: string) => {
+    try {
+      const newTitle = `${defaultTitle} (Copy)`;
+      const res = await fetch(`/api/campaigns/${campaignId}/duplicate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle })
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to duplicate campaign");
+      }
+      await fetchCampaigns();
+      setNotification({ message: "Campaign duplicated successfully", type: "success" });
+    } catch (e: any) {
+      setNotification({ message: e.message || "Failed to duplicate campaign", type: "error" });
+    }
+  };
+
+  const saveCampaignAsTemplate = async (campaignId: string, defaultName: string) => {
+    try {
+      // Fetch full campaign to get design
+      const resCampaign = await fetch(`/api/campaigns/${campaignId}`);
+      if (!resCampaign.ok) throw new Error("Failed to load campaign");
+      const { campaign } = await resCampaign.json();
+      const designRaw = campaign?.design;
+      const design = typeof designRaw === "string" ? JSON.parse(designRaw) : designRaw;
+      if (!design) throw new Error("This campaign has no design to save as a template");
+
+      const name = defaultName;
+      const subject = defaultName;
+
+      const res = await fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, subject, design })
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to save template");
+      }
+      setNotification({ message: "Saved as template successfully", type: "success" });
+    } catch (e: any) {
+      setNotification({ message: e.message || "Failed to save as template", type: "error" });
+    }
+  };
+
   const handleTypeChange = (type: string) => {
     setSelectedTypes((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
     );
   };
 
-  const handleSort = (field: "type") => {
+  const handleSort = (field: "type" | "createdAt" | "updatedAt") => {
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -141,8 +198,22 @@ export default function Campaigns() {
         c.title.toLowerCase().includes(filter.toLowerCase())
     )
     .sort((a, b) => {
-      const compareValue = sortOrder === "asc" ? 1 : -1;
-      return a.type > b.type ? compareValue : -compareValue;
+      const direction = sortOrder === "asc" ? 1 : -1;
+      if (sortBy === "type") {
+        return a.type > b.type ? direction : a.type < b.type ? -direction : 0;
+      }
+      // no generic date sort; use createdAt/updatedAt instead
+      if (sortBy === "createdAt") {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (aTime === bTime) return 0;
+        return aTime > bTime ? direction : -direction;
+      }
+      // sortBy === 'updatedAt'
+      const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      if (aTime === bTime) return 0;
+      return aTime > bTime ? direction : -direction;
     });
 
   const getTypeLabel = (type: string) => {
@@ -236,12 +307,8 @@ export default function Campaigns() {
                 body: JSON.stringify(campaignData),
               });
               const result = await res.json();
-              savedCampaign = {
-                ...selectedCampaign,
-                id: result.id || '',
-                content: html,
-                design: design,
-              };
+              // Update local state with new ID, content, and design
+              setSelectedCampaign(prev => prev ? ({ ...prev, id: result.id || '', content: html, design }) : null);
             } else {
               // Update existing campaign
               res = await fetch(`/api/campaigns/${selectedCampaign.id}`, {
@@ -257,7 +324,7 @@ export default function Campaigns() {
             
             const result = await res.json();
             const action = status === "draft" ? "saved as draft" : "finalised";
-            alert(`Campaign ${action} successfully!`);
+            setNotification({ message: `Campaign ${action} successfully!`, type: "success" });
             
             // Update the selected campaign with the new ID if it was created
             if (isNewCampaign && result.id) {
@@ -280,7 +347,7 @@ export default function Campaigns() {
               }
             });
           } catch (err) {
-            alert('Error saving campaign: ' + (err instanceof Error ? err.message : err));
+            setNotification({ message: 'Error saving campaign: ' + (err instanceof Error ? err.message : err), type: "error" });
           }
         }
       });
@@ -430,7 +497,7 @@ export default function Campaigns() {
       setGroup("");
       setSelectedCampaignId("");
       setScheduling(false);
-      alert("Campaign scheduled successfully!");
+      setNotification({ message: "Campaign scheduled successfully!", type: "success" });
     } catch (err: any) {
       setScheduleError(err.message || "Failed to schedule campaign");
       setScheduling(false);
@@ -446,6 +513,22 @@ export default function Campaigns() {
             Email Campaigns
           </h1>
         </header>
+
+        {notification && (
+          <div
+            className={`mb-4 rounded-md p-3 text-sm ${
+              notification.type === 'success'
+                ? 'bg-green-50 text-green-800 border border-green-200'
+                : notification.type === 'error'
+                ? 'bg-red-50 text-red-800 border border-red-200'
+                : 'bg-blue-50 text-blue-800 border border-blue-200'
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            {notification.message}
+          </div>
+        )}
 
         <div className="space-y-4">
         <div className="relative flex items-center">
@@ -500,6 +583,35 @@ export default function Campaigns() {
               >
                 Type{" "}
                 {sortBy === "type" && <ArrowUpDown className="ml-1 h-4 w-4" />}
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSort("createdAt")}
+                className={`${
+                  sortBy === "createdAt"
+                    ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                    : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+                }`}
+                title="Sort by created date"
+                aria-label="Sort by created date"
+              >
+                Created {sortBy === "createdAt" && <ArrowUpDown className="ml-1 h-4 w-4" />}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSort("updatedAt")}
+                className={`${
+                  sortBy === "updatedAt"
+                    ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                    : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+                }`}
+                title="Sort by updated date"
+                aria-label="Sort by updated date"
+              >
+                Updated {sortBy === "updatedAt" && <ArrowUpDown className="ml-1 h-4 w-4" />}
               </Button>
             </div>
           </div>
@@ -559,18 +671,25 @@ export default function Campaigns() {
                 </div>
 
                 <div className="flex items-center gap-2 mb-3">
-                  <Calendar className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm text-gray-600">
-                    {mounted ? new Date(campaign.date).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    }) : campaign.date}
-                  </span>
                   <span className="text-sm text-accent-foreground bg-accent rounded-md px-2 py-1">
                     {getTypeLabel(campaign.type)}
                   </span>
                 </div>
+
+                {(campaign.createdAt || campaign.updatedAt) && (
+                  <div className="flex flex-col text-xs text-gray-500 mb-3">
+                    {campaign.createdAt && (
+                      <span>
+                        Created: {mounted ? new Date(campaign.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }) : campaign.createdAt}
+                      </span>
+                    )}
+                    {campaign.updatedAt && (
+                      <span>
+                        Updated: {mounted ? new Date(campaign.updatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }) : campaign.updatedAt}
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex gap-2">
                   <Button
@@ -584,6 +703,28 @@ export default function Campaigns() {
                   >
                     <Edit className="h-4 w-4 mr-1" />
                     Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      duplicateCampaign(campaign.id, campaign.title);
+                    }}
+                    title="Duplicate campaign"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      saveCampaignAsTemplate(campaign.id, campaign.title);
+                    }}
+                    title="Save as template"
+                  >
+                    <Save className="h-4 w-4" />
                   </Button>
                   {(campaign.status === 'draft' || campaign.status === 'finalised') && (
                     <Button
@@ -702,7 +843,6 @@ export default function Campaigns() {
                  )}
               </div>
               <div className="flex gap-2">
-
                 <Button 
                   onClick={() => {
                     setShowDetailsDialog(false);
@@ -858,6 +998,8 @@ export default function Campaigns() {
                       setEmailDesign(template.design ? JSON.parse(template.design) : null);
                     }
                   }}
+                  title="Template (optional)"
+                  aria-label="Template (optional)"
                 >
                   <option value="">No template</option>
                   {templatesList.map((t: any) => (
@@ -895,6 +1037,7 @@ export default function Campaigns() {
                     value={newCampaignData.type}
                     onChange={e => setNewCampaignData(d => ({ ...d, type: e.target.value as Campaign["type"] }))}
                     aria-label="Campaign type"
+                    title="Campaign type"
                   >
                     {CAMPAIGN_TYPES.map(t => (
                       <option key={t.value} value={t.value}>{t.label}</option>
@@ -910,6 +1053,7 @@ export default function Campaigns() {
                     value={newCampaignData.status}
                     onChange={e => setNewCampaignData(d => ({ ...d, status: e.target.value as Campaign["status"] }))}
                     aria-label="Campaign status"
+                    title="Campaign status"
                   >
                     <option value="draft">Draft</option>
                     <option value="finalised">Finalised</option>

@@ -225,10 +225,10 @@ export default function CampaignBuilder() {
         const action = campaign.id ? "updated" : "saved";
         setMessage(`Campaign ${action} successfully!`);
         setCampaign(prev => ({ ...prev, id: result.id || prev.id, content: html, design }));
+        // Stay on builder after save; close editor if it was open
         setShowEditor(false);
-        setTimeout(() => {
-          router.push('/campaigns');
-        }, 1500);
+        // Navigate to dashboard after saving
+        router.push('/campaigns');
       } else {
         setMessage("Error saving campaign");
       }
@@ -536,16 +536,23 @@ export default function CampaignBuilder() {
                     Cancel
                   </Button>
                   <Button 
-                    onClick={saveCampaign}
-                    disabled={isLoading}
+                    onClick={() => {
+                      const unlayer = emailEditorRef.current?.editor;
+                      if (!unlayer) return;
+                      // Export current editor state back to builder without persisting
+                      unlayer.saveDesign((designData: any) => {
+                        unlayer.exportHtml((data: any) => {
+                          const { html } = data;
+                          setCampaign(prev => ({ ...prev, design: designData, content: html }));
+                          setMessage('Editor changes applied. Review and click "Save Campaign" to persist.');
+                          setShowEditor(false);
+                        });
+                      });
+                    }}
                     className="bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
-                    {isLoading ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4 mr-2" />
-                    )}
-                    {isLoading ? "Saving..." : "Save Campaign"}
+                    <Save className="h-4 w-4 mr-2" />
+                    Apply Changes
                   </Button>
                 </div>
           </div>

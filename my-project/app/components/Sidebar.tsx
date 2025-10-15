@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/app/contexts/AuthContext";
+import { usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -46,6 +47,13 @@ import Image from "next/image";
 export function AppSidebar() {
 
   const { user, logout, isAuthenticated } = useAuth();
+  const pathname = usePathname();
+
+  // Don't render the sidebar on public pages or when not authenticated
+  const publicPages = ["/login", "/register"];
+  if (!isAuthenticated || publicPages.includes(pathname || "")) {
+    return null;
+  }
 
   // Show sidebar to all users, but handle logout only if authenticated
   const handleLogout = () => {

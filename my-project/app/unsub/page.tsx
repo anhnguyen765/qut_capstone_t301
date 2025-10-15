@@ -5,10 +5,11 @@ import { useState } from "react";
 export default function Unsub() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<null | string>(null);
+  // prefs: true = subscribed, false = unsubscribed
   const [prefs, setPrefs] = useState({
-    opt1: false,
-    opt2: false,
-    opt3: false,
+    opt1: true,
+    opt2: true,
+    opt3: true,
   });
   const [loading, setLoading] = useState(false);
 
@@ -54,26 +55,26 @@ export default function Unsub() {
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={!prefs.opt1}
-              onChange={e => setPrefs(p => ({ ...p, opt1: !e.target.checked }))}
+              checked={prefs.opt1}
+              onChange={e => setPrefs(p => ({ ...p, opt1: e.target.checked }))}
             />
-            Unsubscribe from Newsletters
+            Subscribe to Newsletters
           </label>
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={!prefs.opt2}
-              onChange={e => setPrefs(p => ({ ...p, opt2: !e.target.checked }))}
+              checked={prefs.opt2}
+              onChange={e => setPrefs(p => ({ ...p, opt2: e.target.checked }))}
             />
-            Unsubscribe from Event Invitations
+            Subscribe to Event Invitations
           </label>
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={!prefs.opt3}
-              onChange={e => setPrefs(p => ({ ...p, opt3: !e.target.checked }))}
+              checked={prefs.opt3}
+              onChange={e => setPrefs(p => ({ ...p, opt3: e.target.checked }))}
             />
-            Unsubscribe from Promotional Offers
+            Subscribe to Promotional Offers
           </label>
         </div>
         <button

@@ -14,19 +14,25 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const pathname = usePathname();
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Pages that don't require authentication
-  const publicPages = ['/login', '/register'];
+  // Pages (or prefixes) that don't require authentication
+  // Add '/unsub' so recipients can update preferences without logging in
+  const publicPages = ['/login', '/register', '/unsub'];
+  // Some environments may not provide pathname immediately; fall back to window.location
+  const currentPath = pathname ?? (typeof window !== 'undefined' ? window.location.pathname : '');
+  const isPublic = publicPages.some((p) => currentPath === p || currentPath.startsWith(p + '/') || currentPath.startsWith(p));
 
   useEffect(() => {
-    console.log('AuthGuard - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'pathname:', pathname);
-    
-    // If not loading and not authenticated, redirect immediately
-    if (!isLoading && !isAuthenticated && !publicPages.includes(pathname)) {
+    console.log('AuthGuard - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'pathname:', pathname, 'currentPath:', currentPath, 'isPublic:', isPublic);
+
+    // If not loading and not authenticated, redirect immediately (unless this is a public path)
+    // Also avoid redirecting when we don't yet have a meaningful pathname (e.g. during initial hydration)
+    if (!isLoading && !isAuthenticated && !isPublic && currentPath && currentPath.length > 0) {
       console.log('Redirecting to login...');
       router.replace('/login');
       return;
     }
-  }, [isAuthenticated, isLoading, pathname, router]);
+  // include isPublic and currentPath so the effect re-runs when they become available
+  }, [isAuthenticated, isLoading, pathname, currentPath, isPublic, router]);
 
   // Show loading only while checking authentication
   if (isLoading) {
@@ -42,7 +48,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   }
 
   // If not authenticated and not on a public page, show nothing (redirect will happen)
-  if (!isAuthenticated && !publicPages.includes(pathname)) {
+  if (!isAuthenticated && !isPublic) {
     console.log('Not authenticated, showing nothing...');
     return null;
   }

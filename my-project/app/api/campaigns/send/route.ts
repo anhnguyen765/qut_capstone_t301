@@ -193,20 +193,65 @@ export async function PUT(request: NextRequest) {
       });
     }
 
-    // If scheduled, update campaign with scheduled time
+    // If scheduled, update campaign with scheduled time and upsert into email_schedule
+    let createdScheduleId: number | null = null;
     if (scheduledAt && !sendImmediately) {
       await executeQuery(
         `UPDATE campaigns SET scheduled_at = ? WHERE id = ?`,
         [scheduledAt, campaignId]
       );
+      // Also create or update an entry in email_schedule so the calendar/schedule UI can display this send
+      try {
+        // Determine recipient type for schedule tracking
+        let recipientType: string = 'all';
+        let recipientEmail: string | null = null;
+        let recipientGroup: string | null = null;
+
+        if ((individualEmails && individualEmails.length > 0) || individualEmail) {
+          recipientType = 'individual';
+          recipientEmail = (individualEmails && individualEmails.length > 0) ? individualEmails[0] : (individualEmail || null);
+        } else if (targetGroups && targetGroups.length > 0) {
+          recipientType = 'group';
+          recipientGroup = targetGroups.join(',');
+        } else if (contactIds && contactIds.length > 0) {
+          recipientType = 'all';
+        }
+
+        // Try to find existing schedule for this campaign at same time
+        const existing = await executeQuery(
+          `SELECT id FROM email_schedule WHERE campaign_id = ? AND scheduled_at = ? LIMIT 1`,
+          [campaignId, scheduledAt]
+        ) as any[];
+
+        if (existing && existing.length > 0) {
+          const existingId = existing[0].id;
+          await executeQuery(
+            `UPDATE email_schedule SET status = 'scheduled', recipient_type = ?, recipient_email = ?, recipient_group = ?, updated_at = NOW() WHERE id = ?`,
+            [recipientType, recipientEmail, recipientGroup, existingId]
+          );
+          createdScheduleId = existingId;
+        } else {
+          const insertRes = await executeQuery(
+            `INSERT INTO email_schedule (campaign_id, scheduled_at, status, recipient_type, recipient_email, recipient_group, created_at, updated_at)
+             VALUES (?, ?, 'scheduled', ?, ?, ?, NOW(), NOW())`,
+            [campaignId, scheduledAt, recipientType, recipientEmail, recipientGroup]
+          ) as any;
+          createdScheduleId = insertRes?.insertId ?? null;
+        }
+      } catch (err) {
+        console.error('Failed to upsert email_schedule entry:', err);
+        // Don't fail the whole request for a schedule insert/update error - campaign was already updated and queue entries created
+      }
     }
 
-    return NextResponse.json({
+    const responsePayload: any = {
       success: true,
       message: sendImmediately ? "Campaign queued and processing started" : "Campaign scheduled successfully",
       queuedCount: contacts.length,
       campaignId: campaignId
-    });
+    };
+    if (createdScheduleId) responsePayload.scheduleId = createdScheduleId;
+    return NextResponse.json(responsePayload);
 
   } catch (error) {
     console.error("Send campaign error:", error);

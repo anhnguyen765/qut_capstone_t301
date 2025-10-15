@@ -44,6 +44,7 @@ export default function SendEmailPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "info">("info");
+  const [calendarLink, setCalendarLink] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [selectedType, setSelectedType] = useState<"campaigns" | "newsletters">("campaigns");
 
@@ -298,7 +299,14 @@ export default function SendEmailPage() {
 
       if (response.ok) {
         const actionText = sendImmediately ? "sent" : "scheduled";
-        setMessage(`Campaign ${actionText} successfully! ${data.queuedCount} emails queued for ${actionText === "sent" ? "sending" : "scheduled delivery"}.`);
+        let msg = `Campaign ${actionText} successfully! ${data.queuedCount} emails queued for ${actionText === "sent" ? "sending" : "scheduled delivery"}.`;
+        setCalendarLink(null);
+        if (data.scheduleId) {
+          const link = `/calendar?highlight=${data.scheduleId}`;
+          setCalendarLink(link);
+          msg += ` Added to calendar.`;
+        }
+        setMessage(msg);
         setMessageType("success");
 
         // Reset all steps and form data
@@ -309,6 +317,7 @@ export default function SendEmailPage() {
 
         // Redirect to campaigns page after a short delay
         setTimeout(() => {
+          // If there is a calendar link, navigate to campaigns after a short delay but keep link available
           router.push('/campaigns');
         }, 2000);
       } else {
@@ -377,6 +386,10 @@ export default function SendEmailPage() {
 
   const groups = ["all", "Companies", "Groups", "Private", "OSHC", "Schools"];
 
+  // Lightweight entries used for rendering lists to avoid TS inference issues
+  const campaignEntries = campaigns.map((c) => ({ id: c.id, title: c.title, status: c.status, full: c }));
+  const newsletterEntries = newsletters.map((n) => ({ id: n.id, title: n.title, status: n.status, full: n }));
+
   return (
     <div className="py-8 px-[10%]">
       <div className="mb-6">
@@ -390,7 +403,12 @@ export default function SendEmailPage() {
       {/* Message Display */}
       {message && (
         <div className={`mb-4 p-4 rounded border ${getMessageColor()}`}>
-          {message}
+          <div>{message}</div>
+          {calendarLink && (
+            <div className="mt-2">
+              <a href={calendarLink} className="text-sm text-blue-600 underline">View on calendar</a>
+            </div>
+          )}
         </div>
       )}
 
@@ -478,52 +496,58 @@ export default function SendEmailPage() {
                       ) : (
                         <div className="space-y-2">
                           {selectedType === "campaigns"
-                            ? campaigns.map((item: Campaign) => (
-                              <div
-                                key={item.id}
-                                className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedCampaign?.id === item.id
-                                    ? 'border-green-500 bg-green-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                            ? campaigns.map((item: Campaign) => {
+                              const isSelected = selectedCampaign === item;
+                              return (
+                                <div
+                                  key={item.id}
+                                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${isSelected
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-gray-200 hover:border-gray-300'
                                   }`}
-                                onClick={() => handleCampaignSelect(item)}
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div className="flex-1">
-                                    <h4 className="font-medium">{item.title}</h4>
+                                  onClick={() => handleCampaignSelect(item)}
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                      <h4 className="font-medium">{item.title}</h4>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))
-                            : newsletters.map((item: Campaign) => (
-                              <div
-                                key={item.id}
-                                className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedCampaign?.id === item.id
-                                    ? 'border-green-500 bg-green-50'
-                                    : 'border-gray-200 hover:border-gray-300'
-                                  }`}
-                                onClick={() => handleCampaignSelect(item)}
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div className="flex-1">
-                                    <h4 className="font-medium">{item.title}</h4>
-                                    <p className="text-sm text-gray-600">
-                                      <span className="text-gray-500 italic">Subject line will be entered when sending</span>
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      From: <span className="text-gray-500 italic">Sender name will be entered when sending</span>
-                                    </p>
-                                  </div>
-                                  <div className="flex flex-col items-end gap-1">
-                                    <Badge className={getStatusColor(item.status)}>
-                                      {item.status}
-                                    </Badge>
-                                    <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800">
-                                      Subject & Sender Required
-                                    </Badge>
+                              );
+                            })
+                            : newsletters.map((item: Campaign) => {
+                              const isSelected = selectedCampaign === item;
+                              return (
+                                <div
+                                  key={item.id}
+                                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${isSelected
+                                      ? 'border-green-500 bg-green-50'
+                                      : 'border-gray-200 hover:border-gray-300'
+                                    }`}
+                                  onClick={() => handleCampaignSelect(item)}
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                      <h4 className="font-medium">{item.title}</h4>
+                                      <p className="text-sm text-gray-600">
+                                        <span className="text-gray-500 italic">Subject line will be entered when sending</span>
+                                      </p>
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        From: <span className="text-gray-500 italic">Sender name will be entered when sending</span>
+                                      </p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                      <Badge className={getStatusColor(item.status)}>
+                                        {item.status}
+                                      </Badge>
+                                      <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800">
+                                        Subject & Sender Required
+                                      </Badge>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))
+                              );
+                            })
                           }
                         </div>
                       )}

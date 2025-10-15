@@ -19,12 +19,14 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Get all schedules (joined with campaign title)
+// Get all schedules (joined with campaign or newsletter title)
 export async function GET(req: NextRequest) {
   try {
     const schedules = await executeQuery(
-      `SELECT es.*, c.title as campaign_title FROM email_schedule es
-       JOIN campaigns c ON es.campaign_id = c.id`
+      `SELECT es.*, COALESCE(c.title, n.title) as campaign_title
+       FROM email_schedule es
+       LEFT JOIN campaigns c ON es.campaign_id = c.id
+       LEFT JOIN newsletters n ON es.campaign_id = n.id`
     );
     return NextResponse.json({ schedules });
   } catch (error) {

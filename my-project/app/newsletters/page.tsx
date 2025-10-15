@@ -62,6 +62,9 @@ export default function Newsletters() {
     status: 'draft',
   });
   const emailEditorRef = useRef<EditorRef>(null);
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "info">("info");
+  const [calendarLink, setCalendarLink] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -123,6 +126,17 @@ export default function Newsletters() {
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getMessageColor = () => {
+    switch (messageType) {
+      case "success":
+        return "border-green-200 bg-green-50";
+      case "error":
+        return "border-red-200 bg-red-50";
+      default:
+        return "border-gray-200 bg-gray-50";
     }
   };
 
@@ -194,8 +208,15 @@ export default function Newsletters() {
               });
             }
             if (!res.ok) throw new Error('Failed to save newsletter');
-            const result = await res.json();
-            alert(`Newsletter ${status === "draft" ? "saved as draft" : "finalised"} successfully!`);
+              const result = await res.json();
+              // Show inline message instead of alert and include calendar link when schedule created
+              setMessage(`${status === "draft" ? "Newsletter saved as draft" : "Newsletter finalised"} successfully!`);
+              setMessageType("success");
+              setCalendarLink(null);
+              if (result?.scheduleId) {
+                setCalendarLink(`/calendar?highlight=${result.scheduleId}`);
+                setMessage((m) => `${m} Added to calendar.`);
+              }
             if (isNewNewsletter && result.id) {
               setSelectedNewsletter(prev => prev ? ({ ...prev, id: result.id, status }) : null);
               setIsNewNewsletter(false);
@@ -210,7 +231,10 @@ export default function Newsletters() {
               }
             });
           } catch (err) {
-            alert('Error saving newsletter: ' + (err instanceof Error ? err.message : err));
+              const msg = 'Error saving newsletter: ' + (err instanceof Error ? err.message : String(err));
+              setMessage(msg);
+              setMessageType("error");
+              console.error(msg);
           }
         }
       });
@@ -335,7 +359,19 @@ export default function Newsletters() {
         </div>
       </div>
 
-      {/* Newsletters Grid */}
+        {/* Message area */}
+        {message && (
+          <div className={`mb-4 p-4 rounded border ${getMessageColor()}`}>
+            <div>{message}</div>
+            {calendarLink && (
+              <div className="mt-2">
+                <a href={calendarLink} className="text-sm text-blue-600 underline">View on calendar</a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Newsletters Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredNewsletters.map((newsletter) => (
             <div

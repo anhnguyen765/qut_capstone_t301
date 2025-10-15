@@ -50,8 +50,11 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   // Don't render the sidebar on public pages or when not authenticated
-  const publicPages = ["/login", "/register"];
-  if (!isAuthenticated || publicPages.includes(pathname || "")) {
+  // Add '/unsub' so the unsubscribe page renders without the navigation
+  const publicPages = ["/login", "/register", "/unsub"];
+  const currentPath = pathname ?? '';
+  const isPublic = publicPages.some((p) => currentPath === p || currentPath.startsWith(p + '/') || currentPath.startsWith(p));
+  if (!isAuthenticated || isPublic) {
     return null;
   }
 

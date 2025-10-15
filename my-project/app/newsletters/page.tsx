@@ -9,9 +9,10 @@ import {
   PopoverTrigger,
 } from "@/app/components/ui/popover";
 import { Button } from "@/app/components/ui/button";
+import { Checkbox } from "@/app/components/ui/checkbox";
 import { Edit, X, Eye, Send, Archive, Tag, FileText, Save, CheckCircle } from "lucide-react";
 import EmailEditor, { EditorRef } from "react-email-editor";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import ConfirmationDialog from "@/app/components/ConfirmationDialog";
 
 type Newsletter = {
@@ -33,6 +34,7 @@ const STATUS_OPTIONS = [
 
 export default function Newsletters() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [filter, setFilter] = useState("");
   const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
@@ -65,6 +67,7 @@ export default function Newsletters() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "info">("info");
   const [calendarLink, setCalendarLink] = useState<string | null>(null);
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -85,6 +88,52 @@ export default function Newsletters() {
         }
       });
   }, []);
+
+  // Load template into new newsletter when navigated with useTemplate flag
+  useEffect(() => {
+    const useTemplate = searchParams.get('useTemplate');
+    if (useTemplate) {
+      try {
+        const designStr = sessionStorage.getItem('templateDesign');
+        const name = sessionStorage.getItem('templateName') || '';
+        if (designStr) {
+          const design = JSON.parse(designStr);
+          // Prepare new newsletter and open editor with design
+          const today = new Date().toISOString().slice(0, 10);
+          const draft: Newsletter = { id: '', title: name || 'New Newsletter', date: today, status: 'draft', content: '', design };
+          // Prefill the new newsletter form and show it
+          setNewNewsletterData({ title: draft.title, date: draft.date, status: 'draft' });
+          setEmailDesign(design);
+          setShowNewNewsletterForm(true);
+        }
+      } catch (e) {
+        console.error('Failed to load template for newsletter:', e);
+      } finally {
+        sessionStorage.removeItem('templateDesign');
+        sessionStorage.removeItem('templateName');
+        sessionStorage.removeItem('templateSubject');
+      }
+    }
+  }, [searchParams]);
+
+  // Handle redirect from template creation
+  useEffect(() => {
+    const fromTemplateNew = searchParams.get('fromTemplateNew');
+    if (fromTemplateNew) {
+      setMessage("You were redirected from Templates. Fill in details to continue to the editor.");
+      setMessageType("info");
+      setSaveAsTemplate(true);
+      try {
+        const meta = sessionStorage.getItem('templateNewMeta');
+        if (meta) {
+          const parsed = JSON.parse(meta);
+          setNewNewsletterData(d => ({ ...d, title: parsed.name || d.title }));
+          sessionStorage.removeItem('templateNewMeta');
+        }
+      } catch {}
+      setShowNewNewsletterForm(true);
+    }
+  }, [searchParams]);
 
   const handleStatusChange = (status: string) => {
     setSelectedStatuses((prev) =>
@@ -167,6 +216,7 @@ export default function Newsletters() {
       ...newNewsletterData,
       status: newNewsletterData.status as Newsletter["status"],
       content: '',
+      design: emailDesign || undefined,
     });
     setEmailDesign(null);
     setIsNewNewsletter(true);
@@ -217,6 +267,24 @@ export default function Newsletters() {
                 setCalendarLink(`/calendar?highlight=${result.scheduleId}`);
                 setMessage((m) => `${m} Added to calendar.`);
               }
+            // Optionally save as template
+            try {
+              if (saveAsTemplate && design) {
+                await fetch('/api/templates', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    name: selectedNewsletter.title,
+                    subject: selectedNewsletter.title,
+                    design,
+                    content: html,
+                    type: 'newsletter'
+                  })
+                });
+              }
+            } catch (e) {
+              console.warn('Failed to save newsletter as template:', e);
+            }
             if (isNewNewsletter && result.id) {
               setSelectedNewsletter(prev => prev ? ({ ...prev, id: result.id, status }) : null);
               setIsNewNewsletter(false);
@@ -689,6 +757,14 @@ export default function Newsletters() {
               <Button variant="outline" onClick={handleCloseEditor}>
                 Cancel
               </Button>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="save-as-template"
+                  checked={saveAsTemplate}
+                  onCheckedChange={(checked: boolean) => setSaveAsTemplate(Boolean(checked))}
+                />
+                <label htmlFor="save-as-template" className="text-sm">Save as template</label>
+              </div>
               <Button
                 onClick={() => saveEmailDesign("draft")}
                 variant="outline"

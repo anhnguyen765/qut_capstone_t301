@@ -82,6 +82,7 @@ export default function CampaignBuilder() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const campaignId = searchParams.get('id');
+  const fromTemplateNew = searchParams.get('fromTemplateNew');
   
   const [campaign, setCampaign] = useState<Campaign>({
     id: undefined,
@@ -103,6 +104,7 @@ export default function CampaignBuilder() {
   const [emailEditorLoaded, setEmailEditorLoaded] = useState(false);
   const [emailDesign, setEmailDesign] = useState<any>(null);
   const emailEditorRef = useRef<EditorRef>(null);
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
 
   const onEmailEditorReady = () => {
     setEmailEditorLoaded(true);
@@ -126,6 +128,51 @@ export default function CampaignBuilder() {
       fetchCampaignData();
     }
   }, [campaignId]);
+
+  // Load template from session when navigated with useTemplate flag
+  useEffect(() => {
+    const useTemplate = searchParams.get('useTemplate');
+    if (useTemplate && !campaign.design) {
+      try {
+        const designStr = sessionStorage.getItem('templateDesign');
+        const name = sessionStorage.getItem('templateName') || '';
+        const subject = sessionStorage.getItem('templateSubject') || '';
+        if (designStr) {
+          const design = JSON.parse(designStr);
+          setCampaign(prev => ({
+            ...prev,
+            title: prev.title || name || 'New Campaign',
+            description: prev.description || subject || '',
+            design,
+          }));
+          // Do not auto-open editor; let user review and click Open Editor
+        }
+      } catch (e) {
+        console.error('Failed to load template from session:', e);
+      } finally {
+        // One-time use
+        sessionStorage.removeItem('templateDesign');
+        sessionStorage.removeItem('templateName');
+        sessionStorage.removeItem('templateSubject');
+      }
+    }
+  }, [searchParams]);
+
+  // Note for redirect from template creation
+  useEffect(() => {
+    if (fromTemplateNew) {
+      setMessage("You were redirected from Templates. Fill in details and click Open Editor to start.");
+      setSaveAsTemplate(true);
+      try {
+        const meta = sessionStorage.getItem('templateNewMeta');
+        if (meta) {
+          const parsed = JSON.parse(meta);
+          setCampaign(prev => ({ ...prev, title: prev.title || parsed.name || '', description: prev.description || parsed.subject || '' }));
+          sessionStorage.removeItem('templateNewMeta');
+        }
+      } catch {}
+    }
+  }, [fromTemplateNew]);
 
   const fetchCampaignData = async () => {
     if (!campaignId) return;
@@ -174,8 +221,8 @@ export default function CampaignBuilder() {
     try {
       let html = campaign.content;
       let design = campaign.design;
-      // Always get the latest design and html from the editor if it's open
-      if (showEditor && emailEditorRef.current?.editor) {
+      // Try to get latest design/html from editor when available
+      if (emailEditorRef.current?.editor) {
         const unlayer = emailEditorRef.current.editor;
         // Get the design
         await new Promise((resolve) => {
@@ -218,6 +265,25 @@ export default function CampaignBuilder() {
           },
           body: JSON.stringify(campaignData),
         });
+      }
+
+      // Optionally save as template (do this regardless of campaign save outcome)
+      try {
+        if (saveAsTemplate && design) {
+          await fetch('/api/templates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: campaignData.title,
+              subject: campaignData.description || campaignData.title,
+              design,
+              content: html,
+              type: 'campaign'
+            })
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to save campaign as template:', e);
       }
 
       if (response.ok) {
@@ -377,7 +443,15 @@ export default function CampaignBuilder() {
                   {campaign.status}
                 </Badge>
               </div>
-              
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="save-as-template"
+                checked={saveAsTemplate}
+                onCheckedChange={(v) => setSaveAsTemplate(Boolean(v))}
+              />
+              <label htmlFor="save-as-template" className="text-sm">Save as template</label>
+            </div>
+
               <Button
                 onClick={() => setShowEditor(true)}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground"

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import EmailEditor, { EditorRef } from "react-email-editor";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
@@ -8,23 +9,24 @@ import { Dialog } from "@/app/components/ui/dialog";
 import ConfirmationDialog from "@/app/components/ConfirmationDialog";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
-import { MoreVertical, Edit, Trash2, Info, Calendar, FileText, Search, Filter } from "lucide-react";
+import { MoreVertical, Edit, Trash2, Info, Calendar, FileText, Search, Filter, ArrowUpDown, Plus, Tag, X } from "lucide-react";
 
 type Template = {
   id: string;
   name: string;
   subject: string;
+  type?: 'campaign' | 'newsletter';
   design: string;
+  content?: string;
   created_at: string;
   updated_at: string;
 };
 
 export default function TemplatesPage() {
-  // Sorting state and handler (copied from /campaigns)
-  const [sortBy, setSortBy] = useState<"name" | "created_at" | "updated_at">("created_at");
+  const router = useRouter();
+  // Sorting state and handler
+  const [sortBy, setSortBy] = useState<"name" | "type">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  // ...existing code...
-  // ...existing code...
   // Handler for EmailEditor onReady event
   const onEmailEditorReady = () => {
     setEmailEditorLoaded(true);
@@ -77,29 +79,39 @@ export default function TemplatesPage() {
   const [modalName, setModalName] = useState<string>("");
   const [modalSubject, setModalSubject] = useState<string>("");
   const [modalError, setModalError] = useState<string | null>(null);
+  const [modalTemplateType, setModalTemplateType] = useState<'campaign' | 'newsletter'>('campaign');
   const emailEditorRef = useRef<EditorRef>(null);
   const [emailEditorLoaded, setEmailEditorLoaded] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<Array<'campaign' | 'newsletter'>>([]);
   // Sorted templates (must be after filteredTemplates is defined)
   const sortedTemplates = [...filteredTemplates].sort((a, b) => {
-    let aValue: string | number = a[sortBy] || "";
-    let bValue: string | number = b[sortBy] || "";
-    if (sortBy === "created_at" || sortBy === "updated_at") {
-      aValue = new Date(aValue as string).getTime();
-      bValue = new Date(bValue as string).getTime();
+    if (sortBy === 'type') {
+      const at = getTemplateType(a);
+      const bt = getTemplateType(b);
+      if (at === bt) return 0;
+      return sortOrder === 'asc' ? (at > bt ? 1 : -1) : (at > bt ? -1 : 1);
     }
-    if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
-    if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
+    const aName = (a.name || '').toLowerCase();
+    const bName = (b.name || '').toLowerCase();
+    if (aName < bName) return sortOrder === 'asc' ? -1 : 1;
+    if (aName > bName) return sortOrder === 'asc' ? 1 : -1;
     return 0;
   });
-  const handleSort = (field: "name" | "created_at" | "updated_at") => {
+  const handleSort = (field: "name" | "type") => {
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
       setSortBy(field);
       setSortOrder("asc");
     }
+  };
+  // Sort by template type convenience: infer from design JSON templateType
+  const getTemplateType = (t: Template): 'campaign' | 'newsletter' | 'unknown' => {
+    const typ = t.type || parseDesign(t.design)?.templateType;
+    if (typ === 'campaign' || typ === 'newsletter') return typ;
+    return 'unknown';
   };
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -108,6 +120,83 @@ export default function TemplatesPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Safely parse a stored template design (JSON string from DB)
+  const parseDesign = (design: string | any): any | null => {
+    try {
+      if (!design) return null;
+      if (typeof design === 'string') {
+        // If backend returned already-stringified JSON
+        if (design.trim().startsWith('{') || design.trim().startsWith('[')) {
+          return JSON.parse(design);
+        }
+        // Fallback: if someone stored raw HTML by mistake
+        return null;
+      }
+      if (typeof design === 'object') return design;
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Generate lightweight preview HTML from Unlayer design JSON
+  const generatePreviewHtml = (designObj: any): string => {
+    if (!designObj || !designObj.body || !Array.isArray(designObj.body.rows)) return '';
+    const chunks: string[] = [];
+    // Extract a few first text/image blocks for a quick preview
+    let textCount = 0;
+    let imageCount = 0;
+    try {
+      for (const row of designObj.body.rows) {
+        if (!row || !Array.isArray(row.columns)) continue;
+        for (const col of row.columns) {
+          if (!col || !Array.isArray(col.contents)) continue;
+          for (const item of col.contents) {
+            if (item.type === 'text' && textCount < 3) {
+              const html = (item.values && item.values.text) ? String(item.values.text) : '';
+              if (html) {
+                chunks.push(`<div style=\"margin:4px 0;font-size:12px;line-height:1.4;color:#111\">${html}</div>`);
+                textCount++;
+              }
+            }
+            if (item.type === 'image' && imageCount < 1) {
+              const src = item.values?.src?.url || item.values?.src || '';
+              if (src) {
+                chunks.push(`<div style=\"margin:6px 0\"><img src=\"${src}\" alt=\"\" style=\"max-width:100%;height:auto;border-radius:4px\"/></div>`);
+                imageCount++;
+              }
+            }
+            if (textCount >= 3 && imageCount >= 1) break;
+          }
+          if (textCount >= 3 && imageCount >= 1) break;
+        }
+        if (textCount >= 3 && imageCount >= 1) break;
+      }
+    } catch {}
+    return chunks.join('');
+  };
+
+  const handleUseTemplate = (template: Template, target: 'campaign' | 'newsletter') => {
+    try {
+      const designObj = parseDesign(template.design);
+      if (!designObj) {
+        setError('Template design is invalid or missing.');
+        return;
+      }
+      // Store in sessionStorage to avoid URL size limits
+      sessionStorage.setItem('templateDesign', JSON.stringify(designObj));
+      sessionStorage.setItem('templateName', template.name || '');
+      sessionStorage.setItem('templateSubject', template.subject || '');
+      if (target === 'campaign') {
+        router.push('/campaigns/builder?useTemplate=1');
+      } else {
+        router.push('/newsletters?useTemplate=1');
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Failed to use template');
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -130,21 +219,38 @@ export default function TemplatesPage() {
   }, []);
 
   useEffect(() => {
-    if (!search) {
-      setFilteredTemplates(templates);
-    } else {
-      setFilteredTemplates(
-        templates.filter((t) =>
-          t.name.toLowerCase().includes(search.toLowerCase()) ||
-          t.subject.toLowerCase().includes(search.toLowerCase())
-        )
+    let arr = templates;
+    // Text search
+    if (search) {
+      arr = arr.filter((t) =>
+        t.name.toLowerCase().includes(search.toLowerCase()) ||
+        t.subject.toLowerCase().includes(search.toLowerCase())
       );
     }
-  }, [search, templates]);
+    // Type filtering
+    if (selectedTypes.length > 0) {
+      arr = arr.filter((t) => {
+        const typ = getTemplateType(t);
+        return selectedTypes.includes(typ as any);
+      });
+    }
+    setFilteredTemplates(arr);
+  }, [search, templates, selectedTypes]);
 
   const handleOpenDetails = (template: Template) => {
     setSelectedTemplate(template);
     setShowDetails(true);
+    // Lazy fetch full template if content missing
+    if (!template.content && template.id) {
+      fetch(`/api/templates/${template.id}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data && data.template) {
+            setSelectedTemplate(prev => prev && String(prev.id) === String(data.template.id) ? { ...prev, content: data.template.content, design: data.template.design } : prev);
+          }
+        })
+        .catch(() => {});
+    }
   };
 
   // Open name/subject modal before editor
@@ -154,22 +260,42 @@ export default function TemplatesPage() {
       setSelectedTemplate(template);
       setModalName(template.name);
       setModalSubject(template.subject);
+      // Pre-fill template type from design metadata if available
+      const t = parseDesign(template.design)?.templateType;
+      setModalTemplateType(t === 'newsletter' ? 'newsletter' : 'campaign');
       setShowNameModal(true);
     } else {
       setSelectedTemplate(null);
       setModalName("");
       setModalSubject("");
+      setModalTemplateType('campaign');
       setShowNameModal(true);
     }
   };
-  // Confirm name/subject and open editor
+  // Confirm name/subject and open editor or redirect
   const handleNameModalConfirm = () => {
     if (!modalName.trim() || !modalSubject.trim()) {
       setModalError("Name and subject are required.");
       return;
     }
     setModalError(null);
-    // Do not set selectedTemplate here for create; only for edit
+    // For create mode: redirect to appropriate flow with a note
+    if (editorMode === 'create') {
+      try {
+        sessionStorage.setItem('templateNewMeta', JSON.stringify({
+          name: modalName,
+          subject: modalSubject,
+        }));
+      } catch {}
+      setShowNameModal(false);
+      if (modalTemplateType === 'campaign') {
+        router.push('/campaigns/builder?fromTemplateNew=1');
+      } else {
+        router.push('/newsletters?fromTemplateNew=1');
+      }
+      return;
+    }
+    // Edit mode continues to in-page editor
     setShowNameModal(false);
     setShowEditor(true);
   };
@@ -207,20 +333,26 @@ export default function TemplatesPage() {
   const handleSave = async (status: "draft" | "finalised" = "draft") => {
     const unlayer = emailEditorRef.current?.editor;
     if (!unlayer) return;
-    unlayer.saveDesign((design: any) => {
+    unlayer.saveDesign((designJson: any) => {
       unlayer.exportHtml(async (data: any) => {
         const { html } = data;
         const name = (selectedTemplate?.name ?? modalName ?? "") || "";
         const subject = (selectedTemplate?.subject ?? modalSubject ?? "") || "";
-        const design = typeof html === "string" ? html : "";
-        if (typeof name !== "string" || typeof subject !== "string" || typeof design !== "string" || !name.trim() || !subject.trim() || !design.trim()) {
+        // Persist JSON design to match API and enable preview with renderer later
+        if (!name.trim() || !subject.trim() || !designJson) {
           setError("Name, subject, and design are required.");
           return;
         }
+        // Attach template type metadata into design JSON for classification
+        try {
+          if (typeof designJson === 'object' && designJson) {
+            (designJson as any).templateType = modalTemplateType;
+          }
+        } catch {}
         setLoading(true);
         setShowEditor(false);
         try {
-          const body = { name, subject, design };
+          const body = { name, subject, design: designJson, content: html, type: modalTemplateType };
           const res = await fetch(
             "/api/templates",
             {
@@ -288,45 +420,67 @@ export default function TemplatesPage() {
           </PopoverTrigger>
           <PopoverContent className="w-48 p-2" align="end">
             <div className="space-y-2">
-              {/* Example filter: add more as needed */}
-              <label className="flex items-center space-x-2 p-2 hover:bg-[var(--accent)] rounded-md cursor-pointer">
-                <input type="checkbox" className="accent-[var(--primary)]" disabled />
-                <span className="text-foreground">Filter (coming soon)</span>
-              </label>
+                  {/* Filter by Type */}
+                  <div className="text-xs font-semibold px-2">Filter by Type</div>
+                  {['campaign','newsletter'].map((val) => (
+                    <label key={val} className="flex items-center space-x-2 p-2 hover:bg-[var(--accent)] rounded-md cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="accent-[var(--primary)]"
+                        checked={selectedTypes.includes(val as any)}
+                        onChange={(e) => {
+                          setSelectedTypes(prev => {
+                            const exists = prev.includes(val as any);
+                            if (exists) return prev.filter(x => x !== (val as any));
+                            return [...prev, val as any];
+                          });
+                        }}
+                      />
+                      <span className="text-foreground capitalize">{val}</span>
+                    </label>
+                  ))}
             </div>
           </PopoverContent>
         </Popover>
           </div>
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
           <span className="text-sm text-[var(--foreground)]">Sort by:</span>
           <div className="flex gap-2">
             <Button
-              variant={sortBy === "name" ? "default" : "outline"}
+              variant="outline"
               size="sm"
               onClick={() => handleSort("name")}
+              className={`${
+                sortBy === "name"
+                  ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                  : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+              }`}
             >
-              Name {sortBy === "name" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+              Name {sortBy === "name" && <ArrowUpDown className="ml-1 h-4 w-4" />}
             </Button>
             <Button
-              variant={sortBy === "created_at" ? "default" : "outline"}
+              variant="outline"
               size="sm"
-              onClick={() => handleSort("created_at")}
+              onClick={() => handleSort("type")}
+              className={`${
+                sortBy === "type"
+                  ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                  : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+              }`}
+              title="Sort by type"
+              aria-label="Sort by type"
             >
-              Created {sortBy === "created_at" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
-            </Button>
-            <Button
-              variant={sortBy === "updated_at" ? "default" : "outline"}
-              size="sm"
-              onClick={() => handleSort("updated_at")}
-            >
-              Updated {sortBy === "updated_at" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+              Type {sortBy === "type" && <ArrowUpDown className="ml-1 h-4 w-4" />}
             </Button>
           </div>
         </div>
           <div className="flex gap-2">
-            <Button onClick={() => handleOpenEditor("create")}>Create Template</Button>
+            <Button onClick={() => handleOpenEditor("create")}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Template
+            </Button>
           </div>
         </div>
         </div>
@@ -362,51 +516,59 @@ export default function TemplatesPage() {
               onClick={() => setSelectedTemplate(template)}
             >
               {/* Preview Section */}
-              <div className="h-40 bg-gray-100 rounded-t-lg overflow-hidden flex items-center justify-center">
-                {template.design ? (
-                  <div
-                    className="h-full w-full p-2 text-xs overflow-hidden"
-                    dangerouslySetInnerHTML={{ __html: template.design }}
-                    style={{
-                      transform: 'scale(0.3)',
-                      transformOrigin: 'top left',
-                      width: '333%',
-                      height: '333%'
-                    }}
-                  />
-                ) : (
-                  <div className="h-full flex items-center justify-center text-gray-400">
-                    <div className="text-center">
-                      <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                      <p className="text-xs">No preview available</p>
+              <div className="h-48 bg-gray-100 rounded-t-lg overflow-hidden flex items-center justify-start">
+                {(() => {
+                  const designObj = parseDesign(template.design);
+                  const html = template.content || generatePreviewHtml(designObj);
+                  return html ? (
+                    <div
+                      className="h-full w-full p-4 text-xs overflow-hidden"
+                      style={{ transform: 'scale(0.3)', transformOrigin: 'top left', width: '333%', height: '333%', backgroundColor: '#ffffff', pointerEvents: 'none' }}
+                      dangerouslySetInnerHTML={{ __html: html }}
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-gray-400">
+                      <div className="text-center">
+                        <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                        <p className="text-xs">No preview available</p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
               {/* Content Section */}
               <div className="p-3 flex flex-col gap-2">
-                <div className="flex items-start justify-between">
-                  <h3 className="font-semibold text-[var(--foreground)] text-base truncate flex-1">
-                    {template.name}
-                  </h3>
-                  <span className="text-xs px-2 py-1 rounded-full ml-2 bg-blue-100 text-blue-800">
-                    Draft
-                  </span>
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{template.subject}</div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-3 w-3 text-gray-400" />
-                  <span className="text-xs text-gray-400">{
-                    template.created_at && !isNaN(Date.parse(template.created_at))
-                      ? new Date(template.created_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })
-                      : 'Unknown'
-                  }</span>
-                  <Edit className="h-3 w-3 text-gray-400 ml-2" />
-                  <span className="text-xs text-gray-400">{
-                    template.updated_at && !isNaN(Date.parse(template.updated_at))
-                      ? new Date(template.updated_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })
-                      : 'Unknown'
-                  }</span>
+                {/* Name line */}
+                <h3 className="font-semibold text-[var(--foreground)] text-base truncate">
+                  {template.name}
+                </h3>
+                {/* Type line */}
+                {(() => {
+                  const tt = getTemplateType(template);
+                  const color = tt === 'campaign' ? 'bg-blue-100 text-blue-800' : tt === 'newsletter' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800';
+                  const label = tt === 'campaign' ? 'Campaign' : tt === 'newsletter' ? 'Newsletter' : 'Unknown';
+                  return (
+                    <span className={`text-[10px] px-2 py-1 rounded-full w-fit ${color}`}>{label}</span>
+                  );
+                })()}
+                {/* Buttons below */}
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    className="flex-1"
+                    variant="default"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); handleUseTemplate(template, 'campaign'); }}
+                    title="Use template for a campaign"
+                  >
+                    Use Template
+                  </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); handleOpenEditor("edit", template); }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                 </div>
               </div>
             </div>
@@ -429,9 +591,14 @@ export default function TemplatesPage() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">{selectedTemplate.name}</h2>
-                    <span className="inline-block text-xs px-3 py-1 rounded-full mt-1 bg-blue-100 text-blue-800">
-                      Template
-                    </span>
+                    {(() => {
+                      const tt = getTemplateType(selectedTemplate);
+                      const color = tt === 'campaign' ? 'bg-blue-100 text-blue-800' : tt === 'newsletter' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800';
+                      const label = tt === 'campaign' ? 'Campaign' : tt === 'newsletter' ? 'Newsletter' : 'Unknown';
+                      return (
+                        <span className={`inline-block text-xs px-3 py-1 rounded-full mt-1 ${color}`}>{label}</span>
+                      );
+                    })()}
                   </div>
                 </div>
                 <Button
@@ -439,7 +606,7 @@ export default function TemplatesPage() {
                   size="sm"
                   onClick={() => setSelectedTemplate(null)}
                 >
-                  <span className="text-lg">×</span>
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
 
@@ -448,61 +615,64 @@ export default function TemplatesPage() {
                 {/* Template Info */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <span className="h-5 w-5 text-gray-500">📄</span>
+                    <Tag className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Template Type</p>
+                      <p className="text-sm text-gray-600">{(() => { const tt = getTemplateType(selectedTemplate); return tt === 'campaign' ? 'Campaign' : tt === 'newsletter' ? 'Newsletter' : 'Unknown'; })()}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-gray-500" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">Description</p>
-                      <p className="text-sm text-gray-600">{selectedTemplate.subject}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="h-5 w-5 text-gray-500">📅</span>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Created</p>
-                      <p className="text-sm text-gray-600">{
-                          selectedTemplate.created_at && !isNaN(Date.parse(selectedTemplate.created_at))
-                            ? new Date(selectedTemplate.created_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })
-                            : 'Unknown'
-                        }</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="h-5 w-5 text-gray-500">📝</span>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Updated</p>
-                      <p className="text-sm text-gray-600">{
-                          selectedTemplate.updated_at && !isNaN(Date.parse(selectedTemplate.updated_at))
-                            ? new Date(selectedTemplate.updated_at).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' })
-                            : 'Unknown'
-                        }</p>
+                      <p className="text-sm text-gray-600">{selectedTemplate.subject || '—'}</p>
                     </div>
                   </div>
                 </div>
-
-                {/* Email Content Preview */}
                 <div className="border-t pt-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Email Content Preview</h3>
-                  <div className="bg-gray-50 rounded-lg p-4 min-h-32">
-                    {selectedTemplate.design ? (
-                      <div 
-                        className="text-sm text-gray-700"
-                        dangerouslySetInnerHTML={{ __html: selectedTemplate.design }}
-                      />
-                    ) : (
-                      <div className="text-center text-gray-500 py-8">
-                        <span className="h-12 w-12 mx-auto mb-2 opacity-50">📭</span>
-                        <p>No design available</p>
-                        <p className="text-xs">Click "Edit Template" to add design</p>
-                      </div>
-                    )}
-                  </div>
+                    {(() => {
+                      const html = selectedTemplate.content || generatePreviewHtml(parseDesign(selectedTemplate.design));
+                      return html ? (
+                        <div
+                          className="h-48 w-full p-4 text-xs overflow-hidden"
+                          style={{ transform: 'scale(0.3)', transformOrigin: 'top left', width: '333%', height: '333%', backgroundColor: '#ffffff', pointerEvents: 'none' }}
+                          dangerouslySetInnerHTML={{ __html: html }}
+                        />
+                      ) : (
+                        <div className="text-center text-gray-500 py-8">
+                          <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p>No design available</p>
+                          <p className="text-xs">Click "Edit" to add design</p>
+                        </div>
+                      );
+                    })()}
                 </div>
               </div>
 
               {/* Footer Actions */}
-              <div className="flex gap-2 p-6 border-t justify-end">
-                <Button size="sm" variant="outline" onClick={() => { setShowEditor(true); setEditorMode('edit'); }}>✏️ Edit</Button>
-                <Button size="sm" variant="destructive" onClick={() => { setShowDeleteDialog(true); }}>🗑️ Delete</Button>
-                <Button size="sm" onClick={() => setSelectedTemplate(null)}>Close</Button>
+              <div className="flex justify-between items-center p-6 border-t">
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => { setShowDeleteDialog(true); }}>
+                    <X className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => handleUseTemplate(selectedTemplate, 'campaign')}>Use for Campaign</Button>
+                  <Button size="sm" variant="outline" onClick={() => handleUseTemplate(selectedTemplate, 'newsletter')}>Use for Newsletter</Button>
+                  <Button
+                    size="sm"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                    onClick={() => {
+                      const tt = getTemplateType(selectedTemplate);
+                      handleUseTemplate(selectedTemplate, tt === 'newsletter' ? 'newsletter' : 'campaign');
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -511,9 +681,9 @@ export default function TemplatesPage() {
 
       {/* Create/Edit Modal with drag-and-drop editor */}
       {showEditor && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900 w-full max-w-none px-4 py-3 gap-4" style={{ maxHeight: '100vh' }}>
+          <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900 w-full max-w-none px-4 py-3 gap-4 max-h-screen">
           {/* Header */}
-          <div className="w-full mx-auto flex flex-col sm:flex-row justify-between items-center border-b border-[var(--border)] bg-white dark:bg-gray-900 z-10" style={{ flex: '0 0 auto' }}>
+          <div className="w-full mx-auto flex flex-col sm:flex-row justify-between items-center border-b border-[var(--border)] bg-white dark:bg-gray-900 z-10 flex-none">
             <div className="mb-4 sm:mb-0 w-full max-w-2xl mx-auto">
               <h2 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">
                 {editorMode === "edit" && selectedTemplate ? `Edit Template: ${selectedTemplate.name}` : "Create Template"}
@@ -525,39 +695,42 @@ export default function TemplatesPage() {
           </div>
 
           <div className="w-full mx-auto flex-1 flex flex-col overflow-auto gap-4">
-                      <EmailEditor
-                        ref={emailEditorRef}
-                        onReady={onEmailEditorReady}
-                        options={{
-                          appearance: {
-                            theme: 'light',
-                            panels: {
-                              tools: {
-                                dock: 'left'
+                      <div className="h-full w-full mb-0">
+                        <EmailEditor
+                          ref={emailEditorRef}
+                          onReady={onEmailEditorReady}
+                          options={{
+                            appearance: {
+                              theme: 'light',
+                              panels: {
+                                tools: {
+                                  dock: 'left'
+                                }
                               }
+                            },
+                            projectId: 1234,
+                            locale: 'en-US',
+                            features: {
+                              preview: true,
+                              stockImages: true
                             }
-                          },
-                          projectId: 1234,
-                          locale: 'en-US',
-                          features: {
-                            preview: true,
-                            stockImages: true
-                          }
-                        }}
-                        style={{ height: '100%', width: '100%', marginBottom: 0 }}
-                      />
+                          }}
+                        />
+                      </div>
                     </div>
 
           {/* Footer */}
-          <div className="w-full mx-auto flex flex-col sm:flex-row justify-between items-center z-20 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-4 py-3" style={{ position: 'sticky', bottom: 0, flex: '0 0 auto' }}>
+          <div className="w-full mx-auto flex flex-col sm:flex-row justify-between items-center z-20 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-4 py-3 sticky bottom-0 flex-none">
             <div className="w-full flex flex-row justify-between items-center gap-2">
               {/* Left: Import & Export */}
               <div className="flex gap-2">
                 <input
                   type="file"
                   accept="application/json"
-                  style={{ display: 'none' }}
+                  className="hidden"
                   id="import-design-input"
+                  title="Import design JSON"
+                  aria-label="Import design JSON"
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
@@ -659,6 +832,20 @@ export default function TemplatesPage() {
               />
               <span className="text-xs text-gray-500">A short description for this template.</span>
             </div>
+        <div className="mb-4">
+          <label className="block text-sm font-semibold mb-1" htmlFor="template-type">Template Type</label>
+          <select
+            id="template-type"
+            className="w-full border rounded px-3 py-2"
+            value={modalTemplateType}
+            onChange={e => setModalTemplateType(e.target.value as any)}
+            aria-label="Template Type"
+          >
+            <option value="campaign">Campaign</option>
+            <option value="newsletter">Newsletter</option>
+          </select>
+          <span className="text-xs text-gray-500">Used for classification and default routing.</span>
+        </div>
             {modalError && <div className="text-red-600 mb-2">{modalError}</div>}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowNameModal(false)}>Cancel</Button>

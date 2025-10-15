@@ -59,3 +59,20 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Failed to update campaign" }, { status: 500 });
   }
 }
+
+// Delete a campaign by ID
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id: idString } = await params;
+    const id = parseInt(idString, 10);
+    if (isNaN(id)) {
+      return NextResponse.json({ error: "Invalid campaign ID" }, { status: 400 });
+    }
+
+    await executeQuery(`DELETE FROM campaigns WHERE id = ?`, [id]);
+    return NextResponse.json({ message: "Campaign deleted successfully" });
+  } catch (error) {
+    console.error("Delete campaign error:", error);
+    return NextResponse.json({ error: "Failed to delete campaign" }, { status: 500 });
+  }
+}

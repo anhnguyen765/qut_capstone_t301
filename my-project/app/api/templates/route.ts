@@ -5,7 +5,7 @@ import { executeQuery } from "@/app/lib/db";
 export async function GET() {
   try {
     const templates = await executeQuery(
-      "SELECT * FROM templates ORDER BY updated_at DESC"
+      "SELECT id, name, subject, design, content, created_at, updated_at, type FROM templates ORDER BY updated_at DESC"
     );
     return NextResponse.json({ templates });
   } catch (error) {
@@ -21,7 +21,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, subject, design } = body;
+    const { name, subject, design, content, type } = body;
 
     if (!name || !subject || !design) {
       return NextResponse.json(
@@ -30,9 +30,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const templateType = (type === 'newsletter' ? 'newsletter' : 'campaign');
     const result = await executeQuery(
-      `INSERT INTO templates (name, subject, design) VALUES (?, ?, ?)`,
-      [name.trim(), subject.trim(), JSON.stringify(design)]
+      `INSERT INTO templates (name, subject, type, design, content) VALUES (?, ?, ?, ?, ?)`,
+      [name.trim(), subject.trim(), templateType, JSON.stringify(design), content ?? null]
     );
 
     const templateId = (result as any)?.insertId;
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, subject, design } = body;
+    const { id, name, subject, design, content, type } = body;
 
     if (!id || !name || !subject || !design) {
       return NextResponse.json(
@@ -64,9 +65,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    const templateType = (type === 'newsletter' ? 'newsletter' : 'campaign');
     await executeQuery(
-      `UPDATE templates SET name = ?, subject = ?, design = ?, updated_at = NOW() WHERE id = ?`,
-      [name.trim(), subject.trim(), JSON.stringify(design), id]
+      `UPDATE templates SET name = ?, subject = ?, type = ?, design = ?, content = ?, updated_at = NOW() WHERE id = ?`,
+      [name.trim(), subject.trim(), templateType, JSON.stringify(design), content ?? null, id]
     );
 
     return NextResponse.json({

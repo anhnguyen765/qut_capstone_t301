@@ -6,6 +6,7 @@ import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { useAuth } from "@/app/contexts/AuthContext";
+import { Checkbox } from "@/app/components/ui/checkbox";
 
 interface EmailCampaign {
   id?: number;
@@ -42,6 +43,7 @@ export default function EmailCampaignBuilder() {
   const designLoadedRef = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
 
   useEffect(() => {
     // Load Unlayer editor
@@ -208,6 +210,25 @@ export default function EmailCampaignBuilder() {
 
       const data = await response.json();
 
+      // Optionally save as template (independent of campaign save)
+      try {
+        if (saveAsTemplate && campaign.design && campaign.htmlContent) {
+          await fetch('/api/templates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: campaign.title,
+              subject: campaign.subjectLine,
+              design: campaign.design,
+              content: campaign.htmlContent,
+              type: 'campaign'
+            })
+          });
+        }
+      } catch (e) {
+        // ignore template save errors here
+      }
+
       if (response.ok) {
         setMessage("Campaign saved successfully!");
         setCampaign(prev => ({ ...prev, id: data.id }));
@@ -307,6 +328,14 @@ export default function EmailCampaignBuilder() {
                 >
                   Save Campaign
                 </Button>
+              </div>
+              <div className="flex items-center gap-2 pt-2">
+                <Checkbox
+                  id="save-as-template"
+                  checked={saveAsTemplate}
+                  onCheckedChange={(checked: boolean) => setSaveAsTemplate(Boolean(checked))}
+                />
+                <label htmlFor="save-as-template" className="text-sm">Save as template</label>
               </div>
             </CardContent>
           </Card>

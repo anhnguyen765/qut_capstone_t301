@@ -1,3 +1,7 @@
+import { NextRequest, NextResponse } from "next/server";
+import { executeQuery } from "@/app/lib/db";
+
+// Create a new schedule
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -14,12 +18,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to schedule email" }, { status: 500 });
   }
 }
-import { NextRequest, NextResponse } from "next/server";
-import { executeQuery } from "@/app/lib/db";
 
+// Get all schedules (joined with campaign title)
 export async function GET(req: NextRequest) {
   try {
-    // Join with campaigns to get campaign title
     const schedules = await executeQuery(
       `SELECT es.*, c.title as campaign_title FROM email_schedule es
        JOIN campaigns c ON es.campaign_id = c.id`

@@ -95,7 +95,8 @@
   --secondary: #7D8BAE;
   --secondary-foreground: #FFFFFF;
   --muted: #7D8BAE;
-  --muted-foreground: #FFFFFF;
+  /* muted foreground on light backgrounds should be a dark gray for readability */
+  --muted-foreground: #6B7280; /* tailwind gray-500 */
   --accent: #E2E8F4;
   --accent-foreground: #4F71B6;
   --destructive: #FF5A5F; 

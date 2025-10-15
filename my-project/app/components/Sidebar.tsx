@@ -70,13 +70,17 @@ export function AppSidebar() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 w-full rounded-lg p-2 hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors outline-none">
-              <Image
-                src="/default-avatar.svg"
-                alt="User Avatar"
-                width={40}
-                height={40}
-                className="rounded-full text-[var(--foreground)]"
-              />
+              {user ? (
+                <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white font-semibold">{getInitials(user.firstName, user.lastName)}</div>
+              ) : (
+                <Image
+                  src="/default-avatar.svg"
+                  alt="User Avatar"
+                  width={40}
+                  height={40}
+                  className="rounded-full text-[var(--foreground)]"
+                />
+              )}
               <div className="flex-1 text-left min-w-0">
                 <div className="font-semibold truncate">
                   {user ? `${user.firstName} ${user.lastName}` : 'Guest User'}
@@ -243,4 +247,10 @@ export function AppSidebar() {
       </div>
     </Sidebar>
   );
+}
+
+function getInitials(first?: string, last?: string) {
+  const f = (first || '').trim().charAt(0).toUpperCase();
+  const l = (last || '').trim().charAt(0).toUpperCase();
+  return `${f}${l}` || 'U';
 }

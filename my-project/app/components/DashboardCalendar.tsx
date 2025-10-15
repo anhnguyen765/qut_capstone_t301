@@ -29,7 +29,7 @@ interface UpcomingEmail {
   recipient_email?: string;
 }
 
-export default function DashboardCalendar() {
+export default function DashboardCalendar({ height = 256 }: { height?: number }) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [upcomingEmails, setUpcomingEmails] = useState<UpcomingEmail[]>([]);
   const [recentEmails, setRecentEmails] = useState<UpcomingEmail[]>([]);
@@ -48,8 +48,18 @@ export default function DashboardCalendar() {
   const fetchData = async () => {
     try {
       const response = await fetch("/api/schedule");
-      const data = await response.json();
-      
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error(`Invalid JSON from /api/schedule: ${String(e)}`);
+      }
+
+      if (!response.ok) {
+        const msg = data?.error || `Server returned ${response.status}`;
+        throw new Error(msg);
+      }
+
       if (data.schedules) {
         const calendarEvents = data.schedules.map((s: any) => ({
           title: s.campaign_title,
@@ -76,10 +86,16 @@ export default function DashboardCalendar() {
         
         setUpcomingEmails(upcoming);
         setRecentEmails(recent);
+      } else {
+        // No schedules key, treat as empty
+        setEvents([]);
+        setUpcomingEmails([]);
+        setRecentEmails([]);
       }
       setError(null);
     } catch (err) {
-      setError("Failed to load calendar events");
+      console.error("Calendar fetch error:", err);
+      setError(err instanceof Error ? err.message : String(err) || "Failed to load calendar events");
     } finally {
       setLoading(false);
     }
@@ -137,6 +153,9 @@ export default function DashboardCalendar() {
         <div className="h-64 flex items-center justify-center">
           <div className="text-red-500">{error}</div>
         </div>
+        <div className="flex items-center justify-center">
+          <Button onClick={() => { setLoading(true); fetchData(); }} variant="ghost">Retry</Button>
+        </div>
       </div>
     );
   }
@@ -144,7 +163,7 @@ export default function DashboardCalendar() {
   return (
     <div className="space-y-4">
       {/* Calendar */}
-      <Card>
+  <Card className="min-h-0 overflow-hidden">
         <CardHeader>
           <CardTitle className="text-lg flex items-center justify-between">
             <span>Calendar View</span>
@@ -172,7 +191,7 @@ export default function DashboardCalendar() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64">
+          <div style={{ height: height }} className="min-h-0">
             <Calendar
               localizer={localizer}
               events={events}
@@ -192,21 +211,21 @@ export default function DashboardCalendar() {
       </Card>
 
       {/* Upcoming Emails */}
-      <Card>
+  <Card className="min-h-0 overflow-hidden">
         <CardHeader>
           <CardTitle className="text-lg">Upcoming Emails</CardTitle>
         </CardHeader>
         <CardContent>
           {upcomingEmails.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-56 overflow-auto">
               {upcomingEmails.map((email) => (
                 <div key={email.id} className="flex items-center justify-between p-2 border rounded">
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{email.campaign_title}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">{email.campaign_title}</div>
                     <div className="text-xs text-gray-500">
                       {moment(email.scheduled_at).format('MMM DD, YYYY HH:mm')}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 truncate">
                       {formatRecipient(email)}
                     </div>
                   </div>
@@ -225,21 +244,21 @@ export default function DashboardCalendar() {
       </Card>
 
       {/* Recent Emails */}
-      <Card>
+  <Card className="min-h-0 overflow-hidden">
         <CardHeader>
           <CardTitle className="text-lg">Recent Email Activity</CardTitle>
         </CardHeader>
         <CardContent>
           {recentEmails.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-56 overflow-auto">
               {recentEmails.map((email) => (
                 <div key={email.id} className="flex items-center justify-between p-2 border rounded">
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{email.campaign_title}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">{email.campaign_title}</div>
                     <div className="text-xs text-gray-500">
                       {moment(email.scheduled_at).format('MMM DD, YYYY HH:mm')}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 truncate">
                       {formatRecipient(email)}
                     </div>
                   </div>

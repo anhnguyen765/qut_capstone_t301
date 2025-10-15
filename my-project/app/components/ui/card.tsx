@@ -2,14 +2,16 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+type CardProps = React.ComponentProps<"div"> & { size?: "default" | "lg" };
+
+function Card({ className, size = "default", ...props }: CardProps) {
+  const base = "bg-card text-card-foreground flex flex-col gap-2 rounded-xl border";
+  // make default cards smaller and reduce lg size slightly for denser UI
+  const sizeClass = size === "lg" ? "p-4 min-h-[140px]" : "py-3 px-3";
   return (
     <div
       data-slot="card"
-      className={cn(
-        "bg-card text-card-foreground flex flex-col gap-2 rounded-xl border py-6",
-        className
-      )}
+      className={cn(base, sizeClass, className)}
       {...props}
     />
   )

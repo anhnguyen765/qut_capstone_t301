@@ -34,6 +34,7 @@ export default function SendEmailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const campaignId = searchParams.get('campaignId');
+  const newsletterId = searchParams.get('newsletterId');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [newsletters, setNewsletters] = useState<Campaign[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -81,11 +82,25 @@ export default function SendEmailPage() {
       const campaign = campaigns.find(c => c.id === parseInt(campaignId));
       if (campaign) {
         setSelectedCampaign(campaign);
+        setSelectedType("campaigns");
         setCampaignSectionOpen(false);
         setEditSectionOpen(true);
       }
     }
   }, [campaignId, campaigns]);
+
+  // Auto-select newsletter if newsletterId is provided in URL
+  useEffect(() => {
+    if (newsletterId && newsletters.length > 0) {
+      const newsletter = newsletters.find(n => n.id === parseInt(newsletterId));
+      if (newsletter) {
+        setSelectedCampaign(newsletter);
+        setSelectedType("newsletters");
+        setCampaignSectionOpen(false);
+        setEditSectionOpen(true);
+      }
+    }
+  }, [newsletterId, newsletters]);
 
   const fetchCampaigns = async () => {
     try {

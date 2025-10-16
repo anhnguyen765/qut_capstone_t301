@@ -9,7 +9,7 @@ import { Dialog } from "@/app/components/ui/dialog";
 import ConfirmationDialog from "@/app/components/ConfirmationDialog";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
-import { MoreVertical, Edit, Trash2, Info, Calendar, FileText, Search, Filter, ArrowUpDown, Plus, Tag, X } from "lucide-react";
+import { MoreVertical, Edit, Trash2, Info, Calendar, FileText, Search, Filter, ArrowUpDown, Plus, Tag, X, Target, Loader, Check } from "lucide-react";
 
 type Template = {
   id: string;
@@ -25,7 +25,7 @@ type Template = {
 export default function TemplatesPage() {
   const router = useRouter();
   // Sorting state and handler
-  const [sortBy, setSortBy] = useState<"name" | "type">("name");
+  const [sortBy, setSortBy] = useState<"type" | "updated_at">("updated_at");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   // Handler for EmailEditor onReady event
   const onEmailEditorReady = () => {
@@ -85,6 +85,17 @@ export default function TemplatesPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<Array<'campaign' | 'newsletter'>>([]);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isUsingTemplate, setIsUsingTemplate] = useState(false);
+  const [selectedTemplateType, setSelectedTemplateType] = useState<'campaign' | 'newsletter' | null>(null);
+  
+  // Sort by template type convenience: infer from design JSON templateType
+  const getTemplateType = (t: Template): 'campaign' | 'newsletter' | 'unknown' => {
+    const typ = t.type || parseDesign(t.design)?.templateType;
+    if (typ === 'campaign' || typ === 'newsletter') return typ;
+    return 'unknown';
+  };
+  
   // Sorted templates (must be after filteredTemplates is defined)
   const sortedTemplates = [...filteredTemplates].sort((a, b) => {
     if (sortBy === 'type') {
@@ -93,13 +104,13 @@ export default function TemplatesPage() {
       if (at === bt) return 0;
       return sortOrder === 'asc' ? (at > bt ? 1 : -1) : (at > bt ? -1 : 1);
     }
-    const aName = (a.name || '').toLowerCase();
-    const bName = (b.name || '').toLowerCase();
-    if (aName < bName) return sortOrder === 'asc' ? -1 : 1;
-    if (aName > bName) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
+    // sortBy === 'updated_at'
+    const aTime = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+    const bTime = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+    if (aTime === bTime) return 0;
+    return aTime > bTime ? (sortOrder === 'asc' ? 1 : -1) : (sortOrder === 'asc' ? -1 : 1);
   });
-  const handleSort = (field: "name" | "type") => {
+  const handleSort = (field: "type" | "updated_at") => {
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -107,12 +118,32 @@ export default function TemplatesPage() {
       setSortOrder("asc");
     }
   };
-  // Sort by template type convenience: infer from design JSON templateType
-  const getTemplateType = (t: Template): 'campaign' | 'newsletter' | 'unknown' => {
-    const typ = t.type || parseDesign(t.design)?.templateType;
-    if (typ === 'campaign' || typ === 'newsletter') return typ;
-    return 'unknown';
+  
+  const formatTimeAgo = (dateString: string): string => {
+    if (!dateString) return '';
+    
+    // Database time is already in Sydney timezone
+    const dbDate = new Date(dateString);
+    
+    // Convert current user time to Sydney timezone for accurate comparison
+    const now = new Date();
+    const sydneyTime = new Date(now.toLocaleString("en-US", { timeZone: "Australia/Sydney" }));
+    
+    // Calculate difference (Sydney time - Sydney time)
+    const diffInMs = sydneyTime.getTime() - dbDate.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minutes ago`;
+    } else if (diffInHours < 24) {
+      return `${diffInHours} hours ago`;
+    } else {
+      return `${diffInDays} days ago`;
+    }
   };
+  
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +151,8 @@ export default function TemplatesPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showUseTemplateDialog, setShowUseTemplateDialog] = useState(false);
+  const [templateToUse, setTemplateToUse] = useState<Template | null>(null);
 
   // Safely parse a stored template design (JSON string from DB)
   const parseDesign = (design: string | any): any | null => {
@@ -177,24 +210,54 @@ export default function TemplatesPage() {
     return chunks.join('');
   };
 
-  const handleUseTemplate = (template: Template, target: 'campaign' | 'newsletter') => {
+  const handleUseTemplate = (template: Template) => {
+    setTemplateToUse(template);
+    // Pre-select based on template type
+    const templateType = getTemplateType(template);
+    if (templateType === 'campaign') {
+      setSelectedTemplateType('campaign');
+    } else if (templateType === 'newsletter') {
+      setSelectedTemplateType('newsletter');
+    } else {
+      setSelectedTemplateType(null); // No pre-selection for unknown types
+    }
+    setShowUseTemplateDialog(true);
+  };
+
+  const handleUseTemplateConfirm = async (target: 'campaign' | 'newsletter') => {
+    if (!templateToUse) return;
+    
+    setIsUsingTemplate(true);
     try {
-      const designObj = parseDesign(template.design);
+      const designObj = parseDesign(templateToUse.design);
       if (!designObj) {
         setError('Template design is invalid or missing.');
+        setIsUsingTemplate(false);
         return;
       }
       // Store in sessionStorage to avoid URL size limits
       sessionStorage.setItem('templateDesign', JSON.stringify(designObj));
-      sessionStorage.setItem('templateName', template.name || '');
-      sessionStorage.setItem('templateSubject', template.subject || '');
+      sessionStorage.setItem('templateContent', templateToUse.content || '');
+      sessionStorage.setItem('templateName', templateToUse.name || '');
+      sessionStorage.setItem('templateSubject', templateToUse.subject || '');
+      
+      // Add a small delay to show loading state
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       if (target === 'campaign') {
+        setIsRedirecting(true);
         router.push('/campaigns/builder?useTemplate=1');
       } else {
+        setIsRedirecting(true);
         router.push('/newsletters?useTemplate=1');
       }
+      setShowUseTemplateDialog(false);
+      setTemplateToUse(null);
+      setSelectedTemplateType(null);
     } catch (e: any) {
       setError(e?.message || 'Failed to use template');
+    } finally {
+      setIsUsingTemplate(false);
     }
   };
 
@@ -289,8 +352,10 @@ export default function TemplatesPage() {
       } catch {}
       setShowNameModal(false);
       if (modalTemplateType === 'campaign') {
+        setIsRedirecting(true);
         router.push('/campaigns/builder?fromTemplateNew=1');
       } else {
+        setIsRedirecting(true);
         router.push('/newsletters?fromTemplateNew=1');
       }
       return;
@@ -397,7 +462,7 @@ export default function TemplatesPage() {
       <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)] pb-4 mb-6">
         <header className="mb-4">
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-            Email Templates
+            Templates
           </h1>
         </header>
 
@@ -451,18 +516,6 @@ export default function TemplatesPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleSort("name")}
-              className={`${
-                sortBy === "name"
-                  ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
-                  : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
-              }`}
-            >
-              Name {sortBy === "name" && <ArrowUpDown className="ml-1 h-4 w-4" />}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
               onClick={() => handleSort("type")}
               className={`${
                 sortBy === "type"
@@ -474,10 +527,27 @@ export default function TemplatesPage() {
             >
               Type {sortBy === "type" && <ArrowUpDown className="ml-1 h-4 w-4" />}
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleSort("updated_at")}
+              className={`${
+                sortBy === "updated_at"
+                  ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                  : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+              }`}
+              title="Sort by updated date"
+              aria-label="Sort by updated date"
+            >
+              Updated {sortBy === "updated_at" && <ArrowUpDown className="ml-1 h-4 w-4" />}
+            </Button>
           </div>
         </div>
           <div className="flex gap-2">
-            <Button onClick={() => handleOpenEditor("create")}>
+            <Button onClick={() => {
+              setIsRedirecting(true);
+              router.push('/templates/builder');
+            }}>
             <Plus className="h-4 w-4 mr-2" />
             New Template
             </Button>
@@ -511,64 +581,83 @@ export default function TemplatesPage() {
           {sortedTemplates.map((template, idx) => (
             <div
               key={template.id ?? idx}
-              className="bg-[var(--background)] rounded-lg shadow-md border border-[var(--border)] hover:shadow-lg transition-shadow cursor-pointer overflow-hidden flex flex-col min-h-[260px] max-h-[340px]"
-              style={{ minWidth: '260px', maxWidth: '400px' }}
+              className="bg-[var(--background)] rounded-lg shadow-md border border-[var(--border)] hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => setSelectedTemplate(template)}
             >
               {/* Preview Section */}
-              <div className="h-48 bg-gray-100 rounded-t-lg overflow-hidden flex items-center justify-start">
+              <div className="h-48 bg-gray-100 rounded-t-lg overflow-hidden">
                 {(() => {
                   const designObj = parseDesign(template.design);
                   const html = template.content || generatePreviewHtml(designObj);
                   return html ? (
                     <div
                       className="h-full w-full p-4 text-xs overflow-hidden"
-                      style={{ transform: 'scale(0.3)', transformOrigin: 'top left', width: '333%', height: '333%', backgroundColor: '#ffffff', pointerEvents: 'none' }}
                       dangerouslySetInnerHTML={{ __html: html }}
+                      style={{ 
+                        transform: 'scale(0.3)', 
+                        transformOrigin: 'top left',
+                        width: '333%',
+                        height: '333%'
+                      }}
                     />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center text-gray-400">
+                    <div className="h-full flex items-center justify-center text-gray-400">
                       <div className="text-center">
-                        <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                        <p className="text-xs">No preview available</p>
+                        <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No preview available</p>
                       </div>
                     </div>
                   );
                 })()}
               </div>
               {/* Content Section */}
-              <div className="p-3 flex flex-col gap-2">
-                {/* Name line */}
-                <h3 className="font-semibold text-[var(--foreground)] text-base truncate">
-                  {template.name}
-                </h3>
-                {/* Type line */}
-                {(() => {
-                  const tt = getTemplateType(template);
-                  const color = tt === 'campaign' ? 'bg-blue-100 text-blue-800' : tt === 'newsletter' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800';
-                  const label = tt === 'campaign' ? 'Campaign' : tt === 'newsletter' ? 'Newsletter' : 'Unknown';
-                  return (
-                    <span className={`text-[10px] px-2 py-1 rounded-full w-fit ${color}`}>{label}</span>
-                  );
-                })()}
-                {/* Buttons below */}
-                <div className="flex gap-2 pt-1">
+              <div className="p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-semibold text-[var(--foreground)] text-lg truncate flex-1">
+                    {template.name}
+                  </h3>
+                </div>
+
+                <div className="flex items-center gap-2 mb-3">
+                  {(() => {
+                    const tt = getTemplateType(template);
+                    const color = tt === 'campaign' ? 'bg-blue-100 text-blue-800' : tt === 'newsletter' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800';
+                    const label = tt === 'campaign' ? 'Campaign' : tt === 'newsletter' ? 'Newsletter' : 'Unknown';
+                    return (
+                      <span className={`text-sm px-2 py-1 rounded-md ${color}`}>{label}</span>
+                    );
+                  })()}
+                </div>
+
+                {template.updated_at && (
+                  <div className="text-xs text-gray-500 mb-3">
+                    <span>
+                      Updated: {formatTimeAgo(template.updated_at)}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
                   <Button
                     className="flex-1"
                     variant="default"
                     size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleUseTemplate(template, 'campaign'); }}
-                    title="Use template for a campaign"
+                    onClick={(e) => { e.stopPropagation(); handleUseTemplate(template); }}
+                    title="Use template for a campaign or newsletter"
                   >
                     Use Template
                   </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => { e.stopPropagation(); handleOpenEditor("edit", template); }}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setIsRedirecting(true);
+                      router.push(`/templates/builder?id=${template.id}`); 
+                    }}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             </div>
@@ -635,8 +724,8 @@ export default function TemplatesPage() {
                       const html = selectedTemplate.content || generatePreviewHtml(parseDesign(selectedTemplate.design));
                       return html ? (
                         <div
-                          className="h-48 w-full p-4 text-xs overflow-hidden"
-                          style={{ transform: 'scale(0.3)', transformOrigin: 'top left', width: '333%', height: '333%', backgroundColor: '#ffffff', pointerEvents: 'none' }}
+                          className="w-full p-4 text-sm overflow-auto border border-gray-200 rounded-lg"
+                          style={{ backgroundColor: '#ffffff', pointerEvents: 'none', minHeight: '400px' }}
                           dangerouslySetInnerHTML={{ __html: html }}
                         />
                       ) : (
@@ -659,14 +748,13 @@ export default function TemplatesPage() {
                   </Button>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => handleUseTemplate(selectedTemplate, 'campaign')}>Use for Campaign</Button>
-                  <Button size="sm" variant="outline" onClick={() => handleUseTemplate(selectedTemplate, 'newsletter')}>Use for Newsletter</Button>
+                  <Button size="sm" variant="outline" onClick={() => handleUseTemplate(selectedTemplate)}>Use Template</Button>
                   <Button
                     size="sm"
                     className="bg-primary hover:bg-primary/90 text-primary-foreground"
                     onClick={() => {
-                      const tt = getTemplateType(selectedTemplate);
-                      handleUseTemplate(selectedTemplate, tt === 'newsletter' ? 'newsletter' : 'campaign');
+                      setIsRedirecting(true);
+                      router.push(`/templates/builder?id=${selectedTemplate.id}`);
                     }}
                   >
                     <Edit className="h-4 w-4 mr-2" />
@@ -851,6 +939,102 @@ export default function TemplatesPage() {
               <Button variant="outline" onClick={() => setShowNameModal(false)}>Cancel</Button>
               <Button onClick={handleNameModalConfirm} className="bg-primary text-white">Continue</Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Use Template Type Selection Dialog */}
+      {showUseTemplateDialog && templateToUse && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
+            <h2 className="text-xl font-bold mb-4">Use Template</h2>
+            <p className="text-gray-600 mb-2">
+              How would you like to use the template "<strong>{templateToUse.name}</strong>"?
+            </p>
+            {(() => {
+              const templateType = getTemplateType(templateToUse);
+              const suggestedType = templateType === 'campaign' ? 'campaign' : templateType === 'newsletter' ? 'newsletter' : null;
+              return suggestedType && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-blue-800">
+                      Suggested: This template is designed for <strong>{suggestedType === 'campaign' ? 'Campaigns' : 'Newsletters'}</strong>
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <Button
+                className={`h-24 flex-col justify-center items-center p-4 ${
+                  selectedTemplateType === 'campaign'
+                    ? 'border-2 border-primary bg-primary/5' 
+                    : ''
+                }`}
+                variant="outline"
+                onClick={() => setSelectedTemplateType('campaign')}
+                disabled={isUsingTemplate}
+              >
+                <Target className="h-8 w-8 mb-2" />
+                <div className="text-center">
+                  <div className="font-medium">Use for Campaign</div>
+                  <div className="text-sm text-gray-500">Create a new email campaign</div>
+                </div>
+              </Button>
+              <Button
+                className={`h-24 flex-col justify-center items-center p-4 ${
+                  selectedTemplateType === 'newsletter'
+                    ? 'border-2 border-primary bg-primary/5' 
+                    : ''
+                }`}
+                variant="outline"
+                onClick={() => setSelectedTemplateType('newsletter')}
+                disabled={isUsingTemplate}
+              >
+                <FileText className="h-8 w-8 mb-2" />
+                <div className="text-center">
+                  <div className="font-medium">Use for Newsletter</div>
+                  <div className="text-sm text-gray-500">Create a new newsletter</div>
+                </div>
+              </Button>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { 
+                setShowUseTemplateDialog(false); 
+                setTemplateToUse(null); 
+                setSelectedTemplateType(null);
+              }}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => selectedTemplateType && handleUseTemplateConfirm(selectedTemplateType)}
+                disabled={!selectedTemplateType || isUsingTemplate}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                {isUsingTemplate ? (
+                  <>
+                    <Loader className="h-4 w-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Confirm & Use Template
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Loading Overlay for Redirects */}
+      {isRedirecting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg p-6 flex items-center gap-3">
+            <Loader className="h-6 w-6 animate-spin text-primary" />
+            <span className="text-lg font-medium">Redirecting...</span>
           </div>
         </div>
       )}

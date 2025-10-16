@@ -3,8 +3,8 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
     const result = await executeQuery(
-  `INSERT INTO newsletters (title, date, status, content, design) VALUES (?, ?, ?, ?, ?)`,
-  [data.title, data.date, data.status, data.content, JSON.stringify(data.design || {})]
+  `INSERT INTO newsletters (title, status, content, design, finalised_at) VALUES (?, ?, ?, ?, ?)`,
+  [data.title, data.status, data.content, JSON.stringify(data.design || {}), data.finalisedAt]
     );
     // If result.insertId is not available, return a generic success response
     return NextResponse.json({ success: true });
@@ -19,7 +19,7 @@ import { executeQuery } from "@/app/lib/db";
 export async function GET() {
   try {
     const newsletters = await executeQuery(
-  "SELECT * FROM newsletters ORDER BY date DESC",
+  "SELECT * FROM newsletters ORDER BY updated_at DESC",
   []
     );
     return NextResponse.json({ newsletters });

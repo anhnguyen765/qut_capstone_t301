@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { executeQuery } from "@/app/lib/db";
 
 // Get, update, or delete a single newsletter (campaign with type 'email')
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id = params.id;
+    const { id } = await params;
     const result = await executeQuery("SELECT * FROM newsletters WHERE id = ?", [id]) as any[];
     if (!result || result.length === 0) {
       return NextResponse.json({ error: "Newsletter not found" }, { status: 404 });
@@ -15,20 +15,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id = params.id;
+    const { id } = await params;
     const data = await req.json();
     await executeQuery(
-      `UPDATE newsletters SET title = ?, date = ?, status = ?, content = ?, design = ? WHERE id = ?`,
-      [data.title, data.date, data.status, data.content, JSON.stringify(data.design || {}), id]
+      `UPDATE newsletters SET title = ?, status = ?, content = ?, design = ?, finalised_at = ? WHERE id = ?`,
+      [data.title, data.status, data.content, JSON.stringify(data.design || {}), data.finalisedAt, id]
     );
 
     // If the newsletter status is changed to scheduled, upsert an email_schedule entry
     let createdScheduleId: number | null = null;
     try {
       if (data.status === 'scheduled') {
-        const scheduledAt = data.date || null;
+        const scheduledAt = null; // No date field for newsletters
         // Check for existing schedule for this newsletter at the same time
         const existing = await executeQuery(
           `SELECT id FROM email_schedule WHERE campaign_id = ? AND scheduled_at = ? LIMIT 1`,
@@ -63,9 +63,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id = params.id;
+    const { id } = await params;
     await executeQuery("DELETE FROM newsletters WHERE id = ?", [id]);
     return NextResponse.json({ success: true });
   } catch (error) {

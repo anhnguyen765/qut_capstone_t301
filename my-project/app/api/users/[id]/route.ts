@@ -4,11 +4,11 @@ import { executeQuery } from "@/app/lib/db";
 // PUT: Update user (disable/enable)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { is_active } = await request.json();
-    const userId = params.id;
+    const { id: userId } = await params;
 
     if (typeof is_active !== 'boolean') {
       return NextResponse.json({ error: "is_active must be a boolean" }, { status: 400 });

@@ -103,8 +103,46 @@ export default function CampaignBuilder() {
   const [message, setMessage] = useState("");
   const [emailEditorLoaded, setEmailEditorLoaded] = useState(false);
   const [emailDesign, setEmailDesign] = useState<any>(null);
+  const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
+  const [showFinalisedConfirm, setShowFinalisedConfirm] = useState(false);
   const emailEditorRef = useRef<EditorRef>(null);
-  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+
+  // Generate lightweight preview HTML from Unlayer design JSON
+  const generatePreviewHtml = (designObj: any): string => {
+    if (!designObj || !designObj.body || !Array.isArray(designObj.body.rows)) return '';
+    const chunks: string[] = [];
+    // Extract a few first text/image blocks for a quick preview
+    let textCount = 0;
+    let imageCount = 0;
+    try {
+      for (const row of designObj.body.rows) {
+        if (!row || !Array.isArray(row.columns)) continue;
+        for (const col of row.columns) {
+          if (!col || !Array.isArray(col.contents)) continue;
+          for (const item of col.contents) {
+            if (item.type === 'text' && textCount < 3) {
+              const html = (item.values && item.values.text) ? String(item.values.text) : '';
+              if (html) {
+                chunks.push(`<div style=\"margin:4px 0;font-size:12px;line-height:1.4;color:#111\">${html}</div>`);
+                textCount++;
+              }
+            }
+            if (item.type === 'image' && imageCount < 1) {
+              const src = item.values?.src?.url || item.values?.src || '';
+              if (src) {
+                chunks.push(`<div style=\"margin:6px 0\"><img src=\"${src}\" alt=\"\" style=\"max-width:100%;height:auto;border-radius:4px\"/></div>`);
+                imageCount++;
+              }
+            }
+            if (textCount >= 3 && imageCount >= 1) break;
+          }
+          if (textCount >= 3 && imageCount >= 1) break;
+        }
+        if (textCount >= 3 && imageCount >= 1) break;
+      }
+    } catch {}
+    return chunks.join('');
+  };
 
   const onEmailEditorReady = () => {
     setEmailEditorLoaded(true);
@@ -133,25 +171,33 @@ export default function CampaignBuilder() {
   useEffect(() => {
     const useTemplate = searchParams.get('useTemplate');
     if (useTemplate && !campaign.design) {
+      setIsLoadingTemplate(true);
       try {
         const designStr = sessionStorage.getItem('templateDesign');
+        const contentStr = sessionStorage.getItem('templateContent');
         const name = sessionStorage.getItem('templateName') || '';
         const subject = sessionStorage.getItem('templateSubject') || '';
         if (designStr) {
           const design = JSON.parse(designStr);
+          const previewContent = contentStr || generatePreviewHtml(design);
           setCampaign(prev => ({
             ...prev,
             title: prev.title || name || 'New Campaign',
             description: prev.description || subject || '',
             design,
+            content: previewContent,
           }));
+          setMessage('Template loaded successfully! You can now customize it.');
           // Do not auto-open editor; let user review and click Open Editor
         }
       } catch (e) {
         console.error('Failed to load template from session:', e);
+        setMessage('Failed to load template. Please try again.');
       } finally {
+        setIsLoadingTemplate(false);
         // One-time use
         sessionStorage.removeItem('templateDesign');
+        sessionStorage.removeItem('templateContent');
         sessionStorage.removeItem('templateName');
         sessionStorage.removeItem('templateSubject');
       }
@@ -162,7 +208,6 @@ export default function CampaignBuilder() {
   useEffect(() => {
     if (fromTemplateNew) {
       setMessage("You were redirected from Templates. Fill in details and click Open Editor to start.");
-      setSaveAsTemplate(true);
       try {
         const meta = sessionStorage.getItem('templateNewMeta');
         if (meta) {
@@ -207,6 +252,20 @@ export default function CampaignBuilder() {
 
   const handleCloseEditor = () => {
     setShowEditor(false);
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    if (newStatus === 'finalised' && campaign.status !== 'finalised') {
+      setShowFinalisedConfirm(true);
+    } else {
+      setCampaign(prev => ({ ...prev, status: newStatus as any }));
+    }
+  };
+
+  const confirmFinalised = () => {
+    setCampaign(prev => ({ ...prev, status: 'finalised' }));
+    setShowFinalisedConfirm(false);
+    setMessage('Campaign status changed to finalised. You can duplicate it to make edits.');
   };
 
   const saveCampaign = async () => {
@@ -267,24 +326,6 @@ export default function CampaignBuilder() {
         });
       }
 
-      // Optionally save as template (do this regardless of campaign save outcome)
-      try {
-        if (saveAsTemplate && design) {
-          await fetch('/api/templates', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: campaignData.title,
-              subject: campaignData.description || campaignData.title,
-              design,
-              content: html,
-              type: 'campaign'
-            })
-          });
-        }
-      } catch (e) {
-        console.warn('Failed to save campaign as template:', e);
-      }
 
       if (response.ok) {
         const result = await response.json();
@@ -358,7 +399,15 @@ export default function CampaignBuilder() {
 
       <div className="w-full">
         {/* Campaign Details */}
-        <Card>
+        <Card className="relative">
+          {isLoadingTemplate && (
+            <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="text-sm font-medium">Loading template...</span>
+              </div>
+            </div>
+          )}
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
@@ -401,7 +450,7 @@ export default function CampaignBuilder() {
                   <label className="block text-sm font-medium mb-1">Status</label>
                   <Select
                     value={campaign.status}
-                    onValueChange={(value) => setCampaign(prev => ({ ...prev, status: value as any }))}
+                    onValueChange={handleStatusChange}
                   >
                     <SelectTrigger className="border-2 border-gray-300 w-32">
                       <SelectValue />
@@ -443,14 +492,6 @@ export default function CampaignBuilder() {
                   {campaign.status}
                 </Badge>
               </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="save-as-template"
-                checked={saveAsTemplate}
-                onCheckedChange={(v) => setSaveAsTemplate(Boolean(v))}
-              />
-              <label htmlFor="save-as-template" className="text-sm">Save as template</label>
-            </div>
 
               <Button
                 onClick={() => setShowEditor(true)}
@@ -629,6 +670,32 @@ export default function CampaignBuilder() {
                     Apply Changes
                   </Button>
                 </div>
+          </div>
+        </div>
+      )}
+
+      {/* Finalised Confirmation Dialog */}
+      {showFinalisedConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <h2 className="text-xl font-bold mb-4">Finalise Campaign</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to finalise this campaign? Once finalised, you won't be able to edit it directly, but you can duplicate it to make changes.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowFinalisedConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={confirmFinalised}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                Yes, Finalise
+              </Button>
+            </div>
           </div>
         </div>
       )}

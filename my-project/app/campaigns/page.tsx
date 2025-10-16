@@ -8,7 +8,7 @@ import {
   PopoverTrigger,
 } from "@/app/components/ui/popover";
 import { Button } from "@/app/components/ui/button";
-import { Edit, X, Eye, Send, Archive, Tag, FileText, Save, CheckCircle, Copy } from "lucide-react";
+import { Edit, X, Eye, Send, Archive, Tag, FileText, Save, CheckCircle, Copy, Loader } from "lucide-react";
 import EmailEditor, { EditorRef, EmailEditorProps } from "react-email-editor";
 import { useRouter } from "next/navigation";
 import ConfirmationDialog from "@/app/components/ConfirmationDialog";
@@ -43,8 +43,8 @@ export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [templatesList, setTemplatesList] = useState<any[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<"type" | "createdAt" | "updatedAt">("type");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = useState<"type" | "updatedAt">("updatedAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [showEditor, setShowEditor] = useState(false);
@@ -75,6 +75,8 @@ export default function Campaigns() {
     templateId: '',
   });
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
   const [recipientType, setRecipientType] = useState("all");
   const [email, setEmail] = useState("");
@@ -130,6 +132,7 @@ export default function Campaigns() {
   };
 
   const duplicateCampaign = async (campaignId: string, defaultTitle: string) => {
+    setIsDuplicating(true);
     try {
       const newTitle = `${defaultTitle} (Copy)`;
       const res = await fetch(`/api/campaigns/${campaignId}/duplicate`, {
@@ -145,6 +148,8 @@ export default function Campaigns() {
       setNotification({ message: "Campaign duplicated successfully", type: "success" });
     } catch (e: any) {
       setNotification({ message: e.message || "Failed to duplicate campaign", type: "error" });
+    } finally {
+      setIsDuplicating(false);
     }
   };
 
@@ -202,13 +207,7 @@ export default function Campaigns() {
       if (sortBy === "type") {
         return a.type > b.type ? direction : a.type < b.type ? -direction : 0;
       }
-      // no generic date sort; use createdAt/updatedAt instead
-      if (sortBy === "createdAt") {
-        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        if (aTime === bTime) return 0;
-        return aTime > bTime ? direction : -direction;
-      }
+      // no generic date sort; use updatedAt instead
       // sortBy === 'updatedAt'
       const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
       const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
@@ -276,6 +275,31 @@ export default function Campaigns() {
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const formatTimeAgo = (dateString: string): string => {
+    if (!dateString) return '';
+    
+    // Database time is already in Sydney timezone
+    const dbDate = new Date(dateString);
+    
+    // Convert current user time to Sydney timezone for accurate comparison
+    const now = new Date();
+    const sydneyTime = new Date(now.toLocaleString("en-US", { timeZone: "Australia/Sydney" }));
+    
+    // Calculate difference (Sydney time - Sydney time)
+    const diffInMs = sydneyTime.getTime() - dbDate.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minutes ago`;
+    } else if (diffInHours < 24) {
+      return `${diffInHours} hours ago`;
+    } else {
+      return `${diffInDays} days ago`;
     }
   };
 
@@ -588,20 +612,6 @@ export default function Campaigns() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleSort("createdAt")}
-                className={`${
-                  sortBy === "createdAt"
-                    ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
-                    : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
-                }`}
-                title="Sort by created date"
-                aria-label="Sort by created date"
-              >
-                Created {sortBy === "createdAt" && <ArrowUpDown className="ml-1 h-4 w-4" />}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
                 onClick={() => handleSort("updatedAt")}
                 className={`${
                   sortBy === "updatedAt"
@@ -665,8 +675,8 @@ export default function Campaigns() {
                   <h3 className="font-semibold text-[var(--foreground)] text-lg truncate flex-1">
                     {campaign.title}
                   </h3>
-                  <span className={`text-xs px-2 py-1 rounded-full ml-2 ${getStatusColor(campaign.status)}`}>
-                    {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
+                  <span className={`text-xs px-2 py-1 rounded-full ml-2 ${getStatusColor(campaign.status || 'draft')}`}>
+                    {(campaign.status || 'draft').charAt(0).toUpperCase() + (campaign.status || 'draft').slice(1)}
                   </span>
                 </div>
 
@@ -676,18 +686,11 @@ export default function Campaigns() {
                   </span>
                 </div>
 
-                {(campaign.createdAt || campaign.updatedAt) && (
-                  <div className="flex flex-col text-xs text-gray-500 mb-3">
-                    {campaign.createdAt && (
-                      <span>
-                        Created: {mounted ? new Date(campaign.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }) : campaign.createdAt}
-                      </span>
-                    )}
-                    {campaign.updatedAt && (
-                      <span>
-                        Updated: {mounted ? new Date(campaign.updatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }) : campaign.updatedAt}
-                      </span>
-                    )}
+                {campaign.updatedAt && (
+                  <div className="text-xs text-gray-500 mb-3">
+                    <span>
+                      Updated: {formatTimeAgo(campaign.updatedAt)}
+                    </span>
                   </div>
                 )}
 
@@ -698,10 +701,17 @@ export default function Campaigns() {
                     className="flex-1"
                     onClick={(e) => {
                       e.stopPropagation();
+                      setIsRedirecting(true);
                       router.push(`/campaigns/builder?id=${campaign.id}`);
                     }}
+                    disabled={campaign.status === 'finalised' || isRedirecting}
+                    title={campaign.status === 'finalised' ? 'Cannot edit finalised campaigns' : 'Edit campaign'}
                   >
-                    <Edit className="h-4 w-4 mr-1" />
+                    {isRedirecting ? (
+                      <Loader className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Edit className="h-4 w-4 mr-1" />
+                    )}
                     Edit
                   </Button>
                   <Button
@@ -712,8 +722,13 @@ export default function Campaigns() {
                       duplicateCampaign(campaign.id, campaign.title);
                     }}
                     title="Duplicate campaign"
+                    disabled={isDuplicating}
                   >
-                    <Copy className="h-4 w-4" />
+                    {isDuplicating ? (
+                      <Loader className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
                   </Button>
                   <Button
                     variant="outline"
@@ -846,11 +861,18 @@ export default function Campaigns() {
                 <Button 
                   onClick={() => {
                     setShowDetailsDialog(false);
+                    setIsRedirecting(true);
                     router.push(`/campaigns/builder?id=${selectedCampaign.id}`);
                   }} 
                   className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  disabled={selectedCampaign.status === 'finalised' || isRedirecting}
+                  title={selectedCampaign.status === 'finalised' ? 'Cannot edit finalised campaigns' : 'Edit campaign'}
                 >
-                  <Edit className="h-4 w-4 mr-2" />
+                  {isRedirecting ? (
+                    <Loader className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Edit className="h-4 w-4 mr-2" />
+                  )}
                   Edit Campaign
                 </Button>
               </div>
@@ -1180,6 +1202,16 @@ export default function Campaigns() {
                 Finalise Campaign
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Loading Overlay for Redirects */}
+      {isRedirecting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg p-6 flex items-center gap-3">
+            <Loader className="h-6 w-6 animate-spin text-primary" />
+            <span className="text-lg font-medium">Redirecting...</span>
           </div>
         </div>
       )}

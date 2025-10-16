@@ -3,9 +3,10 @@ import { executeQuery } from "@/app/lib/db";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const contact = await executeQuery(`
       SELECT 
         id,
@@ -21,7 +22,7 @@ export async function GET(
         updated_at
       FROM contacts 
       WHERE id = ?
-    `, [params.id]);
+    `, [id]);
 
     if (!contact || (Array.isArray(contact) && contact.length === 0)) {
       return NextResponse.json(
@@ -43,9 +44,10 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const {
       name,
       email,
@@ -96,7 +98,7 @@ export async function PUT(
       !!opt1,
       !!opt2,
       !!opt3,
-      params.id
+      id
     ]) as any;
 
     if (result.affectedRows === 0) {
@@ -122,12 +124,13 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const result = await executeQuery(`
       DELETE FROM contacts WHERE id = ?
-    `, [params.id]) as any;
+    `, [id]) as any;
 
     if (result.affectedRows === 0) {
       return NextResponse.json(

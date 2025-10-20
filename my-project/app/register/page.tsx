@@ -182,7 +182,7 @@ export default function Register() {
         <div className="flex items-center justify-center min-h-screen w-full py-8 px-[10%]">
             <Card className="w-full max-w-md shadow-xl rounded-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
                 <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold text-center">
+                    <CardTitle className="text-2xl font-bold text-center text-foreground">
                         Create Account
                     </CardTitle>
                     <CardDescription className="text-center">

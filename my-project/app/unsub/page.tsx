@@ -37,8 +37,8 @@ export default function Unsub() {
 
   return (
     <div className="max-w-md mx-auto py-12 px-4">
-      <h1 className="text-2xl font-bold mb-4">Unsubscribe or Update Preferences</h1>
-      <p className="mb-6 text-gray-600">Enter your email and update your email preferences below. You do not need to log in.</p>
+      <h1 className="text-2xl font-bold mb-4 text-foreground">Unsubscribe or Update Preferences</h1>
+      <p className="mb-6 text-muted-foreground">Enter your email and update your email preferences below. You do not need to log in.</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Email Address</label>

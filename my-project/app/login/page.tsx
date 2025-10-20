@@ -155,7 +155,7 @@ function LoginForm() {
     <div className="flex min-h-screen w-full items-center justify-center bg-background py-8 px-[10%]">
             <Card className="w-full max-w-md shadow-xl rounded-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
                 <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold text-center">
+                    <CardTitle className="text-2xl font-bold text-center text-foreground">
                         Welcome Back
                     </CardTitle>
                     <CardDescription className="text-center text-foreground">
@@ -200,7 +200,7 @@ function LoginForm() {
                                 disabled={isLoading}
                             />
                             {errors.password && (
-                                <p className="text-sm text-red-500">{errors.password}</p>
+                                <p className="text-sm text-destructive">{errors.password}</p>
                             )}
                         </div>
                         <div className="flex items-center justify-end">
@@ -209,8 +209,8 @@ function LoginForm() {
                             </Button>
                         </div>
                         {errors.general && (
-                            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                                <p className="text-sm text-red-600">{errors.general}</p>
+                            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                                <p className="text-sm text-destructive">{errors.general}</p>
                             </div>
                         )}
                     </CardContent>

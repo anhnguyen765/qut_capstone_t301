@@ -372,30 +372,30 @@ export default function SendEmailPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'sent':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
       case 'failed':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
       case 'sending':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100';
       case 'scheduled':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100';
       case 'draft':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100';
     }
   };
 
   const getMessageColor = () => {
     switch (messageType) {
       case "success":
-        return "bg-green-100 text-green-700 border-green-200";
+        return "bg-green-100 text-green-700 border-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-800";
       case "error":
-        return "bg-red-100 text-red-700 border-red-200";
+        return "bg-red-100 text-red-700 border-red-200 dark:bg-red-900 dark:text-red-100 dark:border-red-800";
       default:
-        return "bg-blue-100 text-blue-700 border-blue-200";
+        return "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-800";
     }
   };
 
@@ -408,11 +408,11 @@ export default function SendEmailPage() {
   return (
     <div className="py-8 px-[10%]">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-foreground">
           <Mail className="h-8 w-8" />
           Send Email
         </h1>
-        <p className="text-gray-600">Select a stored campaign or newsletter and recipients to send HTML emails</p>
+        <p className="text-muted-foreground">Select a stored campaign or newsletter and recipients to send HTML emails</p>
       </div>
 
       {/* Message Display */}
@@ -421,7 +421,7 @@ export default function SendEmailPage() {
           <div>{message}</div>
           {calendarLink && (
             <div className="mt-2">
-              <a href={calendarLink} className="text-sm text-blue-600 underline">View on calendar</a>
+              <a href={calendarLink} className="text-sm text-primary underline">View on calendar</a>
             </div>
           )}
         </div>
@@ -433,7 +433,7 @@ export default function SendEmailPage() {
           {/* Step 1: Campaign Selection */}
           <Card className="transition-all duration-300 ease-in-out">
             <CardHeader
-              className="cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+              className="cursor-pointer hover:bg-accent transition-colors duration-200"
               onClick={() => setCampaignSectionOpen(!campaignSectionOpen)}
             >
               <CardTitle className="flex items-center justify-between">
@@ -441,7 +441,7 @@ export default function SendEmailPage() {
                   {selectedCampaign ? (
                     <CheckCircle className="h-5 w-5 text-green-500" />
                   ) : (
-                    <Circle className="h-5 w-5 text-gray-400" />
+                    <Circle className="h-5 w-5 text-muted-foreground" />
                   )}
                   <Mail className="h-5 w-5" />
                   <span>1. Select Campaign/Newsletter</span>
@@ -464,12 +464,12 @@ export default function SendEmailPage() {
               <CardContent>
                 <div className="space-y-4">
                   {/* Type Selection Tabs */}
-                  <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+                  <div className="flex space-x-1 bg-muted p-1 rounded-lg">
                     <button
                       onClick={() => setSelectedType("campaigns")}
                       className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${selectedType === "campaigns"
-                          ? "bg-white text-gray-900 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
+                          ? "bg-background text-foreground shadow-sm dark:bg-card dark:text-white dark:border dark:border-border"
+                          : "text-muted-foreground hover:text-foreground dark:text-white/70 dark:hover:text-white"
                         }`}
                     >
                       Campaigns ({campaigns.length})
@@ -477,8 +477,8 @@ export default function SendEmailPage() {
                     <button
                       onClick={() => setSelectedType("newsletters")}
                       className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${selectedType === "newsletters"
-                          ? "bg-white text-gray-900 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
+                          ? "bg-background text-foreground shadow-sm dark:bg-card dark:text-white dark:border dark:border-border"
+                          : "text-muted-foreground hover:text-foreground dark:text-white/70 dark:hover:text-white"
                         }`}
                     >
                       Newsletters ({newsletters.length})
@@ -486,9 +486,23 @@ export default function SendEmailPage() {
                   </div>
 
                   {selectedCampaign && (
-                    <div className="p-4 border rounded-lg bg-green-50">
+                    <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-900/20">
                       <div className="flex justify-between items-start mb-3">
-                        <h3 className="font-semibold text-green-900">Selected: {selectedCampaign.title}</h3>
+                        <h3 className="font-semibold text-green-900 dark:text-green-100">Selected: {selectedCampaign.title}</h3>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedCampaign(null);
+                            setCampaignSectionOpen(true);
+                            setEditSectionOpen(false);
+                            setRecipientsSectionOpen(false);
+                            setReviewSectionOpen(false);
+                          }}
+                          className="text-primary hover:text-primary/80 hover:bg-primary/10"
+                        >
+                          Change Selection
+                        </Button>
                       </div>
 
                       <div className="space-y-2">
@@ -505,26 +519,65 @@ export default function SendEmailPage() {
                   {!selectedCampaign && (
                     <div className="space-y-3">
                       {selectedType === "campaigns" && campaigns.length === 0 ? (
-                        <p className="text-gray-500 text-center py-4">No campaigns with HTML content found</p>
+                        <p className="text-muted-foreground text-center py-4">No campaigns with HTML content found</p>
                       ) : selectedType === "newsletters" && newsletters.length === 0 ? (
-                        <p className="text-gray-500 text-center py-4">No newsletters with HTML content found</p>
+                        <p className="text-muted-foreground text-center py-4">No newsletters with HTML content found</p>
                       ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
                           {selectedType === "campaigns"
                             ? campaigns.map((item: Campaign) => {
                               const isSelected = selectedCampaign === item;
                               return (
                                 <div
                                   key={item.id}
-                                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${isSelected
-                    ? 'border-green-500 bg-green-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                                  className={`border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${isSelected
+                                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md'
+                                    : 'border-border hover:border-border/80'
                                   }`}
                                   onClick={() => handleCampaignSelect(item)}
                                 >
-                                  <div className="flex justify-between items-start">
-                                    <div className="flex-1">
-                                      <h4 className="font-medium">{item.title}</h4>
+                                  <div className="flex">
+                                    {/* Preview Image Section */}
+                                    <div className="w-24 h-24 bg-muted rounded-l-lg overflow-hidden flex-shrink-0">
+                                      {item.content ? (
+                                        <div
+                                          className="h-full w-full p-2 text-xs overflow-hidden"
+                                          dangerouslySetInnerHTML={{ __html: item.content }}
+                                          style={{
+                                            transform: 'scale(0.25)',
+                                            transformOrigin: 'top left',
+                                            width: '400%',
+                                            height: '400%'
+                                          }}
+                                        />
+                                      ) : (
+                                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                                          <Mail className="h-8 w-8 opacity-50" />
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Content Section */}
+                                    <div className="flex-1 p-4">
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex-1 min-w-0">
+                                          <h4 className="font-semibold text-lg truncate">{item.title}</h4>
+                                          <p className="text-sm text-muted-foreground mt-1">
+                                            <span className="font-medium">Type:</span> {item.type}
+                                          </p>
+                                          <p className="text-sm text-muted-foreground">
+                                            <span className="font-medium">Target:</span> All Groups
+                                          </p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-2 ml-4">
+                                          <Badge className={getStatusColor(item.status)}>
+                                            {item.status}
+                                          </Badge>
+                                          <div className="text-xs text-muted-foreground text-right">
+                                            {item.created_at && new Date(item.created_at).toLocaleDateString()}
+                                          </div>
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
@@ -535,29 +588,54 @@ export default function SendEmailPage() {
                               return (
                                 <div
                                   key={item.id}
-                                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${isSelected
-                                      ? 'border-green-500 bg-green-50'
-                                      : 'border-gray-200 hover:border-gray-300'
-                                    }`}
+                                  className={`border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${isSelected
+                                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md'
+                                    : 'border-border hover:border-border/80'
+                                  }`}
                                   onClick={() => handleCampaignSelect(item)}
                                 >
-                                  <div className="flex justify-between items-start">
-                                    <div className="flex-1">
-                                      <h4 className="font-medium">{item.title}</h4>
-                                      <p className="text-sm text-gray-600">
-                                        <span className="text-gray-500 italic">Subject line will be entered when sending</span>
-                                      </p>
-                                      <p className="text-xs text-gray-500 mt-1">
-                                        From: <span className="text-gray-500 italic">Sender name will be entered when sending</span>
-                                      </p>
+                                  <div className="flex">
+                                    {/* Preview Image Section */}
+                                    <div className="w-24 h-24 bg-muted rounded-l-lg overflow-hidden flex-shrink-0">
+                                      {item.content ? (
+                                        <div
+                                          className="h-full w-full p-2 text-xs overflow-hidden"
+                                          dangerouslySetInnerHTML={{ __html: item.content }}
+                                          style={{
+                                            transform: 'scale(0.25)',
+                                            transformOrigin: 'top left',
+                                            width: '400%',
+                                            height: '400%'
+                                          }}
+                                        />
+                                      ) : (
+                                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                                          <Mail className="h-8 w-8 opacity-50" />
+                                        </div>
+                                      )}
                                     </div>
-                                    <div className="flex flex-col items-end gap-1">
-                                      <Badge className={getStatusColor(item.status)}>
-                                        {item.status}
-                                      </Badge>
-                                      <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800">
-                                        Subject & Sender Required
-                                      </Badge>
+                                    
+                                    {/* Content Section */}
+                                    <div className="flex-1 p-4">
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex-1 min-w-0">
+                                          <h4 className="font-semibold text-lg truncate">{item.title}</h4>
+                                          <p className="text-sm text-muted-foreground mt-1">
+                                            <span className="font-medium">Type:</span> Newsletter
+                                          </p>
+                                          <p className="text-sm text-muted-foreground">
+                                            <span className="font-medium">Target:</span> All Groups
+                                          </p>
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            Subject & Sender will be entered when sending
+                                          </p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-2 ml-4">
+                                          <Badge className={getStatusColor(item.status)}>
+                                            {item.status}
+                                          </Badge>
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
@@ -577,7 +655,7 @@ export default function SendEmailPage() {
           {selectedCampaign && (
             <Card className="transition-all duration-300 ease-in-out">
               <CardHeader
-                className="cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+                className="cursor-pointer hover:bg-accent transition-colors duration-200"
                 onClick={() => setEditSectionOpen(!editSectionOpen)}
               >
                 <CardTitle className="flex items-center justify-between">
@@ -585,7 +663,7 @@ export default function SendEmailPage() {
                     {editMode && editedSubject.trim() && editedSenderName.trim() ? (
                       <CheckCircle className="h-5 w-5 text-green-500" />
                     ) : (
-                      <Circle className="h-5 w-5 text-orange-500" />
+                      <Circle className="h-5 w-5 text-amber-500" />
                     )}
                     <Mail className="h-5 w-5" />
                     <span>2. Edit Email Details (Required)</span>
@@ -608,7 +686,7 @@ export default function SendEmailPage() {
                         value={editedSubject}
                         onChange={(e) => setEditedSubject(e.target.value)}
                         placeholder="Enter subject line..."
-                        className="mt-1 text-black border-2 border-gray-300 focus:border-blue-500"
+                        className="mt-1 border-2 border-border focus:border-primary"
                       />
                     </div>
                     <div>
@@ -617,7 +695,7 @@ export default function SendEmailPage() {
                         value={editedSenderName}
                         onChange={(e) => setEditedSenderName(e.target.value)}
                         placeholder="Enter sender name..."
-                        className="mt-1 text-black border-2 border-gray-300 focus:border-blue-500"
+                        className="mt-1 border-2 border-border focus:border-primary"
                       />
                     </div>
                     <div>
@@ -626,9 +704,9 @@ export default function SendEmailPage() {
                         type="email"
                         value="campaigns@2bentrods.com.au"
                         disabled
-                        className="mt-1 bg-gray-100"
+                        className="mt-1 bg-muted"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Sender email is fixed for all campaigns</p>
+                      <p className="text-xs text-muted-foreground mt-1">Sender email is fixed for all campaigns</p>
                     </div>
 
                     {/* Complete Edit Button */}
@@ -652,7 +730,7 @@ export default function SendEmailPage() {
           {selectedCampaign && (
             <Card className="transition-all duration-300 ease-in-out">
               <CardHeader
-                className="cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+                className="cursor-pointer hover:bg-accent transition-colors duration-200"
                 onClick={() => setRecipientsSectionOpen(!recipientsSectionOpen)}
               >
                 <CardTitle className="flex items-center justify-between">
@@ -660,7 +738,7 @@ export default function SendEmailPage() {
                     {(selectedContacts.length > 0 || selectedGroups.length > 0 || individualEmails.length > 0) ? (
                       <CheckCircle className="h-5 w-5 text-green-500" />
                     ) : (
-                      <Circle className="h-5 w-5 text-gray-400" />
+                      <Circle className="h-5 w-5 text-muted-foreground" />
                     )}
                     <Users className="h-5 w-5" />
                     <span>3. Select Recipients</span>
@@ -694,7 +772,7 @@ export default function SendEmailPage() {
                               placeholder="Enter email address..."
                               value={individualEmail}
                               onChange={(e) => setIndividualEmail(e.target.value)}
-                              className="flex-1 text-black border-2 border-gray-300 focus:border-blue-500"
+                              className="flex-1 border-2 border-border focus:border-primary"
                             />
                             <Button
                               type="button"
@@ -713,7 +791,7 @@ export default function SendEmailPage() {
                           {individualEmails.length > 0 && (
                             <div className="max-h-24 overflow-y-auto space-y-1 border rounded p-2">
                               {individualEmails.map((email, index) => (
-                                <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                <div key={index} className="flex items-center justify-between bg-muted p-2 rounded">
                                   <span className="text-sm truncate">{email}</span>
                                   <Button
                                     type="button"
@@ -762,12 +840,12 @@ export default function SendEmailPage() {
                             placeholder="Search contacts..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="flex-1 text-black border-2 border-gray-300 focus:border-blue-500"
+                            className="flex-1 border-2 border-border focus:border-primary"
                           />
                           <select
                             value={selectedGroup}
                             onChange={(e) => setSelectedGroup(e.target.value)}
-                            className="border-2 border-gray-300 rounded px-3 py-2 text-black focus:border-blue-500 font-medium"
+                            className="border-2 border-border rounded px-3 py-2 focus:border-primary font-medium"
                             aria-label="Filter by contact group"
                           >
                             {groups.map(group => (
@@ -781,7 +859,7 @@ export default function SendEmailPage() {
                         {/* Contact List for Mixed Mode */}
                         <div className="max-h-32 overflow-y-auto space-y-1 border rounded p-2">
                           {filteredContacts.map(contact => (
-                            <div key={contact.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
+                            <div key={contact.id} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded">
                               <Checkbox
                                 checked={selectedContacts.includes(contact.id)}
                                 onCheckedChange={() => handleContactToggle(contact.id)}
@@ -789,7 +867,7 @@ export default function SendEmailPage() {
                               />
                               <div className="flex-1 min-w-0">
                                 <div className="font-medium text-sm truncate">{contact.name}</div>
-                                <div className="text-xs text-gray-500 truncate">{contact.email}</div>
+                                <div className="text-xs text-muted-foreground truncate">{contact.email}</div>
                               </div>
                               <Badge variant="outline" className="text-xs">{contact.group}</Badge>
                             </div>
@@ -814,7 +892,7 @@ export default function SendEmailPage() {
                                 value={scheduleDate}
                                 onChange={(e) => setScheduleDate(e.target.value)}
                                 min={new Date().toISOString().split('T')[0]}
-                                className="text-black border-2 border-gray-300 focus:border-blue-500"
+                                className="border-2 border-border focus:border-primary"
                               />
                             </div>
                             <div>
@@ -823,7 +901,7 @@ export default function SendEmailPage() {
                                 type="time"
                                 value={scheduleTime}
                                 onChange={(e) => setScheduleTime(e.target.value)}
-                                className="text-black border-2 border-gray-300 focus:border-blue-500"
+                                className="border-2 border-border focus:border-primary"
                               />
                             </div>
                           </div>
@@ -860,29 +938,29 @@ export default function SendEmailPage() {
             <CardContent>
               <div className="space-y-3">
                 <div>
-                  <Label className="text-sm font-medium text-gray-600">Selected Campaign/Newsletter</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Selected Campaign/Newsletter</Label>
                   <p className="text-sm font-medium">{selectedCampaign ? selectedCampaign.title : "No campaign/newsletter selected"}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-600">Subject Line</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Subject Line</Label>
                   <p className="text-sm">
-                    {editMode ? editedSubject : <span className="text-gray-500 italic">Enter subject line below</span>}
+                    {editMode ? editedSubject : <span className="text-muted-foreground italic">Enter subject line below</span>}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-600">From</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">From</Label>
                   <p className="text-sm">
-                    {editMode ? editedSenderName : <span className="text-gray-500 italic">Enter sender name below</span>} &lt;campaigns@2bentrods.com.au&gt;
+                    {editMode ? editedSenderName : <span className="text-muted-foreground italic">Enter sender name below</span>} &lt;campaigns@2bentrods.com.au&gt;
                   </p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-600">Status</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
                   {selectedCampaign ? (
                     <Badge className={getStatusColor(selectedCampaign.status)}>
                       {selectedCampaign.status}
                     </Badge>
                   ) : (
-                    <span className="text-sm text-gray-500">No status</span>
+                    <span className="text-sm text-muted-foreground">No status</span>
                   )}
                 </div>
               </div>
@@ -906,10 +984,10 @@ export default function SendEmailPage() {
                 {selectedContacts.map(contactId => {
                   const contact = contacts.find(c => c.id === contactId);
                   return contact ? (
-                    <div key={contactId} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <div key={contactId} className="flex items-center justify-between p-2 bg-muted rounded">
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm truncate">{contact.name}</div>
-                        <div className="text-xs text-gray-500 truncate">{contact.email}</div>
+                        <div className="text-xs text-muted-foreground truncate">{contact.email}</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-xs">{contact.group}</Badge>
@@ -917,7 +995,7 @@ export default function SendEmailPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleRemoveContact(contactId)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                         >
                           Remove
                         </Button>
@@ -929,10 +1007,10 @@ export default function SendEmailPage() {
 
                 {/* Individual Emails (Mixed Mode) */}
                 {individualEmails.map((email, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                  <div key={index} className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm truncate">{email}</div>
-                      <div className="text-xs text-gray-500">Individual Email</div>
+                      <div className="text-xs text-muted-foreground">Individual Email</div>
                     </div>
                     <Button
                       size="sm"
@@ -947,10 +1025,10 @@ export default function SendEmailPage() {
 
                 {/* Selected Groups */}
                 {selectedGroups.map(group => (
-                  <div key={group} className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded">
+                  <div key={group} className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded">
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm">{group}</div>
-                      <div className="text-xs text-gray-500">Group</div>
+                      <div className="text-xs text-muted-foreground">Group</div>
                     </div>
                     <Button
                       size="sm"
@@ -965,7 +1043,7 @@ export default function SendEmailPage() {
 
                 {/* Empty State */}
                 {selectedContacts.length === 0 && individualEmails.length === 0 && selectedGroups.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-muted-foreground">
                     <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No recipients selected</p>
                   </div>
@@ -985,18 +1063,18 @@ export default function SendEmailPage() {
             <CardContent>
               <div className="space-y-3">
                 <div>
-                  <Label className="text-sm font-medium text-gray-600">Send Type</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Send Type</Label>
                   <p className="text-sm">{sendImmediately ? "Send Immediately" : "Scheduled"}</p>
                 </div>
                 {!sendImmediately && scheduleDate && scheduleTime ? (
                   <div>
-                    <Label className="text-sm font-medium text-gray-600">Scheduled For</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Scheduled For</Label>
                     <p className="text-sm">{new Date(`${scheduleDate}T${scheduleTime}`).toLocaleString()}</p>
                   </div>
                 ) : !sendImmediately ? (
                   <div>
-                    <Label className="text-sm font-medium text-gray-600">Scheduled For</Label>
-                    <p className="text-sm text-gray-500">No date/time selected</p>
+                    <Label className="text-sm font-medium text-muted-foreground">Scheduled For</Label>
+                    <p className="text-sm text-muted-foreground">No date/time selected</p>
                   </div>
                 ) : null}
               </div>
@@ -1058,7 +1136,7 @@ export default function SendEmailPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <div>
                 <CardTitle>Email Preview</CardTitle>
-                <p className="text-sm text-gray-600">{selectedCampaign.title}</p>
+                <p className="text-sm text-muted-foreground">{selectedCampaign.title}</p>
               </div>
               <Button
                 variant="ghost"

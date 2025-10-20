@@ -384,11 +384,11 @@ export default function CampaignBuilder() {
   return (
     <div className="py-8 px-0 w-full max-w-none">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-foreground">
           <Target className="h-8 w-8" />
           Campaign Builder
         </h1>
-        <p className="text-gray-600">Create and design email campaigns with scheduling</p>
+        <p className="text-muted-foreground">Create and design email campaigns with scheduling</p>
       </div>
 
       {message && (
@@ -422,7 +422,7 @@ export default function CampaignBuilder() {
                   value={campaign.title}
                   onChange={(e) => setCampaign(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="Enter campaign title"
-                  className="w-full text-black border-2 border-gray-300 focus:border-blue-500"
+                  className="w-full border-2 border-border focus:border-primary"
                 />
               </div>
 
@@ -433,7 +433,7 @@ export default function CampaignBuilder() {
                     value={campaign.type}
                     onValueChange={(value) => setCampaign(prev => ({ ...prev, type: value as any }))}
                   >
-                    <SelectTrigger className="border-2 border-gray-300 w-32">
+                    <SelectTrigger className="border-2 border-border w-32">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -452,7 +452,7 @@ export default function CampaignBuilder() {
                     value={campaign.status}
                     onValueChange={handleStatusChange}
                   >
-                    <SelectTrigger className="border-2 border-gray-300 w-32">
+                    <SelectTrigger className="border-2 border-border w-32">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

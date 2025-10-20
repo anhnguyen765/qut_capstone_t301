@@ -87,10 +87,10 @@ export default function CampaignMonitor() {
   return (
     <div className="py-8 px-[10%]">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-foreground">
           Campaign Monitor
         </h1>
-        <p className="text-gray-600">Monitor email campaign sending status and queue</p>
+        <p className="text-muted-foreground">Monitor email campaign sending status and queue</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -186,7 +186,7 @@ export default function CampaignMonitor() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{log.contact_name}</span>
-                    <span className="text-gray-500">({log.contact_email})</span>
+                    <span className="text-muted-foreground">({log.contact_email})</span>
                     <Badge 
                       variant={
                         log.action === 'sent' ? 'default' : 
@@ -198,24 +198,24 @@ export default function CampaignMonitor() {
                     </Badge>
                   </div>
                   {log.error_message && (
-                    <div className="text-sm text-red-600 mt-1">
+                    <div className="text-sm text-destructive mt-1">
                       Error: {log.error_message}
                     </div>
                   )}
                   {log.smtp_response && (
-                    <div className="text-sm text-green-600 mt-1">
+                    <div className="text-sm text-green-600 dark:text-green-400 mt-1">
                       Response: {log.smtp_response}
                     </div>
                   )}
                 </div>
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-muted-foreground">
                   {new Date(log.created_at).toLocaleString()}
                 </div>
               </div>
             ))}
             
             {recentLogs.length === 0 && (
-              <div className="text-center text-gray-500 py-8">
+              <div className="text-center text-muted-foreground py-8">
                 No recent email activity
               </div>
             )}

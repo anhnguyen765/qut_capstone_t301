@@ -97,7 +97,7 @@ export default function UsersPage() {
   return (
     <div className="py-8 px-[10%]">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-foreground">
           User Management
         </h1>
       </div>
@@ -142,8 +142,8 @@ export default function UsersPage() {
       {/* Delete Confirmation Dialog */}
       {showDeleteDialog && userToDelete && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded shadow max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Delete User</h2>
+          <div className="bg-card p-8 rounded shadow max-w-md w-full border border-border">
+            <h2 className="text-xl font-bold mb-4 text-foreground">Delete User</h2>
             <p className="mb-6">
               Are you sure you want to delete <span className="font-semibold">{userToDelete.first_name} {userToDelete.last_name}</span> ({userToDelete.email})?
             </p>
@@ -163,8 +163,8 @@ export default function UsersPage() {
       {/* Add User Dialog */}
       {showAddDialog && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded shadow max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Add User</h2>
+          <div className="bg-card p-8 rounded shadow max-w-md w-full border border-border">
+            <h2 className="text-xl font-bold mb-4 text-foreground">Add User</h2>
             <Input placeholder="First Name" value={newUser.first_name} onChange={e => setNewUser({ ...newUser, first_name: e.target.value })} className="mb-2" />
             <Input placeholder="Last Name" value={newUser.last_name} onChange={e => setNewUser({ ...newUser, last_name: e.target.value })} className="mb-2" />
             <Input placeholder="Email" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} className="mb-2" />

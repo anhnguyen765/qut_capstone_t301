@@ -354,9 +354,9 @@ export default function NewsletterBuilder() {
       {/* Finalised Confirmation Dialog */}
       {showFinalisedConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-6">
-            <h2 className="text-xl font-bold mb-4">Finalise Newsletter</h2>
-            <p className="text-gray-600 mb-6">
+          <div className="bg-card rounded-lg shadow-lg w-full max-w-md mx-4 p-6 border border-border">
+            <h2 className="text-xl font-bold mb-4 text-foreground">Finalise Newsletter</h2>
+            <p className="text-muted-foreground mb-6">
               Are you sure you want to finalise this newsletter? Once finalised, it cannot be edited.
             </p>
             <div className="flex justify-end gap-3">

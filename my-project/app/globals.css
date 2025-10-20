@@ -40,6 +40,164 @@
   .dark input[type="checkbox"]:checked {
     @apply border-primary bg-primary;
   }
+
+  /* Input text styling for dark mode */
+  .dark input[type="text"],
+  .dark input[type="email"],
+  .dark input[type="password"],
+  .dark input[type="number"],
+  .dark input[type="tel"],
+  .dark input[type="url"],
+  .dark input[type="search"],
+  .dark input[type="date"],
+  .dark input[type="time"],
+  .dark input[type="datetime-local"],
+  .dark textarea,
+  .dark select {
+    color: white !important;
+  }
+
+  /* Input placeholder styling for dark mode */
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: rgba(255, 255, 255, 0.6) !important;
+  }
+
+  /* Ensure all text elements are white in dark mode */
+  .dark {
+    color: white;
+  }
+
+  .dark p,
+  .dark span,
+  .dark div,
+  .dark h1,
+  .dark h2,
+  .dark h3,
+  .dark h4,
+  .dark h5,
+  .dark h6,
+  .dark label,
+  .dark small {
+    color: white;
+  }
+
+  /* Override any muted text colors in dark mode */
+  .dark .text-muted-foreground {
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+
+  .dark .text-gray-500,
+  .dark .text-gray-600,
+  .dark .text-gray-700 {
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+
+  /* Select and dropdown styling for dark mode */
+  .dark select {
+    background-color: var(--card) !important;
+    color: white !important;
+    border-color: var(--border) !important;
+  }
+
+  .dark select option {
+    background-color: var(--card) !important;
+    color: white !important;
+  }
+
+  /* Ensure all form controls have proper dark mode styling */
+  .dark input[type="text"],
+  .dark input[type="email"],
+  .dark input[type="password"],
+  .dark input[type="number"],
+  .dark input[type="tel"],
+  .dark input[type="url"],
+  .dark input[type="search"],
+  .dark input[type="date"],
+  .dark input[type="time"],
+  .dark input[type="datetime-local"],
+  .dark textarea,
+  .dark select {
+    background-color: var(--card) !important;
+    border-color: var(--border) !important;
+  }
+
+  /* Focus states for form controls */
+  .dark input:focus,
+  .dark textarea:focus,
+  .dark select:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 2px var(--primary) !important;
+  }
+
+  /* React Big Calendar Dark Mode Styles */
+  .dark .rbc-calendar {
+    background: var(--card);
+    color: var(--foreground);
+  }
+
+  .dark .rbc-header {
+    background: var(--card);
+    color: var(--foreground);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dark .rbc-month-view {
+    background: var(--card);
+  }
+
+  .dark .rbc-date-cell {
+    color: var(--foreground);
+  }
+
+  .dark .rbc-off-range-bg {
+    background: var(--muted);
+    opacity: 0.3;
+  }
+
+  .dark .rbc-off-range {
+    color: var(--muted-foreground);
+    opacity: 0.5;
+  }
+
+  .dark .rbc-today {
+    background: var(--primary);
+    opacity: 0.1;
+  }
+
+  .dark .rbc-current-time-indicator {
+    background: var(--primary);
+  }
+
+  .dark .rbc-day-bg {
+    background: var(--card);
+  }
+
+  .dark .rbc-day-bg:hover {
+    background: var(--accent);
+  }
+
+  .dark .rbc-toolbar {
+    background: var(--card);
+    color: var(--foreground);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dark .rbc-toolbar button {
+    background: var(--card);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+  }
+
+  .dark .rbc-toolbar button:hover {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  .dark .rbc-toolbar button.rbc-active {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
 }
 
 @theme inline {

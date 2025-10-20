@@ -264,17 +264,17 @@ export default function Campaigns() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "draft":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100";
       case "finalised":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100";
       case "scheduled":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
       case "sent":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100";
       case "archived":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100";
     }
   };
 
@@ -533,7 +533,7 @@ export default function Campaigns() {
       {/* Sticky Header */}
       <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)] pb-4 mb-6">
         <header className="mb-4">
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-foreground">
             Email Campaigns
           </h1>
         </header>
@@ -542,10 +542,10 @@ export default function Campaigns() {
           <div
             className={`mb-4 rounded-md p-3 text-sm ${
               notification.type === 'success'
-                ? 'bg-green-50 text-green-800 border border-green-200'
+                ? 'bg-green-50 text-green-800 border border-green-200 dark:bg-green-900/20 dark:text-green-100 dark:border-green-800'
                 : notification.type === 'error'
-                ? 'bg-red-50 text-red-800 border border-red-200'
-                : 'bg-blue-50 text-blue-800 border border-blue-200'
+                ? 'bg-red-50 text-red-800 border border-red-200 dark:bg-red-900/20 dark:text-red-100 dark:border-red-800'
+                : 'bg-blue-50 text-blue-800 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-100 dark:border-blue-800'
             }`}
             role="status"
             aria-live="polite"
@@ -647,7 +647,7 @@ export default function Campaigns() {
               onClick={() => handleCampaignClick(campaign)}
             >
               {/* Preview Section */}
-              <div className="h-48 bg-gray-100 rounded-t-lg overflow-hidden">
+              <div className="h-48 bg-muted rounded-t-lg overflow-hidden">
                 {campaign.content ? (
                   <div 
                     className="h-full w-full p-4 text-xs overflow-hidden"
@@ -772,7 +772,7 @@ export default function Campaigns() {
                   </span>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedCampaign.title}</h2>
+                  <h2 className="text-2xl font-bold text-foreground">{selectedCampaign.title}</h2>
                   <span className={`inline-block text-xs px-3 py-1 rounded-full mt-1 ${getStatusColor(selectedCampaign.status)}`}>
                     {selectedCampaign.status.charAt(0).toUpperCase() + selectedCampaign.status.slice(1)}
                   </span>
@@ -812,15 +812,15 @@ export default function Campaigns() {
 
               {/* Email Content Preview */}
               <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Email Content Preview</h3>
-                <div className="bg-gray-50 rounded-lg p-4 min-h-32">
+                <h3 className="text-lg font-semibold text-foreground mb-3">Email Content Preview</h3>
+                <div className="bg-muted rounded-lg p-4 min-h-32">
                   {selectedCampaign.content ? (
                     <div 
-                      className="text-sm text-gray-700"
+                      className="text-sm text-foreground"
                       dangerouslySetInnerHTML={{ __html: selectedCampaign.content }}
                     />
                   ) : (
-                    <div className="text-center text-gray-500 py-8">
+                    <div className="text-center text-muted-foreground py-8">
                       <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                       <p>No content available</p>
                       <p className="text-xs">Click "Edit Campaign" to add content</p>
@@ -831,7 +831,7 @@ export default function Campaigns() {
             </div>
 
             {/* Footer Actions */}
-            <div className="flex justify-between items-center p-6 border-t bg-gray-50">
+            <div className="flex justify-between items-center p-6 border-t bg-muted">
               <div className="flex gap-2">
                 {(selectedCampaign.status === 'draft' || selectedCampaign.status === 'finalised') && (
                   <Button 
@@ -850,7 +850,7 @@ export default function Campaigns() {
                      variant="outline" 
                      size="sm"
                      onClick={() => showDeleteConfirmation(selectedCampaign.id, selectedCampaign.title)}
-                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                     className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                    >
                      <X className="h-4 w-4 mr-2" />
                      Delete
@@ -901,9 +901,9 @@ export default function Campaigns() {
       {/* Schedule Email Dialog (always rendered at root) */}
       {showScheduleDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <form onSubmit={handleScheduleSubmit} className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative space-y-4">
-            <button type="button" className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={() => setShowScheduleDialog(false)}>&times;</button>
-            <h2 className="text-xl font-bold mb-2">Schedule Email</h2>
+          <form onSubmit={handleScheduleSubmit} className="bg-card rounded-lg shadow-lg max-w-md w-full p-6 relative space-y-4 border border-border">
+            <button type="button" className="absolute top-2 right-2 text-muted-foreground hover:text-foreground" onClick={() => setShowScheduleDialog(false)}>&times;</button>
+            <h2 className="text-xl font-bold mb-2 text-foreground">Schedule Email</h2>
             <div>
               <label className="block text-sm font-semibold mb-1">Campaign</label>
               <select
@@ -980,10 +980,10 @@ export default function Campaigns() {
                 />
               </div>
             </div>
-            {scheduleError && <div className="text-red-600 text-sm">{scheduleError}</div>}
+            {scheduleError && <div className="text-destructive text-sm">{scheduleError}</div>}
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300" onClick={() => setShowScheduleDialog(false)}>Cancel</button>
-              <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700" disabled={scheduling}>
+              <button type="button" className="px-4 py-2 rounded bg-muted text-foreground font-semibold hover:bg-muted/80" onClick={() => setShowScheduleDialog(false)}>Cancel</button>
+              <button type="submit" className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90" disabled={scheduling}>
                 {scheduling ? "Scheduling..." : "Schedule"}
               </button>
             </div>
@@ -1099,8 +1099,8 @@ export default function Campaigns() {
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" className="px-5 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition" onClick={() => setShowNewCampaignForm(false)}>Cancel</button>
-                <button type="submit" className="px-5 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition">Continue</button>
+                <button type="button" className="px-5 py-2 rounded-lg bg-muted text-foreground font-semibold hover:bg-muted/80 transition" onClick={() => setShowNewCampaignForm(false)}>Cancel</button>
+                <button type="submit" className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition">Continue</button>
               </div>
             </form>
           </div>

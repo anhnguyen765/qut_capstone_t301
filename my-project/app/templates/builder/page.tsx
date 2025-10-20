@@ -226,11 +226,11 @@ export default function TemplateBuilder() {
   return (
     <div className="py-8 px-0 w-full max-w-none">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-foreground">
           <FileText className="h-8 w-8" />
           Template Builder
         </h1>
-        <p className="text-gray-600">Create and design email templates for campaigns and newsletters</p>
+        <p className="text-muted-foreground">Create and design email templates for campaigns and newsletters</p>
       </div>
 
       {message && (
@@ -256,7 +256,7 @@ export default function TemplateBuilder() {
                   value={template.name}
                   onChange={(e) => setTemplate(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Enter template name"
-                  className="w-full text-black border-2 border-gray-300 focus:border-blue-500"
+                  className="w-full border-2 border-border focus:border-primary"
                 />
               </div>
 
@@ -267,7 +267,7 @@ export default function TemplateBuilder() {
                     value={template.type}
                     onValueChange={(value) => setTemplate(prev => ({ ...prev, type: value as any }))}
                   >
-                    <SelectTrigger className="border-2 border-gray-300 w-40">
+                    <SelectTrigger className="border-2 border-border w-40">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

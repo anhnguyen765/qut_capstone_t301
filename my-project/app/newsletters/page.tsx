@@ -170,11 +170,11 @@ export default function Newsletters() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "draft":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100";
       case "finalised":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100";
     }
   };
 
@@ -425,7 +425,7 @@ export default function Newsletters() {
       {/* Sticky Header */}
       <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)] pb-4 mb-6">
         <header className="mb-4">
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-foreground">
             Newsletters
           </h1>
         </header>
@@ -434,10 +434,10 @@ export default function Newsletters() {
           <div
             className={`mb-4 rounded-md p-3 text-sm ${
               notification.type === 'success'
-                ? 'bg-green-50 text-green-800 border border-green-200'
+                ? 'bg-green-50 text-green-800 border border-green-200 dark:bg-green-900/20 dark:text-green-100 dark:border-green-800'
                 : notification.type === 'error'
-                ? 'bg-red-50 text-red-800 border border-red-200'
-                : 'bg-blue-50 text-blue-800 border border-blue-200'
+                ? 'bg-red-50 text-red-800 border border-red-200 dark:bg-red-900/20 dark:text-red-100 dark:border-red-800'
+                : 'bg-blue-50 text-blue-800 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-100 dark:border-blue-800'
             }`}
             role="status"
             aria-live="polite"
@@ -543,7 +543,7 @@ export default function Newsletters() {
               onClick={() => handleNewsletterClick(newsletter)}
             >
               {/* Preview Section */}
-              <div className="h-48 bg-gray-100 rounded-t-lg overflow-hidden">
+              <div className="h-48 bg-muted rounded-t-lg overflow-hidden">
                 {newsletter.content ? (
                   <div
                     className="h-full w-full p-4 text-xs overflow-hidden"
@@ -732,8 +732,8 @@ export default function Newsletters() {
               </div>
               
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" className="px-5 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition" onClick={() => setShowNewNewsletterForm(false)}>Cancel</button>
-                <button type="submit" className="px-5 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition">Continue</button>
+                <button type="button" className="px-5 py-2 rounded-lg bg-muted text-foreground font-semibold hover:bg-muted/80 transition" onClick={() => setShowNewNewsletterForm(false)}>Cancel</button>
+                <button type="submit" className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition">Continue</button>
               </div>
             </form>
           </div>
@@ -753,7 +753,7 @@ export default function Newsletters() {
                   </span>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedNewsletter?.title || 'Untitled Newsletter'}</h2>
+                  <h2 className="text-2xl font-bold text-foreground">{selectedNewsletter?.title || 'Untitled Newsletter'}</h2>
                   <span className={`inline-block text-xs px-3 py-1 rounded-full mt-1 ${getStatusColor(selectedNewsletter?.status || 'draft')}`}>
                     {(selectedNewsletter?.status || 'draft').charAt(0).toUpperCase() + (selectedNewsletter?.status || 'draft').slice(1)}
                   </span>
@@ -783,15 +783,15 @@ export default function Newsletters() {
 
               {/* Email Content Preview */}
               <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Email Content Preview</h3>
-                <div className="bg-gray-50 rounded-lg p-4 min-h-32">
+                <h3 className="text-lg font-semibold text-foreground mb-3">Email Content Preview</h3>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 min-h-32">
                   {selectedNewsletter?.content ? (
                     <div
-                      className="text-sm text-gray-700"
+                      className="text-sm text-foreground"
                       dangerouslySetInnerHTML={{ __html: selectedNewsletter?.content || '' }}
                     />
                   ) : (
-                    <div className="text-center text-gray-500 py-8">
+                    <div className="text-center text-muted-foreground py-8">
                       <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                       <p>No content available</p>
                       <p className="text-xs">Click "Edit Newsletter" to add content</p>
@@ -802,7 +802,7 @@ export default function Newsletters() {
             </div>
 
             {/* Footer Actions */}
-            <div className="flex justify-between items-center p-6 border-t bg-gray-50">
+            <div className="flex justify-between items-center p-6 border-t bg-muted">
               <div className="flex gap-2">
                 {(selectedNewsletter?.status === 'draft' || selectedNewsletter?.status === 'finalised') && (
                   <Button
@@ -821,7 +821,7 @@ export default function Newsletters() {
                     variant="outline"
                     size="sm"
                     onClick={() => showDeleteConfirmation(selectedNewsletter.id, selectedNewsletter.title)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                     className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                   >
                     <X className="h-4 w-4 mr-2" />
                     Delete

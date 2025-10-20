@@ -461,7 +461,7 @@ export default function TemplatesPage() {
       {/* Sticky Header */}
       <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)] pb-4 mb-6">
         <header className="mb-4">
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-foreground">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
             Templates
           </h1>
         </header>
@@ -568,13 +568,13 @@ export default function TemplatesPage() {
         </>
       )}
       {error && (
-        <div className="mb-4 text-destructive">Error: {error}</div>
+        <div className="mb-4 text-red-500">Error: {error}</div>
       )}
       {sortedTemplates.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
-          <FileText className="h-12 w-12 mb-4 text-muted-foreground" />
-          <div className="text-muted-foreground text-lg mb-2">No templates found.</div>
-          <div className="text-xs text-muted-foreground">Create a new template to get started.</div>
+          <FileText className="h-12 w-12 mb-4 text-gray-300" />
+          <div className="text-gray-500 text-lg mb-2">No templates found.</div>
+          <div className="text-xs text-gray-400">Create a new template to get started.</div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -585,7 +585,7 @@ export default function TemplatesPage() {
               onClick={() => setSelectedTemplate(template)}
             >
               {/* Preview Section */}
-              <div className="h-48 bg-muted rounded-t-lg overflow-hidden">
+              <div className="h-48 bg-gray-100 rounded-t-lg overflow-hidden">
                 {(() => {
                   const designObj = parseDesign(template.design);
                   const html = template.content || generatePreviewHtml(designObj);
@@ -601,7 +601,7 @@ export default function TemplatesPage() {
                       }}
                     />
                   ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                    <div className="h-full flex items-center justify-center text-gray-400">
                       <div className="text-center">
                         <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">No preview available</p>
@@ -621,7 +621,7 @@ export default function TemplatesPage() {
                 <div className="flex items-center gap-2 mb-3">
                   {(() => {
                     const tt = getTemplateType(template);
-                    const color = tt === 'campaign' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' : tt === 'newsletter' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100' : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100';
+                    const color = tt === 'campaign' ? 'bg-blue-100 text-blue-800' : tt === 'newsletter' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800';
                     const label = tt === 'campaign' ? 'Campaign' : tt === 'newsletter' ? 'Newsletter' : 'Unknown';
                     return (
                       <span className={`text-sm px-2 py-1 rounded-md ${color}`}>{label}</span>
@@ -630,7 +630,7 @@ export default function TemplatesPage() {
                 </div>
 
                 {template.updated_at && (
-                  <div className="text-xs text-muted-foreground mb-3">
+                  <div className="text-xs text-gray-500 mb-3">
                     <span>
                       Updated: {formatTimeAgo(template.updated_at)}
                     </span>
@@ -679,10 +679,10 @@ export default function TemplatesPage() {
                     </span>
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-foreground">{selectedTemplate.name}</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">{selectedTemplate.name}</h2>
                     {(() => {
                       const tt = getTemplateType(selectedTemplate);
-                      const color = tt === 'campaign' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' : tt === 'newsletter' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100' : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100';
+                      const color = tt === 'campaign' ? 'bg-blue-100 text-blue-800' : tt === 'newsletter' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800';
                       const label = tt === 'campaign' ? 'Campaign' : tt === 'newsletter' ? 'Newsletter' : 'Unknown';
                       return (
                         <span className={`inline-block text-xs px-3 py-1 rounded-full mt-1 ${color}`}>{label}</span>
@@ -704,22 +704,22 @@ export default function TemplatesPage() {
                 {/* Template Info */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <Tag className="h-5 w-5 text-muted-foreground" />
+                    <Tag className="h-5 w-5 text-gray-500" />
                     <div>
-                      <p className="text-sm font-medium text-foreground">Template Type</p>
-                      <p className="text-sm text-muted-foreground">{(() => { const tt = getTemplateType(selectedTemplate); return tt === 'campaign' ? 'Campaign' : tt === 'newsletter' ? 'Newsletter' : 'Unknown'; })()}</p>
+                      <p className="text-sm font-medium text-gray-900">Template Type</p>
+                      <p className="text-sm text-gray-600">{(() => { const tt = getTemplateType(selectedTemplate); return tt === 'campaign' ? 'Campaign' : tt === 'newsletter' ? 'Newsletter' : 'Unknown'; })()}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <FileText className="h-5 w-5 text-gray-500" />
                     <div>
-                      <p className="text-sm font-medium text-foreground">Description</p>
-                      <p className="text-sm text-muted-foreground">{selectedTemplate.subject || '—'}</p>
+                      <p className="text-sm font-medium text-gray-900">Description</p>
+                      <p className="text-sm text-gray-600">{selectedTemplate.subject || '—'}</p>
                     </div>
                   </div>
                 </div>
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold text-foreground mb-3">Email Content Preview</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Email Content Preview</h3>
                     {(() => {
                       const html = selectedTemplate.content || generatePreviewHtml(parseDesign(selectedTemplate.design));
                       return html ? (
@@ -729,7 +729,7 @@ export default function TemplatesPage() {
                           dangerouslySetInnerHTML={{ __html: html }}
                         />
                       ) : (
-                        <div className="text-center text-muted-foreground py-8">
+                        <div className="text-center text-gray-500 py-8">
                           <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                           <p>No design available</p>
                           <p className="text-xs">Click "Edit" to add design</p>
@@ -742,7 +742,7 @@ export default function TemplatesPage() {
               {/* Footer Actions */}
               <div className="flex justify-between items-center p-6 border-t">
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="text-destructive hover:text-destructive/80 hover:bg-destructive/10" onClick={() => { setShowDeleteDialog(true); }}>
+                  <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => { setShowDeleteDialog(true); }}>
                     <X className="h-4 w-4 mr-2" />
                     Delete
                   </Button>
@@ -890,8 +890,8 @@ export default function TemplatesPage() {
       {/* Name/Subject Modal - Create/Edit Template */}
       {showNameModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
-          <div className="bg-card rounded-lg shadow-lg w-full max-w-md p-6 border border-border">
-            <h2 className="text-xl font-bold mb-4 text-foreground">{editorMode === "edit" ? "Edit Template Info" : "Create Template"}</h2>
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <h2 className="text-xl font-bold mb-4">{editorMode === "edit" ? "Edit Template Info" : "Create Template"}</h2>
             <div className="mb-4">
               <label className="block text-sm font-semibold mb-1" htmlFor="template-name">Template Name</label>
               <input
@@ -904,7 +904,7 @@ export default function TemplatesPage() {
                 placeholder="e.g. Welcome Email, Newsletter, Promotion"
                 aria-label="Template Name"
               />
-              <span className="text-xs text-muted-foreground">Give your template a descriptive name.</span>
+              <span className="text-xs text-gray-500">Give your template a descriptive name.</span>
             </div>
             <div className="mb-4">
               <label className="block text-sm font-semibold mb-1" htmlFor="template-description">Description</label>
@@ -918,7 +918,7 @@ export default function TemplatesPage() {
                 placeholder="e.g. Welcome message, Monthly update, Booking info"
                 aria-label="Description"
               />
-              <span className="text-xs text-muted-foreground">A short description for this template.</span>
+              <span className="text-xs text-gray-500">A short description for this template.</span>
             </div>
         <div className="mb-4">
           <label className="block text-sm font-semibold mb-1" htmlFor="template-type">Template Type</label>
@@ -932,9 +932,9 @@ export default function TemplatesPage() {
             <option value="campaign">Campaign</option>
             <option value="newsletter">Newsletter</option>
           </select>
-          <span className="text-xs text-muted-foreground">Used for classification and default routing.</span>
+          <span className="text-xs text-gray-500">Used for classification and default routing.</span>
         </div>
-            {modalError && <div className="text-destructive mb-2">{modalError}</div>}
+            {modalError && <div className="text-red-600 mb-2">{modalError}</div>}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowNameModal(false)}>Cancel</Button>
               <Button onClick={handleNameModalConfirm} className="bg-primary text-white">Continue</Button>
@@ -946,9 +946,9 @@ export default function TemplatesPage() {
       {/* Use Template Type Selection Dialog */}
       {showUseTemplateDialog && templateToUse && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
-          <div className="bg-card rounded-lg shadow-lg w-full max-w-2xl p-6 border border-border">
-            <h2 className="text-xl font-bold mb-4 text-foreground">Use Template</h2>
-            <p className="text-muted-foreground mb-2">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
+            <h2 className="text-xl font-bold mb-4">Use Template</h2>
+            <p className="text-gray-600 mb-2">
               How would you like to use the template "<strong>{templateToUse.name}</strong>"?
             </p>
             {(() => {
@@ -958,7 +958,7 @@ export default function TemplatesPage() {
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm font-medium text-primary">
+                    <span className="text-sm font-medium text-blue-800">
                       Suggested: This template is designed for <strong>{suggestedType === 'campaign' ? 'Campaigns' : 'Newsletters'}</strong>
                     </span>
                   </div>
@@ -979,7 +979,7 @@ export default function TemplatesPage() {
                 <Target className="h-8 w-8 mb-2" />
                 <div className="text-center">
                   <div className="font-medium">Use for Campaign</div>
-                  <div className="text-sm text-muted-foreground">Create a new email campaign</div>
+                  <div className="text-sm text-gray-500">Create a new email campaign</div>
                 </div>
               </Button>
               <Button
@@ -995,7 +995,7 @@ export default function TemplatesPage() {
                 <FileText className="h-8 w-8 mb-2" />
                 <div className="text-center">
                   <div className="font-medium">Use for Newsletter</div>
-                  <div className="text-sm text-muted-foreground">Create a new newsletter</div>
+                  <div className="text-sm text-gray-500">Create a new newsletter</div>
                 </div>
               </Button>
             </div>

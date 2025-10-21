@@ -15,6 +15,9 @@ type Contact = {
   phone?: string;
   group: "Companies" | "Groups" | "Private" | "OSHC" | "Schools";
   notes?: string;
+  opt1?: boolean;
+  opt2?: boolean;
+  opt3?: boolean;
   created_at?: string;
   updated_at?: string;
 };
@@ -30,9 +33,13 @@ const GROUPS = [
 export default function CompaniesContacts() {
   // CSV utility functions
   function contactsToCSV(contacts: Contact[]): string {
-    const header = ["name", "email", "phone", "group", "notes"];
+    const header = ["name", "email", "phone", "group", "notes", "opt1", "opt2", "opt3"];
     const rows = contacts.map(c =>
-      header.map(field => `"${(c[field as keyof Contact] || "").toString().replace(/"/g, '""')}"`).join(",")
+      header.map(field => {
+        let val = c[field as keyof Contact];
+        if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE';
+        return `"${(val || "").toString().replace(/"/g, '""')}"`;
+      }).join(",")
     );
     return [header.join(","), ...rows].join("\n");
   }
@@ -70,7 +77,13 @@ export default function CompaniesContacts() {
     const reader = new FileReader();
     reader.onload = async (event) => {
       const text = (event.target && (event.target as FileReader).result) as string;
-      const importedContacts = csvToContacts(text).map(c => ({ ...c, group: "Companies" }));
+      const importedContacts = csvToContacts(text).map(c => ({ 
+        ...c, 
+        group: "Companies",
+        opt1: c.opt1 !== undefined ? (c.opt1.toString().toLowerCase() === 'true' || c.opt1.toString() === '1' || c.opt1.toString().toLowerCase() === 'yes') : true,
+        opt2: c.opt2 !== undefined ? (c.opt2.toString().toLowerCase() === 'true' || c.opt2.toString() === '1' || c.opt2.toString().toLowerCase() === 'yes') : true,
+        opt3: c.opt3 !== undefined ? (c.opt3.toString().toLowerCase() === 'true' || c.opt3.toString() === '1' || c.opt3.toString().toLowerCase() === 'yes') : true
+      }));
       // Optionally, send each to API
       for (const contact of importedContacts) {
         await fetch("/api/contacts", {
@@ -102,6 +115,9 @@ export default function CompaniesContacts() {
     phone: "",
     group: "Companies",
     notes: "",
+    opt1: true,
+    opt2: true,
+    opt3: true,
   });
 
   // View/Edit Contact Dialog State
@@ -161,7 +177,7 @@ export default function CompaniesContacts() {
         body: JSON.stringify(newContact),
       });
       setShowAddDialog(false);
-      setNewContact({ name: "", email: "", phone: "", group: "Companies", notes: "" });
+      setNewContact({ name: "", email: "", phone: "", group: "Companies", notes: "", opt1: true, opt2: true, opt3: true });
       // Refresh contacts
       const response = await fetch("/api/contacts");
       const data = await response.json();
@@ -441,6 +457,32 @@ export default function CompaniesContacts() {
                   className="w-full border rounded p-2"
                 />
               </div>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={!!newContact.opt1}
+                    onChange={e => setNewContact({ ...newContact, opt1: e.target.checked })}
+                  />
+                  Opt1
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={!!newContact.opt2}
+                    onChange={e => setNewContact({ ...newContact, opt2: e.target.checked })}
+                  />
+                  Opt2
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={!!newContact.opt3}
+                    onChange={e => setNewContact({ ...newContact, opt3: e.target.checked })}
+                  />
+                  Opt3
+                </label>
+              </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
                   Cancel
@@ -540,6 +582,32 @@ export default function CompaniesContacts() {
                     className="w-full border rounded p-2"
                   />
                 </div>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!!selectedContact?.opt1}
+                      onChange={e => selectedContact && setSelectedContact({ ...selectedContact, opt1: e.target.checked } as Contact)}
+                    />
+                    Opt1
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!!selectedContact?.opt2}
+                      onChange={e => selectedContact && setSelectedContact({ ...selectedContact, opt2: e.target.checked } as Contact)}
+                    />
+                    Opt2
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!!selectedContact?.opt3}
+                      onChange={e => selectedContact && setSelectedContact({ ...selectedContact, opt3: e.target.checked } as Contact)}
+                    />
+                    Opt3
+                  </label>
+                </div>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
                     Cancel
@@ -573,6 +641,17 @@ export default function CompaniesContacts() {
                     <p className="text-[var(--foreground)] whitespace-pre-wrap">{selectedContact.notes}</p>
                   </div>
                 )}
+                <div className="flex gap-4">
+                  <span className="flex items-center gap-1">
+                    <input type="checkbox" checked={!!selectedContact?.opt1} readOnly /> Opt1
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <input type="checkbox" checked={!!selectedContact?.opt2} readOnly /> Opt2
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <input type="checkbox" checked={!!selectedContact?.opt3} readOnly /> Opt3
+                  </span>
+                </div>
                 <div className="flex justify-end">
                   <Button
                     variant="outline"

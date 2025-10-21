@@ -58,7 +58,7 @@ export default function Unsub() {
               checked={prefs.opt1}
               onChange={e => setPrefs(p => ({ ...p, opt1: e.target.checked }))}
             />
-            Subscribe to Newsletters
+            Subscribe to Campaigns
           </label>
           <label className="flex items-center gap-2">
             <input
@@ -66,7 +66,7 @@ export default function Unsub() {
               checked={prefs.opt2}
               onChange={e => setPrefs(p => ({ ...p, opt2: e.target.checked }))}
             />
-            Subscribe to Event Invitations
+            Subscribe to Newsletters
           </label>
           <label className="flex items-center gap-2">
             <input

@@ -67,12 +67,13 @@ export async function POST(request: NextRequest) {
         }
         const campaign = campaignRows[0];
 
-        // Get recipients
+        // Get recipients with opt-in filtering for campaigns
+        // Only include contacts that have opted in to campaigns (opt1=1)
         const [contacts] = await pool.query(
-            'SELECT id, email, name FROM contacts WHERE email IS NOT NULL AND email != ""'
+            'SELECT id, email, name FROM contacts WHERE email IS NOT NULL AND email != "" AND opt1 = 1'
         ) as [Contact[], any];
         if (contacts.length === 0) {
-            return NextResponse.json({ error: "No recipients found" }, { status: 404 });
+            return NextResponse.json({ error: "No recipients found with campaign opt-in enabled (opt1)" }, { status: 404 });
         }
 
         // Insert send logs

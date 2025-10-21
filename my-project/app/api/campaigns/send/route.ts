@@ -52,9 +52,14 @@ export async function PUT(request: NextRequest) {
     }
 
     const campaign = campaignResult[0] as any;
+    const isNewsletter = campaign.type === 'email';
 
-    // Get recipients based on selection criteria
+    // Get recipients based on selection criteria with appropriate opt-in filtering
     let contacts: any[] = [];
+    
+    // Determine the opt-in field to check based on campaign type
+    const optInField = isNewsletter ? 'opt2' : 'opt1';
+    const emailTypeDesc = isNewsletter ? 'newsletters' : 'campaigns';
     
     // Handle individual emails first
     if (individualEmail || (individualEmails && individualEmails.length > 0)) {
@@ -85,7 +90,7 @@ export async function PUT(request: NextRequest) {
     if (contactIds && contactIds.length > 0) {
       const placeholders = contactIds.map(() => '?').join(',');
       const contactResult = await executeQuery(
-        `SELECT * FROM contacts WHERE id IN (${placeholders}) AND email IS NOT NULL AND email != ''`,
+        `SELECT * FROM contacts WHERE id IN (${placeholders}) AND email IS NOT NULL AND email != '' AND ${optInField} = 1`,
         contactIds
       );
       contacts = [...contacts, ...(contactResult as any[])];
@@ -95,16 +100,16 @@ export async function PUT(request: NextRequest) {
     if (targetGroups && targetGroups.length > 0) {
       const placeholders = targetGroups.map(() => '?').join(',');
       const contactResult = await executeQuery(
-        `SELECT * FROM contacts WHERE \`group\` IN (${placeholders}) AND email IS NOT NULL AND email != ''`,
+        `SELECT * FROM contacts WHERE \`group\` IN (${placeholders}) AND email IS NOT NULL AND email != '' AND ${optInField} = 1`,
         targetGroups
       );
       contacts = [...contacts, ...(contactResult as any[])];
     }
     
-    // If no specific recipients selected, send to all contacts
+    // If no specific recipients selected, send to all contacts with appropriate opt-ins
     if (contacts.length === 0) {
       const contactResult = await executeQuery(
-        `SELECT * FROM contacts WHERE email IS NOT NULL AND email != ''`,
+        `SELECT * FROM contacts WHERE email IS NOT NULL AND email != '' AND ${optInField} = 1`,
         []
       );
       contacts = contactResult as any[];
@@ -118,7 +123,7 @@ export async function PUT(request: NextRequest) {
 
     if (contacts.length === 0) {
       return NextResponse.json(
-        { error: "No valid recipients found" },
+        { error: `No valid recipients found with ${emailTypeDesc} opt-in enabled` },
         { status: 400 }
       );
     }

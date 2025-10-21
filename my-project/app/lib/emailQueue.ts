@@ -143,6 +143,40 @@ class EmailQueueProcessor {
     try {
       console.log(`📧 Processing email for: ${queueItem.email}`);
       
+      // Check opt-in status before sending (only for contacts with contact_id)
+      if (queueItem.contact_id) {
+        const optInResult = await executeQuery(
+          `SELECT c.opt1, c.opt2, c.opt3, camp.type as campaign_type 
+           FROM contacts c, campaigns camp
+           WHERE c.id = ? AND camp.id = ?`,
+          [queueItem.contact_id, queueItem.campaign_id]
+        );
+        
+        if (optInResult && Array.isArray(optInResult) && optInResult.length > 0) {
+          const result = optInResult[0] as any;
+          const isNewsletter = result.campaign_type === 'email';
+          
+          // Check specific opt-in based on email type
+          if (isNewsletter) {
+            // For newsletters (campaign type='email'), check opt2
+            if (!result.opt2) {
+              console.log(`⏭️  Skipping newsletter for ${queueItem.email} - opt2 disabled`);
+              await this.updateQueueStatus(queueItem.id, 'skipped', 'Contact opted out of newsletters (opt2)');
+              await this.logEmailAction(queueItem, 'skipped', 'Contact opted out of newsletters (opt2)');
+              return;
+            }
+          } else {
+            // For campaigns (all other types), check opt1
+            if (!result.opt1) {
+              console.log(`⏭️  Skipping campaign for ${queueItem.email} - opt1 disabled`);
+              await this.updateQueueStatus(queueItem.id, 'skipped', 'Contact opted out of campaigns (opt1)');
+              await this.logEmailAction(queueItem, 'skipped', 'Contact opted out of campaigns (opt1)');
+              return;
+            }
+          }
+        }
+      }
+      
       // Update status to 'sending'
       await this.updateQueueStatus(queueItem.id, 'sending');
 
@@ -342,6 +376,7 @@ class EmailQueueProcessor {
     sent: number;
     failed: number;
     retry: number;
+    skipped: number;
   }> {
     const query = `
       SELECT status, COUNT(*) as count
@@ -355,12 +390,17 @@ class EmailQueueProcessor {
       sending: 0,
       sent: 0,
       failed: 0,
-      retry: 0
+      retry: 0,
+      skipped: 0
     };
     
-    result.forEach((row: any) => {
-      stats[row.status as keyof typeof stats] = row.count;
-    });
+    if (Array.isArray(result)) {
+      result.forEach((row: any) => {
+        if (stats.hasOwnProperty(row.status)) {
+          stats[row.status as keyof typeof stats] = row.count;
+        }
+      });
+    }
     
     return stats;
   }

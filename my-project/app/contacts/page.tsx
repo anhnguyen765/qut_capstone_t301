@@ -18,7 +18,7 @@ type Contact = {
   name: string;
   email: string;
   phone?: string;
-  group: "Companies" | "Groups" | "Private" | "OSHC" | "Schools";
+  group: "Companies" | "Groups" | "Private" | "OSHC" | "Schools" | null;
   notes?: string;
   opt1?: boolean;
   opt2?: boolean;
@@ -48,11 +48,11 @@ export default function Contacts() {
   name: "",
   email: "",
   phone: "",
-  group: "Companies",
+  group: null,
   notes: "",
-  opt1: false,
-  opt2: false,
-  opt3: false,
+  opt1: true,
+  opt2: true,
+  opt3: true,
   });
 
   // View/Edit Contact Dialog State
@@ -108,17 +108,25 @@ export default function Contacts() {
   const filteredContacts = contacts
     .filter(
       (c) =>
-        (selectedGroups.length === 0 || selectedGroups.includes(c.group)) &&
+        (selectedGroups.length === 0 || (c.group && selectedGroups.includes(c.group))) &&
         (c.name.toLowerCase().includes(filter.toLowerCase()) ||
           c.email.toLowerCase().includes(filter.toLowerCase()) ||
           (c.phone && c.phone.toLowerCase().includes(filter.toLowerCase())))
     )
     .sort((a, b) => {
       const compareValue = sortOrder === "asc" ? 1 : -1;
-      return a[sortBy] > b[sortBy] ? compareValue : -compareValue;
+      const aVal = a[sortBy] || "";
+      const bVal = b[sortBy] || "";
+      return aVal > bVal ? compareValue : -compareValue;
     });
 
   const handleAddContact = async () => {
+    // Validate that a group is selected
+    if (!newContact.group) {
+      alert("Please select a group for the contact.");
+      return;
+    }
+    
     try {
       await fetch("/api/contacts", {
         method: "POST",
@@ -126,7 +134,7 @@ export default function Contacts() {
         body: JSON.stringify(newContact),
       });
       setShowAddDialog(false);
-      setNewContact({ name: "", email: "", phone: "", group: "Companies", notes: "" });
+      setNewContact({ name: "", email: "", phone: "", group: null, notes: "", opt1: true, opt2: true, opt3: true });
       // Refresh contacts
       const response = await fetch("/api/contacts");
       const data = await response.json();
@@ -225,7 +233,10 @@ export default function Contacts() {
               const contact: Contact = {
                 name: '',
                 email: '',
-                group: 'Private'
+                group: 'Private',
+                opt1: true,
+                opt2: true,
+                opt3: true
               };
               
               headers.forEach((header, index) => {
@@ -263,6 +274,15 @@ export default function Contacts() {
                     break;
                   case 'notes':
                     contact.notes = value;
+                    break;
+                  case 'opt1':
+                    contact.opt1 = value.toLowerCase() === 'true' || value.toLowerCase() === '1' || value.toLowerCase() === 'yes';
+                    break;
+                  case 'opt2':
+                    contact.opt2 = value.toLowerCase() === 'true' || value.toLowerCase() === '1' || value.toLowerCase() === 'yes';
+                    break;
+                  case 'opt3':
+                    contact.opt3 = value.toLowerCase() === 'true' || value.toLowerCase() === '1' || value.toLowerCase() === 'yes';
                     break;
                 }
               });
@@ -538,7 +558,7 @@ export default function Contacts() {
                         {contact.name}
                       </span>
                       <span className="text-xs px-2 py-1 rounded bg-[var(--muted)] text-[var(--muted-foreground)]">
-                        {contact.group}
+                        {contact.group || "No Group"}
                       </span>
                     </div>
                     <div className="text-sm text-[var(--foreground)]">
@@ -619,7 +639,7 @@ export default function Contacts() {
               <div>
                 <Label className="block text-sm font-medium mb-1">Group</Label>
                 <Select
-                  value={newContact.group}
+                  value={newContact.group || ""}
                   onValueChange={(value) =>
                     setNewContact({ ...newContact, group: value as Contact["group"] })
                   }
@@ -756,7 +776,7 @@ export default function Contacts() {
                 <div>
                   <Label className="block text-sm font-medium mb-1">Group</Label>
                   <Select
-                    value={selectedContact.group}
+                    value={selectedContact.group || ""}
                     onValueChange={(value) =>
                       setSelectedContact({ ...selectedContact, group: value as Contact["group"] })
                     }
@@ -835,7 +855,7 @@ export default function Contacts() {
                 )}
                 <div>
                   <Label className="block text-sm font-medium mb-1">Group</Label>
-                  <p className="text-[var(--foreground)]">{selectedContact.group}</p>
+                  <p className="text-[var(--foreground)]">{selectedContact.group || "No Group"}</p>
                 </div>
                 {selectedContact.notes && (
                   <div>

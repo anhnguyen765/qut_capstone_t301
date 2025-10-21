@@ -65,9 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
         return true;
       } else {
-        // Token is invalid, clear it
+        // Token is invalid, clear it automatically
+        console.log('Token verification failed, clearing auth data');
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
+        // Clear cookies as well
+        document.cookie = "authToken=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
         setUser(null);
         setIsLoading(false);
         return false;

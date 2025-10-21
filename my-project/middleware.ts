@@ -75,9 +75,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   } catch (error) {
     console.error("Token verification failed:", error);
-    // If token is invalid, redirect to login
+    // If token is invalid/expired, clear the cookie and redirect to login
     const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
+    const response = NextResponse.redirect(loginUrl);
+    
+    // Clear the auth token cookie
+    response.cookies.set("authToken", "", {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      expires: new Date(0), // Expire immediately
+    });
+    
+    return response;
   }
 }
 

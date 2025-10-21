@@ -37,7 +37,11 @@ export async function verifyToken(token: string): Promise<AuthPayload | null> {
       return payload as AuthPayload;
     }
     return null;
-  } catch {
+  } catch (error) {
+    // Log specific JWT error for debugging
+    if (error instanceof Error) {
+      console.error("JWT verification failed:", error.message);
+    }
     return null;
   }
 }

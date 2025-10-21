@@ -21,10 +21,15 @@ export function ModeToggle() {
     return (
         <Button
             variant="ghost"
-            className="w-10 px-0 h-10"
+            className="w-10 px-0 h-10 hover:bg-accent"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
         >
-            {theme === "dark" ? <Moon className="text-[var(--foreground)] h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            {theme === "dark" ? (
+                <Moon className="h-4 w-4 text-foreground" />
+            ) : (
+                <Sun className="h-4 w-4 text-foreground" />
+            )}
+            <span className="sr-only">Toggle theme</span>
         </Button>
     );
 }

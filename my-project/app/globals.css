@@ -257,7 +257,8 @@
   --muted-foreground: #6B7280; /* tailwind gray-500 */
   --accent: #E2E8F4;
   --accent-foreground: #4F71B6;
-  --destructive: #FF5A5F; 
+  --destructive: #FF5A5F;
+  --destructive-foreground: #FFFFFF;
   --border: #F4F6FA;
   --input: #F4F6FA;
   --ring: #4F71B6;
@@ -296,6 +297,7 @@
   --accent: #7D8BAE;
   --accent-foreground: #FFFFFF;
   --destructive: #FF5A5F;
+  --destructive-foreground: #FFFFFF;
   --border: #FFFFFF1A;
   --input: #FFFFFF26;
   --ring: #4F71B6;

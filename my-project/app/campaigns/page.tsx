@@ -43,7 +43,7 @@ export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [templatesList, setTemplatesList] = useState<any[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<"type" | "updatedAt">("updatedAt");
+  const [sortBy, setSortBy] = useState<"type" | "updatedAt" | "createdAt">("updatedAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
@@ -270,11 +270,11 @@ export default function Campaigns() {
       case "scheduled":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
       case "sent":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100";
+        return "bg-muted text-muted-foreground";
       case "archived":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100";
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -566,7 +566,7 @@ export default function Campaigns() {
           />
           <Popover>
             <PopoverTrigger asChild>
-              <Button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 bg-background hover:bg-[var(--accent)] rounded-md">
+              <Button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 bg-card hover:bg-accent rounded-md">
                 <Filter className="h-5 w-5 text-foreground" />
               </Button>
             </PopoverTrigger>
@@ -660,7 +660,7 @@ export default function Campaigns() {
                     }}
                   />
                 ) : (
-                  <div className="h-full flex items-center justify-center text-gray-400">
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
                     <div className="text-center">
                       <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                       <p className="text-sm">No preview available</p>
@@ -687,7 +687,7 @@ export default function Campaigns() {
                 </div>
 
                 {campaign.updatedAt && (
-                  <div className="text-xs text-gray-500 mb-3">
+                  <div className="text-xs text-muted-foreground mb-3">
                     <span>
                       Updated: {formatTimeAgo(campaign.updatedAt)}
                     </span>
@@ -762,11 +762,11 @@ export default function Campaigns() {
       {/* Campaign Details Dialog */}
       {showDetailsDialog && selectedCampaign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+          <div className="bg-card rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
             {/* Header */}
             <div className="flex justify-between items-start p-6 border-b">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-[var(--accent)] flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center">
                   <span className="text-xl font-semibold text-[var(--accent-foreground)]">
                     {selectedCampaign.title.charAt(0)}
                   </span>
@@ -792,18 +792,18 @@ export default function Campaigns() {
               {/* Campaign Info */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <Tag className="h-5 w-5 text-gray-500" />
+                  <Tag className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Campaign Type</p>
-                    <p className="text-sm text-gray-600">{getTypeLabel(selectedCampaign.type)}</p>
+                    <p className="text-sm font-medium text-card-foreground">Campaign Type</p>
+                    <p className="text-sm text-muted-foreground">{getTypeLabel(selectedCampaign.type)}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Send className="h-5 w-5 text-gray-500" />
+                  <Send className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Target Groups</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm font-medium text-card-foreground">Target Groups</p>
+                    <p className="text-sm text-muted-foreground">
                       {selectedCampaign.targetGroups?.join(', ') || 'Not specified'}
                     </p>
                   </div>
@@ -994,14 +994,14 @@ export default function Campaigns() {
       {/* New Campaign Form Dialog */}
       {showNewCampaignForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-8 border border-[var(--border)]">
-            <h2 className="text-3xl font-bold mb-6 text-center text-[var(--foreground)]">Create New Campaign</h2>
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-8 border border-border">
+            <h2 className="text-3xl font-bold mb-6 text-center text-card-foreground">Create New Campaign</h2>
             <form onSubmit={handleNewCampaignFormSubmit} className="space-y-6">
               {/* Optional template selection */}
               <div>
-                <label className="block text-sm font-semibold mb-2 text-[var(--foreground)]">Template (optional)</label>
+                <label className="block text-sm font-semibold mb-2 text-card-foreground">Template (optional)</label>
                 <select
-                  className="w-full border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
+                  className="w-full border border-border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary bg-card text-card-foreground"
                   value={newCampaignData.templateId || ''}
                   onChange={async e => {
                     const templateId = e.target.value;

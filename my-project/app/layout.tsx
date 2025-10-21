@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
-      <body className="antialiased flex min-h-screen w-full text-gray-900">
+      <body className="antialiased flex min-h-screen w-full bg-background text-foreground">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -51,8 +51,8 @@ export default function RootLayout({
                 <main className="flex-1 page-container">
                     {children}
                 </main>
-                <footer className="bg-[var(--primary)] py-5">
-                  <div className="page-container text-center text-[var(--primary-foreground)]">
+                <footer className="bg-primary py-5">
+                  <div className="page-container text-center text-primary-foreground">
                     &copy; {new Date().getFullYear()} Two Bent Rods. All rights reserved.
                   </div>
                 </footer>                

@@ -143,38 +143,54 @@ class EmailQueueProcessor {
     try {
       console.log(`📧 Processing email for: ${queueItem.email}`);
       
-      // Check opt-in status before sending (only for contacts with contact_id)
+      // Check opt-in status before sending (for both database contacts and individual emails)
+      let optInResult: any[] = [];
+      
       if (queueItem.contact_id) {
-        const optInResult = await executeQuery(
+        // For database contacts, check by contact_id
+        optInResult = await executeQuery(
           `SELECT c.opt1, c.opt2, c.opt3, camp.type as campaign_type 
            FROM contacts c, campaigns camp
            WHERE c.id = ? AND camp.id = ?`,
           [queueItem.contact_id, queueItem.campaign_id]
-        );
+        ) as any[];
+      } else {
+        // For individual emails, check if the email exists in contacts and get their opt-ins
+        optInResult = await executeQuery(
+          `SELECT c.opt1, c.opt2, c.opt3, camp.type as campaign_type 
+           FROM contacts c, campaigns camp
+           WHERE c.email = ? AND camp.id = ?`,
+          [queueItem.email, queueItem.campaign_id]
+        ) as any[];
+      }
+      
+      // If we found a matching contact (either by ID or email), validate opt-ins
+      if (optInResult && Array.isArray(optInResult) && optInResult.length > 0) {
+      // If we found a matching contact (either by ID or email), validate opt-ins
+      if (optInResult && Array.isArray(optInResult) && optInResult.length > 0) {
+        const result = optInResult[0] as any;
+        const isNewsletter = result.campaign_type === 'email';
         
-        if (optInResult && Array.isArray(optInResult) && optInResult.length > 0) {
-          const result = optInResult[0] as any;
-          const isNewsletter = result.campaign_type === 'email';
-          
-          // Check specific opt-in based on email type
-          if (isNewsletter) {
-            // For newsletters (campaign type='email'), check opt2
-            if (!result.opt2) {
-              console.log(`⏭️  Skipping newsletter for ${queueItem.email} - opt2 disabled`);
-              await this.updateQueueStatus(queueItem.id, 'skipped', 'Contact opted out of newsletters (opt2)');
-              await this.logEmailAction(queueItem, 'skipped', 'Contact opted out of newsletters (opt2)');
-              return;
-            }
-          } else {
-            // For campaigns (all other types), check opt1
-            if (!result.opt1) {
-              console.log(`⏭️  Skipping campaign for ${queueItem.email} - opt1 disabled`);
-              await this.updateQueueStatus(queueItem.id, 'skipped', 'Contact opted out of campaigns (opt1)');
-              await this.logEmailAction(queueItem, 'skipped', 'Contact opted out of campaigns (opt1)');
-              return;
-            }
+        // Check specific opt-in based on email type
+        if (isNewsletter) {
+          // For newsletters (campaign type='email'), check opt2
+          if (!result.opt2) {
+            console.log(`⏭️  Skipping newsletter for ${queueItem.email} - opt2 disabled`);
+            await this.updateQueueStatus(queueItem.id, 'skipped', 'Contact opted out of newsletters (opt2)');
+            await this.logEmailAction(queueItem, 'skipped', 'Contact opted out of newsletters (opt2)');
+            return;
+          }
+        } else {
+          // For campaigns (all other types), check opt1
+          if (!result.opt1) {
+            console.log(`⏭️  Skipping campaign for ${queueItem.email} - opt1 disabled`);
+            await this.updateQueueStatus(queueItem.id, 'skipped', 'Contact opted out of campaigns (opt1)');
+            await this.logEmailAction(queueItem, 'skipped', 'Contact opted out of campaigns (opt1)');
+            return;
           }
         }
+      }
+      // Note: If email is not found in contacts table, we allow sending (for truly external individual emails)
       }
       
       // Update status to 'sending'

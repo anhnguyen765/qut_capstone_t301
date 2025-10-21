@@ -306,22 +306,22 @@ export default function GroupsContacts() {
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && contactToDelete && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+          <div className="bg-card text-card-foreground rounded-lg shadow-lg p-8 w-full max-w-md border border-border">
             <div className="flex items-center mb-4">
               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
                 <Trash2 className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Delete Contact</h3>
-                <p className="text-sm text-gray-600">This action cannot be undone.</p>
+                <h3 className="text-lg font-semibold text-card-foreground">Delete Contact</h3>
+                <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
               </div>
             </div>
             <div className="mb-6">
-              <p className="text-gray-700">
-                Are you sure you want to delete {" "}
+              <p className="text-card-foreground">
+                Are you sure you want to delete{" "}
                 <span className="font-semibold">{contactToDelete.name}</span>?
               </p>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Email: {contactToDelete.email}
               </p>
             </div>
@@ -337,7 +337,7 @@ export default function GroupsContacts() {
               </Button>
               <Button
                 onClick={handleDeleteContact}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete Contact
@@ -356,8 +356,8 @@ export default function GroupsContacts() {
       {/* Add Contact Dialog */}
       {showAddDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Add New Group Contact</h2>
+          <div className="bg-card text-card-foreground rounded-lg shadow-lg p-8 w-full max-w-md max-h-[90vh] overflow-y-auto border border-border">
+            <h2 className="text-xl font-bold mb-4 text-card-foreground">Add New Group Contact</h2>
             <form
               onSubmit={e => {
                 e.preventDefault();
@@ -443,9 +443,9 @@ export default function GroupsContacts() {
       {/* View/Edit Contact Dialog */}
       {showViewDialog && selectedContact && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-card text-card-foreground rounded-lg shadow-lg p-8 w-full max-w-md max-h-[90vh] overflow-y-auto border border-border">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">
+              <h2 className="text-xl font-bold text-card-foreground">
                 {isEditing ? "Edit Group Contact" : "Group Contact Details"}
               </h2>
               {!isEditing && (

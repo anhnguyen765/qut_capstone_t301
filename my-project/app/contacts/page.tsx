@@ -598,8 +598,8 @@ export default function Contacts() {
       {/* Add Contact Dialog */}
       {showAddDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Add New Contact</h2>
+          <div className="bg-card text-card-foreground rounded-lg shadow-lg p-8 w-full max-w-md max-h-[90vh] overflow-y-auto border border-border">
+            <h2 className="text-xl font-bold mb-4 text-card-foreground">Add New Contact</h2>
             <form
               onSubmit={e => {
                 e.preventDefault();
@@ -608,43 +608,43 @@ export default function Contacts() {
               className="space-y-4"
             >
               <div>
-                <Label className="block text-sm font-medium mb-1">Name *</Label>
+                <Label className="block text-sm font-medium mb-1 text-card-foreground">Name *</Label>
                 <Input
                   type="text"
                   value={newContact.name}
                   onChange={e => setNewContact({ ...newContact, name: e.target.value })}
                   required
-                  className="w-full border rounded p-2"
+                  className="w-full border border-border rounded p-2 bg-background text-foreground"
                 />
               </div>
               <div>
-                <Label className="block text-sm font-medium mb-1">Email *</Label>
+                <Label className="block text-sm font-medium mb-1 text-card-foreground">Email *</Label>
                 <Input
                   type="email"
                   value={newContact.email}
                   onChange={e => setNewContact({ ...newContact, email: e.target.value })}
                   required
-                  className="w-full border rounded p-2"
+                  className="w-full border border-border rounded p-2 bg-background text-foreground"
                 />
               </div>
               <div>
-                <Label className="block text-sm font-medium mb-1">Phone</Label>
+                <Label className="block text-sm font-medium mb-1 text-card-foreground">Phone</Label>
                 <Input
                   type="tel"
                   value={newContact.phone}
                   onChange={e => setNewContact({ ...newContact, phone: e.target.value })}
-                  className="w-full border rounded p-2"
+                  className="w-full border border-border rounded p-2 bg-background text-foreground"
                 />
               </div>
               <div>
-                <Label className="block text-sm font-medium mb-1">Group</Label>
+                <Label className="block text-sm font-medium mb-1 text-card-foreground">Group</Label>
                 <Select
                   value={newContact.group || ""}
                   onValueChange={(value) =>
                     setNewContact({ ...newContact, group: value as Contact["group"] })
                   }
                 >
-                  <SelectTrigger className="w-full border rounded p-2 flex justify-start items-center">
+                  <SelectTrigger className="w-full border border-border rounded p-2 flex justify-start items-center bg-background text-foreground">
                     <SelectValue placeholder="Select a group" />
                     <span className="flex-none"><ChevronDown className="h-4 w-4 text-foreground" /></span>
                   </SelectTrigger>
@@ -658,36 +658,39 @@ export default function Contacts() {
                 </Select>
               </div>
               <div>
-                <Label className="block text-sm font-medium mb-1">Notes</Label>
+                <Label className="block text-sm font-medium mb-1 text-card-foreground">Notes</Label>
                 <Textarea
                   value={newContact.notes}
                   onChange={e => setNewContact({ ...newContact, notes: e.target.value })}
                   rows={3}
-                  className="w-full border rounded p-2"
+                  className="w-full border border-border rounded p-2 bg-background text-foreground"
                 />
               </div>
               <div className="flex gap-4">
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-card-foreground">
                   <input
                     type="checkbox"
                     checked={!!newContact.opt1}
                     onChange={e => setNewContact({ ...newContact, opt1: e.target.checked })}
+                    className="accent-primary"
                   />
                   Opt1
                 </label>
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-card-foreground">
                   <input
                     type="checkbox"
                     checked={!!newContact.opt2}
                     onChange={e => setNewContact({ ...newContact, opt2: e.target.checked })}
+                    className="accent-primary"
                   />
                   Opt2
                 </label>
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-card-foreground">
                   <input
                     type="checkbox"
                     checked={!!newContact.opt3}
                     onChange={e => setNewContact({ ...newContact, opt3: e.target.checked })}
+                    className="accent-primary"
                   />
                   Opt3
                 </label>
@@ -706,9 +709,9 @@ export default function Contacts() {
       {/* View/Edit Contact Dialog */}
       {showViewDialog && selectedContact && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-card text-card-foreground rounded-lg shadow-lg p-8 w-full max-w-md max-h-[90vh] overflow-y-auto border border-border">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">
+              <h2 className="text-xl font-bold text-card-foreground">
                 {isEditing ? "Edit Contact" : "Contact Details"}
               </h2>
               {!isEditing && (
@@ -745,45 +748,45 @@ export default function Contacts() {
                 className="space-y-4"
               >
                 <div>
-                  <Label className="block text-sm font-medium mb-1">Name *</Label>
+                  <Label className="block text-sm font-medium mb-1 text-card-foreground">Name *</Label>
                   <Input
                     type="text"
                     value={selectedContact.name}
                     onChange={e => setSelectedContact({ ...selectedContact, name: e.target.value })}
                     required
-                    className="w-full border rounded p-2"
+                    className="w-full border border-border rounded p-2 bg-background text-foreground"
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-medium mb-1">Email *</Label>
+                  <Label className="block text-sm font-medium mb-1 text-card-foreground">Email *</Label>
                   <Input
                     type="email"
                     value={selectedContact.email}
                     onChange={e => setSelectedContact({ ...selectedContact, email: e.target.value })}
                     required
-                    className="w-full border rounded p-2"
+                    className="w-full border border-border rounded p-2 bg-background text-foreground"
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-medium mb-1">Phone</Label>
+                  <Label className="block text-sm font-medium mb-1 text-card-foreground">Phone</Label>
                   <Input
                     type="tel"
                     value={selectedContact.phone || ""}
                     onChange={e => setSelectedContact({ ...selectedContact, phone: e.target.value })}
-                    className="w-full border rounded p-2"
+                    className="w-full border border-border rounded p-2 bg-background text-foreground"
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-medium mb-1">Group</Label>
+                  <Label className="block text-sm font-medium mb-1 text-card-foreground">Group</Label>
                   <Select
                     value={selectedContact.group || ""}
                     onValueChange={(value) =>
                       setSelectedContact({ ...selectedContact, group: value as Contact["group"] })
                     }
                   >
-                    <SelectTrigger className="w-full border rounded p-2 flex justify-between items-center">
+                    <SelectTrigger className="w-full border border-border rounded p-2 flex justify-between items-center bg-background text-foreground">
                       <SelectValue placeholder="Select group" />
-                      <ChevronDown className="w-4 h-4 text-gray-500" />
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
                     </SelectTrigger>
 
                     <SelectContent>
@@ -796,36 +799,39 @@ export default function Contacts() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="block text-sm font-medium mb-1">Notes</Label>
+                  <Label className="block text-sm font-medium mb-1 text-card-foreground">Notes</Label>
                   <Textarea
                     value={selectedContact.notes || ""}
                     onChange={e => setSelectedContact({ ...selectedContact, notes: e.target.value })}
                     rows={3}
-                    className="w-full border rounded p-2"
+                    className="w-full border border-border rounded p-2 bg-background text-foreground"
                   />
                 </div>
                 <div className="flex gap-4">
-                  <label className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-card-foreground">
                     <input
                       type="checkbox"
                       checked={!!selectedContact.opt1}
                       onChange={e => setSelectedContact({ ...selectedContact, opt1: e.target.checked } as Contact)}
+                      className="accent-primary"
                     />
                     Opt1
                   </label>
-                  <label className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-card-foreground">
                     <input
                       type="checkbox"
                       checked={!!selectedContact.opt2}
                       onChange={e => setSelectedContact({ ...selectedContact, opt2: e.target.checked } as Contact)}
+                      className="accent-primary"
                     />
                     Opt2
                   </label>
-                  <label className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-card-foreground">
                     <input
                       type="checkbox"
                       checked={!!selectedContact.opt3}
                       onChange={e => setSelectedContact({ ...selectedContact, opt3: e.target.checked } as Contact)}
+                      className="accent-primary"
                     />
                     Opt3
                   </label>
@@ -840,38 +846,38 @@ export default function Contacts() {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <Label className="block text-sm font-medium mb-1">Name</Label>
+                  <Label className="block text-sm font-medium mb-1 text-card-foreground">Name</Label>
                   <p className="text-[var(--foreground)]">{selectedContact.name}</p>
                 </div>
                 <div>
-                  <Label className="block text-sm font-medium mb-1">Email</Label>
+                  <Label className="block text-sm font-medium mb-1 text-card-foreground">Email</Label>
                   <p className="text-[var(--foreground)]">{selectedContact.email}</p>
                 </div>
                 {selectedContact.phone && (
                   <div>
-                    <Label className="block text-sm font-medium mb-1">Phone</Label>
+                    <Label className="block text-sm font-medium mb-1 text-card-foreground">Phone</Label>
                     <p className="text-[var(--foreground)]">{selectedContact.phone}</p>
                   </div>
                 )}
                 <div>
-                  <Label className="block text-sm font-medium mb-1">Group</Label>
+                  <Label className="block text-sm font-medium mb-1 text-card-foreground">Group</Label>
                   <p className="text-[var(--foreground)]">{selectedContact.group || "No Group"}</p>
                 </div>
                 {selectedContact.notes && (
                   <div>
-                        <Label className="block text-sm font-medium mb-1">Notes</Label>
+                        <Label className="block text-sm font-medium mb-1 text-card-foreground">Notes</Label>
                     <p className="text-[var(--foreground)] whitespace-pre-wrap">{selectedContact.notes}</p>
                   </div>
                 )}
                 <div className="flex gap-4">
-                  <span className="flex items-center gap-1">
-                    <input type="checkbox" checked={!!selectedContact.opt1} readOnly /> Opt1
+                  <span className="flex items-center gap-1 text-card-foreground">
+                    <input type="checkbox" checked={!!selectedContact.opt1} readOnly className="accent-primary" /> Opt1
                   </span>
-                  <span className="flex items-center gap-1">
-                    <input type="checkbox" checked={!!selectedContact.opt2} readOnly /> Opt2
+                  <span className="flex items-center gap-1 text-card-foreground">
+                    <input type="checkbox" checked={!!selectedContact.opt2} readOnly className="accent-primary" /> Opt2
                   </span>
-                  <span className="flex items-center gap-1">
-                    <input type="checkbox" checked={!!selectedContact.opt3} readOnly /> Opt3
+                  <span className="flex items-center gap-1 text-card-foreground">
+                    <input type="checkbox" checked={!!selectedContact.opt3} readOnly className="accent-primary" /> Opt3
                   </span>
                 </div>
                 <div className="flex justify-end">
@@ -891,16 +897,16 @@ export default function Contacts() {
       {/* Import Dialog */}
       {showImportDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Import Contacts</h2>
+          <div className="bg-card text-card-foreground rounded-lg shadow-lg p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-border">
+            <h2 className="text-xl font-bold mb-4 text-card-foreground">Import Contacts</h2>
             
             {importPreview.length === 0 ? (
               <div className="space-y-4">
                 <div>
-                  <Label className="block text-sm font-medium mb-2">
+                  <Label className="block text-sm font-medium mb-2 text-card-foreground">
                     Upload CSV File
                   </Label>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     CSV should have columns: name, email, phone, group, notes
                   </p>
                   <input
@@ -913,13 +919,13 @@ export default function Contacts() {
                         setImportFile(file);
                       }
                     }}
-                    className="w-full border rounded p-2 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    className="w-full border border-border rounded p-2 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-accent file:text-accent-foreground hover:file:bg-accent/80 bg-background text-foreground"
                   />
                 </div>
                 
-                <div className="bg-gray-50 p-4 rounded">
-                  <h3 className="font-medium mb-2">CSV Format Example:</h3>
-                  <pre className="text-xs bg-white p-2 rounded border overflow-x-auto">
+                <div className="bg-muted p-4 rounded">
+                  <h3 className="font-medium mb-2 text-card-foreground">CSV Format Example:</h3>
+                  <pre className="text-xs bg-background p-2 rounded border border-border overflow-x-auto text-foreground">
                       {`name,email,phone,group,notes
                       John Doe,john@example.com,123-456-7890,Companies,CEO
                       Jane Smith,jane@example.com,,Private,Friend`}
@@ -949,26 +955,26 @@ export default function Contacts() {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-medium mb-2">
+                  <h3 className="font-medium mb-2 text-card-foreground">
                     Preview ({importPreview.length} contacts found)
                   </h3>
-                  <div className="max-h-60 overflow-y-auto border rounded">
+                  <div className="max-h-60 overflow-y-auto border border-border rounded bg-background">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50 sticky top-0">
+                      <thead className="bg-muted sticky top-0">
                         <tr>
-                          <th className="p-2 text-left">Name</th>
-                          <th className="p-2 text-left">Email</th>
-                          <th className="p-2 text-left">Phone</th>
-                          <th className="p-2 text-left">Group</th>
+                          <th className="p-2 text-left text-card-foreground">Name</th>
+                          <th className="p-2 text-left text-card-foreground">Email</th>
+                          <th className="p-2 text-left text-card-foreground">Phone</th>
+                          <th className="p-2 text-left text-card-foreground">Group</th>
                         </tr>
                       </thead>
                       <tbody>
                         {importPreview.map((contact, idx) => (
-                          <tr key={idx} className="border-t">
-                            <td className="p-2">{contact.name}</td>
-                            <td className="p-2">{contact.email}</td>
-                            <td className="p-2">{contact.phone || '-'}</td>
-                            <td className="p-2">{contact.group}</td>
+                          <tr key={idx} className="border-t border-border">
+                            <td className="p-2 text-foreground">{contact.name}</td>
+                            <td className="p-2 text-foreground">{contact.email}</td>
+                            <td className="p-2 text-foreground">{contact.phone || '-'}</td>
+                            <td className="p-2 text-foreground">{contact.group}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1001,23 +1007,23 @@ export default function Contacts() {
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && contactToDelete && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+          <div className="bg-card text-card-foreground rounded-lg shadow-lg p-8 w-full max-w-md border border-border">
             <div className="flex items-center mb-4">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
-                <Trash2 className="h-5 w-5 text-red-600" />
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center mr-4">
+                <Trash2 className="h-5 w-5 text-destructive" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Delete Contact</h3>
-                <p className="text-sm text-gray-600">This action cannot be undone.</p>
+                <h3 className="text-lg font-semibold text-card-foreground">Delete Contact</h3>
+                <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
               </div>
             </div>
             
             <div className="mb-6">
-              <p className="text-gray-700">
+              <p className="text-card-foreground">
                 Are you sure you want to delete{" "}
                 <span className="font-semibold">{contactToDelete.name}</span>?
               </p>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Email: {contactToDelete.email}
               </p>
             </div>
@@ -1034,7 +1040,7 @@ export default function Contacts() {
               </Button>
               <Button
                 onClick={handleDeleteContact}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete Contact

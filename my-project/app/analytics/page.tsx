@@ -120,9 +120,7 @@ export default function Analytics() {
                 ) : (
                   <div className="text-sm text-muted-foreground">No campaigns found</div>
                 )}
-                <div className="mt-4">
-                  <Button variant="outline">View all campaigns</Button>
-                </div>
+                
               </CardContent>
             </Card>
           </div>

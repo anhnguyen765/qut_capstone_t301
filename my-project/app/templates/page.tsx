@@ -591,13 +591,15 @@ export default function TemplatesPage() {
                   const html = template.content || generatePreviewHtml(designObj);
                   return html ? (
                     <div
-                      className="h-full w-full p-4 text-xs overflow-hidden"
+                      className="h-full w-full p-4 text-xs overflow-hidden email-preview-wrapper"
                       dangerouslySetInnerHTML={{ __html: html }}
                       style={{ 
                         transform: 'scale(0.3)', 
                         transformOrigin: 'top left',
                         width: '333%',
-                        height: '333%'
+                        height: '333%',
+                        backgroundColor: 'var(--background)',
+                        color: 'var(--foreground)'
                       }}
                     />
                   ) : (
@@ -724,8 +726,13 @@ export default function TemplatesPage() {
                       const html = selectedTemplate.content || generatePreviewHtml(parseDesign(selectedTemplate.design));
                       return html ? (
                         <div
-                          className="w-full p-4 text-sm overflow-auto border border-gray-200 rounded-lg"
-                          style={{ backgroundColor: '#ffffff', pointerEvents: 'none', minHeight: '400px' }}
+                          className="w-full p-4 text-sm overflow-auto border border-border rounded-lg email-preview-wrapper"
+                          style={{ 
+                            backgroundColor: 'var(--background)', 
+                            color: 'var(--foreground)',
+                            pointerEvents: 'none', 
+                            minHeight: '400px' 
+                          }}
                           dangerouslySetInnerHTML={{ __html: html }}
                         />
                       ) : (

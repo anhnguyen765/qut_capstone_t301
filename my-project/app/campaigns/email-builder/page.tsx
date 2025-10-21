@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useTheme } from "next-themes";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
@@ -27,6 +28,7 @@ declare global {
 
 export default function EmailCampaignBuilder() {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const [campaign, setCampaign] = useState<EmailCampaign>({
     title: "",
     subjectLine: "",
@@ -81,6 +83,9 @@ export default function EmailCampaignBuilder() {
       const editorInstance = window.unlayer.createEditor({
         id: "email-editor",
         displayMode: "emailMode",
+        appearance: {
+          theme: theme === 'dark' ? 'dark' : 'light',
+        },
         customJS: [
           window.location.protocol + "//" + window.location.host + "/unlayer.js"
         ],

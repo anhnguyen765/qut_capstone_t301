@@ -546,13 +546,15 @@ export default function Newsletters() {
               <div className="h-48 bg-muted rounded-t-lg overflow-hidden">
                 {newsletter.content ? (
                   <div
-                    className="h-full w-full p-4 text-xs overflow-hidden"
+                    className="h-full w-full p-4 text-xs overflow-hidden email-preview-wrapper"
                     dangerouslySetInnerHTML={{ __html: newsletter.content }}
                     style={{
                       transform: 'scale(0.3)',
                       transformOrigin: 'top left',
                       width: '333%',
-                      height: '333%'
+                      height: '333%',
+                      backgroundColor: 'var(--background)',
+                      color: 'var(--foreground)'
                     }}
                   />
                 ) : (
@@ -784,11 +786,17 @@ export default function Newsletters() {
               {/* Email Content Preview */}
               <div className="border-t pt-6">
                 <h3 className="text-lg font-semibold text-foreground mb-3">Email Content Preview</h3>
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 min-h-32">
+                <div className="bg-muted rounded-lg p-4 min-h-32">
                   {selectedNewsletter?.content ? (
                     <div
-                      className="text-sm text-foreground"
+                      className="text-sm email-preview-wrapper"
                       dangerouslySetInnerHTML={{ __html: selectedNewsletter?.content || '' }}
+                      style={{
+                        backgroundColor: 'var(--background)',
+                        color: 'var(--foreground)',
+                        padding: '1rem',
+                        borderRadius: '0.375rem'
+                      }}
                     />
                   ) : (
                     <div className="text-center text-muted-foreground py-8">

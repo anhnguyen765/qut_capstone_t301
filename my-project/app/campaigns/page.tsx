@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Search, Filter, Plus, ArrowUpDown } from "lucide-react";
+import { useTheme } from "next-themes";
 import {
   Popover,
   PopoverContent,
@@ -39,6 +40,7 @@ const CAMPAIGN_TYPES = [
 
 export default function Campaigns() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [filter, setFilter] = useState("");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [templatesList, setTemplatesList] = useState<any[]>([]);
@@ -531,7 +533,7 @@ export default function Campaigns() {
   return (
     <div className="w-full max-w-5xl mx-auto px-4 py-8">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)] pb-4 mb-6">
+      <div className="sticky top-0 z-10 bg-background border-b border-border pb-4 mb-6">
         <header className="mb-4">
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-foreground">
             Email Campaigns
@@ -556,13 +558,13 @@ export default function Campaigns() {
 
         <div className="space-y-4">
         <div className="relative flex items-center">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[var(--foreground)]" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-foreground" />
           <input
             type="text"
             placeholder="Search campaigns..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="w-full pl-10 pr-12 p-4 border border-[var(--border)] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
+            className="w-full pl-10 pr-12 p-4 border border-border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-background text-foreground"
           />
           <Popover>
             <PopoverTrigger asChild>
@@ -575,7 +577,7 @@ export default function Campaigns() {
                 {CAMPAIGN_TYPES.map((type) => (
                   <label
                     key={type.value}
-                    className="flex items-center space-x-2 p-2 hover:bg-[var(--accent)] rounded-md cursor-pointer"
+                    className="flex items-center space-x-2 p-2 hover:bg-accent rounded-md cursor-pointer"
                   >
                     <input
                       type="checkbox"
@@ -593,7 +595,7 @@ export default function Campaigns() {
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-[var(--foreground)]">Sort by:</span>
+            <span className="text-sm text-foreground">Sort by:</span>
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -601,8 +603,8 @@ export default function Campaigns() {
                 onClick={() => handleSort("type")}
                 className={`${
                   sortBy === "type"
-                    ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
-                    : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+                    ? "bg-accent text-accent-foreground"
+                    : "hover:bg-accent hover:text-accent-foreground"
                 }`}
               >
                 Type{" "}
@@ -615,8 +617,8 @@ export default function Campaigns() {
                 onClick={() => handleSort("updatedAt")}
                 className={`${
                   sortBy === "updatedAt"
-                    ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
-                    : "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]"
+                    ? "bg-accent text-accent-foreground"
+                    : "hover:bg-accent hover:text-accent-foreground"
                 }`}
                 title="Sort by updated date"
                 aria-label="Sort by updated date"
@@ -643,20 +645,22 @@ export default function Campaigns() {
           {filteredCampaigns.map((campaign) => (
             <div
               key={campaign.id}
-              className="bg-[var(--background)] rounded-lg shadow-md border border-[var(--border)] hover:shadow-lg transition-shadow cursor-pointer"
+              className="bg-background rounded-lg shadow-md border border-border hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => handleCampaignClick(campaign)}
             >
               {/* Preview Section */}
               <div className="h-48 bg-muted rounded-t-lg overflow-hidden">
                 {campaign.content ? (
                   <div 
-                    className="h-full w-full p-4 text-xs overflow-hidden"
+                    className="h-full w-full p-4 text-xs overflow-hidden email-preview-wrapper"
                     dangerouslySetInnerHTML={{ __html: campaign.content }}
                     style={{ 
                       transform: 'scale(0.3)', 
                       transformOrigin: 'top left',
                       width: '333%',
-                      height: '333%'
+                      height: '333%',
+                      backgroundColor: 'var(--background)',
+                      color: 'var(--foreground)'
                     }}
                   />
                 ) : (
@@ -672,7 +676,7 @@ export default function Campaigns() {
               {/* Content Section */}
               <div className="p-4">
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-[var(--foreground)] text-lg truncate flex-1">
+                  <h3 className="font-semibold text-foreground text-lg truncate flex-1">
                     {campaign.title}
                   </h3>
                   <span className={`text-xs px-2 py-1 rounded-full ml-2 ${getStatusColor(campaign.status || 'draft')}`}>
@@ -767,7 +771,7 @@ export default function Campaigns() {
             <div className="flex justify-between items-start p-6 border-b">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center">
-                  <span className="text-xl font-semibold text-[var(--accent-foreground)]">
+                  <span className="text-xl font-semibold text-accent-foreground">
                     {selectedCampaign.title.charAt(0)}
                   </span>
                 </div>
@@ -816,8 +820,14 @@ export default function Campaigns() {
                 <div className="bg-muted rounded-lg p-4 min-h-32">
                   {selectedCampaign.content ? (
                     <div 
-                      className="text-sm text-foreground"
+                      className="text-sm email-preview-wrapper"
                       dangerouslySetInnerHTML={{ __html: selectedCampaign.content }}
+                      style={{
+                        backgroundColor: 'var(--background)',
+                        color: 'var(--foreground)',
+                        padding: '1rem',
+                        borderRadius: '0.375rem'
+                      }}
                     />
                   ) : (
                     <div className="text-center text-muted-foreground py-8">
@@ -1031,9 +1041,9 @@ export default function Campaigns() {
               </div>
               {/* ...existing code for title, date, type, status, target groups... */}
               <div>
-                <label className="block text-sm font-semibold mb-2 text-[var(--foreground)]">Title</label>
+                <label className="block text-sm font-semibold mb-2 text-foreground">Title</label>
                 <input
-                  className="w-full border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
+                  className="w-full border border-border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
                   value={newCampaignData.title}
                   onChange={e => setNewCampaignData(d => ({ ...d, title: e.target.value }))}
                   required
@@ -1042,10 +1052,10 @@ export default function Campaigns() {
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-semibold mb-2 text-[var(--foreground)]">Date</label>
+                  <label className="block text-sm font-semibold mb-2 text-foreground">Date</label>
                   <input
                     type="date"
-                    className="w-full border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
+                    className="w-full border border-border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
                     value={newCampaignData.date}
                     onChange={e => setNewCampaignData(d => ({ ...d, date: e.target.value }))}
                     required
@@ -1053,9 +1063,9 @@ export default function Campaigns() {
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm font-semibold mb-2 text-[var(--foreground)]">Type</label>
+                  <label className="block text-sm font-semibold mb-2 text-foreground">Type</label>
                   <select
-                    className="w-full border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
+                    className="w-full border border-border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
                     value={newCampaignData.type}
                     onChange={e => setNewCampaignData(d => ({ ...d, type: e.target.value as Campaign["type"] }))}
                     aria-label="Campaign type"
@@ -1069,9 +1079,9 @@ export default function Campaigns() {
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-semibold mb-2 text-[var(--foreground)]">Status</label>
+                  <label className="block text-sm font-semibold mb-2 text-foreground">Status</label>
                   <select
-                    className="w-full border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
+                    className="w-full border border-border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
                     value={newCampaignData.status}
                     onChange={e => setNewCampaignData(d => ({ ...d, status: e.target.value as Campaign["status"] }))}
                     aria-label="Campaign status"
@@ -1085,9 +1095,9 @@ export default function Campaigns() {
                   </select>
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm font-semibold mb-2 text-[var(--foreground)]">Target Groups</label>
+                  <label className="block text-sm font-semibold mb-2 text-foreground">Target Groups</label>
                   <input
-                    className="w-full border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] bg-[var(--background)] text-[var(--foreground)]"
+                    className="w-full border border-border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
                     value={newCampaignData.targetGroups.join(",")}
                     onChange={e => setNewCampaignData(d => ({
                       ...d,
@@ -1109,14 +1119,14 @@ export default function Campaigns() {
 
       {/* Editor Dialog */}
       {showEditor && selectedCampaign && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900">
+        <div className="fixed inset-0 z-50 flex flex-col bg-background">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-b border-[var(--border)] bg-white dark:bg-gray-900 z-10">
+          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-b border-border bg-background z-10">
             <div className="mb-4 sm:mb-0">
-              <h2 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
                 {isNewCampaign ? 'Create Campaign' : `Edit Campaign: ${selectedCampaign.title}`}
               </h2>
-              <p className="text-sm text-[var(--muted-foreground)] mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Design your email campaign using the drag-and-drop editor
               </p>
             </div>
@@ -1132,7 +1142,7 @@ export default function Campaigns() {
               onReady={onEmailEditorReady}
               options={{
                 appearance: {
-                  theme: 'light',
+                  theme: theme === 'dark' ? 'dark' : 'light',
                   panels: {
                     tools: {
                       dock: 'left'
@@ -1151,7 +1161,7 @@ export default function Campaigns() {
           </div>
 
           {/* Footer */}
-          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-t border-[var(--border)] bg-gray-50 dark:bg-gray-800 z-10 gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-t border-border bg-muted z-10 gap-4">
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
@@ -1209,9 +1219,9 @@ export default function Campaigns() {
       {/* Global Loading Overlay for Redirects */}
       {isRedirecting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg p-6 flex items-center gap-3">
+          <div className="bg-card rounded-lg shadow-lg p-6 flex items-center gap-3">
             <Loader className="h-6 w-6 animate-spin text-primary" />
-            <span className="text-lg font-medium">Redirecting...</span>
+            <span className="text-lg font-medium text-card-foreground">Redirecting...</span>
           </div>
         </div>
       )}

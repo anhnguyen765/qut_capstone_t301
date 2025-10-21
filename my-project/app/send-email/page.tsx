@@ -541,13 +541,15 @@ export default function SendEmailPage() {
                                     <div className="w-24 h-24 bg-muted rounded-l-lg overflow-hidden flex-shrink-0">
                                       {item.content ? (
                                         <div
-                                          className="h-full w-full p-2 text-xs overflow-hidden"
+                                          className="h-full w-full p-2 text-xs overflow-hidden email-preview-wrapper"
                                           dangerouslySetInnerHTML={{ __html: item.content }}
                                           style={{
                                             transform: 'scale(0.25)',
                                             transformOrigin: 'top left',
                                             width: '400%',
-                                            height: '400%'
+                                            height: '400%',
+                                            backgroundColor: 'var(--background)',
+                                            color: 'var(--foreground)'
                                           }}
                                         />
                                       ) : (
@@ -599,13 +601,15 @@ export default function SendEmailPage() {
                                     <div className="w-24 h-24 bg-muted rounded-l-lg overflow-hidden flex-shrink-0">
                                       {item.content ? (
                                         <div
-                                          className="h-full w-full p-2 text-xs overflow-hidden"
+                                          className="h-full w-full p-2 text-xs overflow-hidden email-preview-wrapper"
                                           dangerouslySetInnerHTML={{ __html: item.content }}
                                           style={{
                                             transform: 'scale(0.25)',
                                             transformOrigin: 'top left',
                                             width: '400%',
-                                            height: '400%'
+                                            height: '400%',
+                                            backgroundColor: 'var(--background)',
+                                            color: 'var(--foreground)'
                                           }}
                                         />
                                       ) : (
@@ -1159,8 +1163,12 @@ export default function SendEmailPage() {
                 <div>
                   <Label className="text-sm font-medium">HTML Content Preview:</Label>
                   <div
-                    className="border rounded p-4 max-h-96 overflow-y-auto"
+                    className="border rounded p-4 max-h-96 overflow-y-auto email-preview-wrapper"
                     dangerouslySetInnerHTML={{ __html: selectedCampaign.content || "" }}
+                    style={{
+                      backgroundColor: 'var(--background)',
+                      color: 'var(--foreground)'
+                    }}
                   />
                 </div>
               </div>

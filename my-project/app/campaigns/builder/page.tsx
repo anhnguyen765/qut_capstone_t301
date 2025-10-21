@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
@@ -53,6 +54,7 @@ declare global {
 }
 
 export default function CampaignBuilder() {
+  const { theme } = useTheme();
   // ...existing code...
   const [showPreview, setShowPreview] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
@@ -377,7 +379,7 @@ export default function CampaignBuilder() {
       case "scheduled":
         return "bg-blue-100 text-blue-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-secondary text-secondary-foreground";
     }
   };
 
@@ -401,7 +403,7 @@ export default function CampaignBuilder() {
         {/* Campaign Details */}
         <Card className="relative">
           {isLoadingTemplate && (
-            <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-lg">
+            <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-lg">
               <div className="flex items-center gap-2">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span className="text-sm font-medium">Loading template...</span>
@@ -516,8 +518,12 @@ export default function CampaignBuilder() {
             </CardHeader>
             <CardContent>
               <div 
-                className="border rounded p-4 bg-gray-50"
+                className="border border-border rounded p-4 bg-background email-preview-container email-preview-wrapper"
                 dangerouslySetInnerHTML={{ __html: campaign.content }}
+                style={{
+                  backgroundColor: 'var(--background)',
+                  color: 'var(--foreground)'
+                }}
               />
             </CardContent>
           </Card>
@@ -544,10 +550,10 @@ export default function CampaignBuilder() {
       {/* Preview Modal */}
       {showPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-card rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Campaign Preview</h2>
+                <h2 className="text-xl font-bold text-card-foreground">Campaign Preview</h2>
                 <Button
                   variant="outline"
                   onClick={() => setShowPreview(false)}
@@ -557,8 +563,12 @@ export default function CampaignBuilder() {
                 </Button>
               </div>
               <div 
-                className="border rounded p-4"
+                className="border border-border rounded p-4 bg-background email-preview-container email-preview-wrapper"
                 dangerouslySetInnerHTML={{ __html: campaign.content }}
+                style={{
+                  backgroundColor: 'var(--background)',
+                  color: 'var(--foreground)'
+                }}
               />
             </div>
           </div>
@@ -567,9 +577,9 @@ export default function CampaignBuilder() {
 
       {/* Editor Dialog */}
       {showEditor && (
-  <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900 w-full max-w-none px-4 py-3 gap-4" style={{ maxHeight: '100vh' }}>
+  <div className="fixed inset-0 z-50 flex flex-col bg-background w-full max-w-none px-4 py-3 gap-4" style={{ maxHeight: '100vh' }}>
           {/* Header */}
-          <div className="w-full mx-auto flex flex-col sm:flex-row justify-between items-center border-b border-[var(--border)] bg-white dark:bg-gray-900 z-10" style={{ flex: '0 0 auto' }}>
+          <div className="w-full mx-auto flex flex-col sm:flex-row justify-between items-center border-b border-border bg-background z-10" style={{ flex: '0 0 auto' }}>
             <div className="mb-4 sm:mb-0">
               <h2 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">
                 Campaign Builder
@@ -590,7 +600,7 @@ export default function CampaignBuilder() {
               onReady={onEmailEditorReady}
               options={{
                 appearance: {
-                  theme: 'light',
+                  theme: theme === 'dark' ? 'dark' : 'light',
                   panels: {
                     tools: {
                       dock: 'left'
@@ -609,7 +619,7 @@ export default function CampaignBuilder() {
           </div>
 
           {/* Footer */}
-          <div className="w-full mx-auto flex flex-col sm:flex-row justify-between items-center z-20 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-4 py-3" style={{ position: 'sticky', bottom: 0, flex: '0 0 auto' }}>
+          <div className="w-full mx-auto flex flex-col sm:flex-row justify-between items-center z-20 bg-background border-t border-border px-4 py-3" style={{ position: 'sticky', bottom: 0, flex: '0 0 auto' }}>
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
@@ -677,9 +687,9 @@ export default function CampaignBuilder() {
       {/* Finalised Confirmation Dialog */}
       {showFinalisedConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-            <h2 className="text-xl font-bold mb-4">Finalise Campaign</h2>
-            <p className="text-gray-600 mb-6">
+          <div className="bg-card rounded-lg shadow-lg w-full max-w-md p-6">
+            <h2 className="text-xl font-bold mb-4 text-card-foreground">Finalise Campaign</h2>
+            <p className="text-muted-foreground mb-6">
               Are you sure you want to finalise this campaign? Once finalised, you won't be able to edit it directly, but you can duplicate it to make changes.
             </p>
             <div className="flex justify-end gap-2">

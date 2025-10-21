@@ -198,6 +198,30 @@
     background: var(--primary);
     color: var(--primary-foreground);
   }
+
+  /* Email Editor Dark Mode Support */
+  .dark #email-editor,
+  .dark .unlayer-editor,
+  .dark .react-email-editor {
+    background: var(--card) !important;
+    color: var(--card-foreground) !important;
+  }
+
+  .dark #email-editor iframe,
+  .dark .unlayer-editor iframe,
+  .dark .react-email-editor iframe {
+    background: var(--card) !important;
+  }
+
+  /* Ensure email preview areas respect dark mode */
+  .dark .email-preview-container {
+    background: var(--card);
+    color: var(--card-foreground);
+  }
+
+  .dark .email-preview-container iframe {
+    background: var(--card);
+  }
 }
 
 @theme inline {
@@ -316,4 +340,42 @@
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: #1A1A2E;
   --sidebar-ring: #4F71B6;
+}
+
+/* Email Preview Dark Mode Styles */
+.email-preview-wrapper {
+  /* Force email content to be readable in both themes */
+  color-scheme: light dark;
+}
+
+.email-preview-wrapper * {
+  /* Override any hardcoded colors in email content */
+  color: inherit !important;
+  background-color: transparent !important;
+}
+
+.email-preview-wrapper table,
+.email-preview-wrapper td,
+.email-preview-wrapper th {
+  /* Ensure table elements inherit theme colors */
+  color: inherit !important;
+  border-color: currentColor !important;
+}
+
+.email-preview-wrapper a {
+  /* Make links visible in both themes */
+  color: #3b82f6 !important; /* blue-500 */
+}
+
+.dark .email-preview-wrapper a {
+  color: #60a5fa !important; /* blue-400 for dark mode */
+}
+
+.email-preview-wrapper img {
+  /* Improve image visibility in dark mode */
+  opacity: 0.9;
+}
+
+.dark .email-preview-wrapper img {
+  opacity: 0.8;
 }

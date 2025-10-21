@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -31,6 +32,7 @@ declare global {
 
 export default function TemplateBuilder() {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const searchParams = useSearchParams();
   const router = useRouter();
   const templateId = searchParams.get('id');
@@ -320,8 +322,12 @@ export default function TemplateBuilder() {
             </CardHeader>
             <CardContent>
               <div 
-                className="border rounded p-4 bg-gray-50"
+                className="border rounded p-4 bg-muted email-preview-wrapper"
                 dangerouslySetInnerHTML={{ __html: template.content }}
+                style={{
+                  backgroundColor: 'var(--background)',
+                  color: 'var(--foreground)'
+                }}
               />
             </CardContent>
           </Card>
@@ -360,8 +366,12 @@ export default function TemplateBuilder() {
                 </Button>
               </div>
               <div 
-                className="border rounded p-4"
+                className="border rounded p-4 email-preview-wrapper"
                 dangerouslySetInnerHTML={{ __html: template.content }}
+                style={{
+                  backgroundColor: 'var(--background)',
+                  color: 'var(--foreground)'
+                }}
               />
             </div>
           </div>
@@ -393,7 +403,7 @@ export default function TemplateBuilder() {
               onReady={onEmailEditorReady}
               options={{
                 appearance: {
-                  theme: 'light',
+                  theme: theme === 'dark' ? 'dark' : 'light',
                   panels: {
                     tools: {
                       dock: 'left'

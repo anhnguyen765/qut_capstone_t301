@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTheme } from "next-themes";
 import EmailEditor, { EditorRef } from "react-email-editor";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -21,6 +22,7 @@ type Newsletter = {
 
 export default function NewsletterBuilder() {
   const router = useRouter();
+  const { theme } = useTheme();
   const searchParams = useSearchParams();
   const newsletterId = searchParams.get('id');
   const [newsletter, setNewsletter] = useState<Newsletter>({
@@ -327,8 +329,12 @@ export default function NewsletterBuilder() {
             </CardHeader>
             <CardContent>
               <div 
-                className="border rounded p-4 bg-gray-50"
+                className="border rounded p-4 bg-muted email-preview-wrapper"
                 dangerouslySetInnerHTML={{ __html: newsletter.content }}
+                style={{
+                  backgroundColor: 'var(--background)',
+                  color: 'var(--foreground)'
+                }}
               />
             </CardContent>
           </Card>
@@ -403,7 +409,7 @@ export default function NewsletterBuilder() {
               onReady={onEmailEditorReady}
               options={{
                 appearance: {
-                  theme: 'light',
+                  theme: theme === 'dark' ? 'dark' : 'light',
                   panels: {
                     tools: {
                       dock: 'left'

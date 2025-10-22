@@ -628,7 +628,7 @@ export default function CampaignBuilder() {
               onClick={handleFinalizeCampaign}
               disabled={isLoading}
               variant="outline"
-              className="border-green-500 text-green-600 hover:bg-green-50"
+              className="border-primary text-primary hover:bg-primary/10"
             >
               <Target className="h-4 w-4 mr-2" />
               Finalize Campaign
@@ -812,7 +812,7 @@ export default function CampaignBuilder() {
               <Button 
                 onClick={confirmFinalize}
                 disabled={isLoading}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {isLoading ? (
                   <>

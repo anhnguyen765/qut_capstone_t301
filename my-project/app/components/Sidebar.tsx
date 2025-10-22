@@ -98,9 +98,11 @@ export function AppSidebar() {
           <DropdownMenuContent align="start" className="w-[200px]">
             {isAuthenticated && user ? (
               <>
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4 text-foreground" />
-                  Profile
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="flex items-center">
+                    <User className="mr-2 h-4 w-4 text-foreground" />
+                    Profile
+                  </Link>
                 </DropdownMenuItem>
                 {user.role === 'admin' && (
                   <DropdownMenuItem asChild>

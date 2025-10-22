@@ -16,7 +16,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   // Pages (or prefixes) that don't require authentication
   // Add '/unsub' so recipients can update preferences without logging in
-  const publicPages = ['/login', '/register', '/unsub'];
+  const publicPages = ['/login', '/register', '/unsub', '/forgot-password', '/reset-password'];
   // Some environments may not provide pathname immediately; fall back to window.location
   const currentPath = pathname ?? (typeof window !== 'undefined' ? window.location.pathname : '');
   const isPublic = publicPages.some((p) => currentPath === p || currentPath.startsWith(p + '/') || currentPath.startsWith(p));

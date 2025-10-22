@@ -14,7 +14,7 @@ import {
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Button } from "@/app/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Shield } from "lucide-react";
 
 function LoginForm() {
     const router = useRouter();
@@ -27,6 +27,8 @@ function LoginForm() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
+    const [checkingAdmin, setCheckingAdmin] = useState(false);
 
     useEffect(() => {
         const message = searchParams.get("message");
@@ -55,6 +57,41 @@ function LoginForm() {
                 [name]: ""
             }));
         }
+
+        // Check if email belongs to admin when email field changes
+        if (name === 'email') {
+            setShowForgotPassword(false); // Hide button while checking
+            if (value && /\S+@\S+\.\S+/.test(value)) {
+                checkIfEmailIsAdmin(value);
+            }
+        }
+    };
+
+    const checkIfEmailIsAdmin = async (email: string) => {
+        setCheckingAdmin(true);
+        try {
+            const response = await fetch("/api/auth/check-admin", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = await response.json();
+            setShowForgotPassword(data.isAdmin === true);
+        } catch (error) {
+            console.error("Error checking admin status:", error);
+            setShowForgotPassword(false);
+        } finally {
+            setCheckingAdmin(false);
+        }
+    };
+
+    const handleForgotPassword = (e: React.MouseEvent) => {
+        e.preventDefault(); // Prevent form submission
+        e.stopPropagation(); // Stop event bubbling
+        router.push("/forgot-password");
     };
 
     const validateForm = () => {
@@ -204,9 +241,24 @@ function LoginForm() {
                             )}
                         </div>
                         <div className="flex items-center justify-end">
-                            <Button variant="link" className="h-auto p-0 text-sm">
-                                Forgot password?
-                            </Button>
+                            {showForgotPassword && (
+                                <Button 
+                                    variant="link" 
+                                    className="h-auto p-0 text-sm"
+                                    onClick={handleForgotPassword}
+                                    disabled={isLoading || checkingAdmin}
+                                    type="button"
+                                >
+                                    <Shield className="h-3 w-3 mr-1" />
+                                    Forgot password?
+                                </Button>
+                            )}
+                            {checkingAdmin && (
+                                <div className="text-xs text-muted-foreground flex items-center">
+                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                    Checking admin status...
+                                </div>
+                            )}
                         </div>
                         {errors.general && (
                             <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">

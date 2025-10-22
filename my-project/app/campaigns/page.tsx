@@ -19,7 +19,7 @@ type Campaign = {
   title: string;
   date: string;
   type: "app" | "classes" | "fishing_comps" | "oshc_vacation_care" | "promotion" | "other";
-  status: "draft" | "finalised" | "scheduled" | "sent" | "archived";
+  status: "draft" | "scheduled" | "sent" | "archived";
   targetGroups?: string[]; // Which contact groups to send to
   content?: string; // Email content/template
   design?: any; // Email editor design object
@@ -267,8 +267,6 @@ export default function Campaigns() {
     switch (status) {
       case "draft":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100";
-      case "finalised":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100";
       case "scheduled":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
       case "sent":
@@ -305,7 +303,7 @@ export default function Campaigns() {
     }
   };
 
-  const saveEmailDesign = async (status: "draft" | "finalised") => {
+  const saveEmailDesign = async (status: "draft" | "scheduled") => {
     const unlayer = emailEditorRef.current?.editor;
 
     unlayer?.saveDesign((design: any) => {
@@ -349,7 +347,7 @@ export default function Campaigns() {
             }
             
             const result = await res.json();
-            const action = status === "draft" ? "saved as draft" : "finalised";
+            const action = status === "draft" ? "saved as draft" : "finalized";
             setNotification({ message: `Campaign ${action} successfully!`, type: "success" });
             
             // Update the selected campaign with the new ID if it was created
@@ -708,8 +706,8 @@ export default function Campaigns() {
                       setIsRedirecting(true);
                       router.push(`/campaigns/builder?id=${campaign.id}`);
                     }}
-                    disabled={campaign.status === 'finalised' || isRedirecting}
-                    title={campaign.status === 'finalised' ? 'Cannot edit finalised campaigns' : 'Edit campaign'}
+                    disabled={campaign.status === 'sent' || campaign.status === 'archived' || isRedirecting}
+                    title={campaign.status === 'sent' || campaign.status === 'archived' ? 'Cannot edit sent or archived campaigns' : 'Edit campaign'}
                   >
                     {isRedirecting ? (
                       <Loader className="h-4 w-4 mr-1 animate-spin" />
@@ -745,7 +743,7 @@ export default function Campaigns() {
                   >
                     <Save className="h-4 w-4" />
                   </Button>
-                  {(campaign.status === 'draft' || campaign.status === 'finalised') && (
+                  {(campaign.status === 'draft' || campaign.status === 'scheduled') && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -843,7 +841,7 @@ export default function Campaigns() {
             {/* Footer Actions */}
             <div className="flex justify-between items-center p-6 border-t bg-muted">
               <div className="flex gap-2">
-                {(selectedCampaign.status === 'draft' || selectedCampaign.status === 'finalised') && (
+                {(selectedCampaign.status === 'draft' || selectedCampaign.status === 'scheduled') && (
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -875,8 +873,8 @@ export default function Campaigns() {
                     router.push(`/campaigns/builder?id=${selectedCampaign.id}`);
                   }} 
                   className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={selectedCampaign.status === 'finalised' || isRedirecting}
-                  title={selectedCampaign.status === 'finalised' ? 'Cannot edit finalised campaigns' : 'Edit campaign'}
+                  disabled={selectedCampaign.status === 'sent' || selectedCampaign.status === 'archived' || isRedirecting}
+                  title={selectedCampaign.status === 'sent' || selectedCampaign.status === 'archived' ? 'Cannot edit sent or archived campaigns' : 'Edit campaign'}
                 >
                   {isRedirecting ? (
                     <Loader className="h-4 w-4 mr-2 animate-spin" />
@@ -1088,7 +1086,6 @@ export default function Campaigns() {
                     title="Campaign status"
                   >
                     <option value="draft">Draft</option>
-                    <option value="finalised">Finalised</option>
                     <option value="scheduled">Scheduled</option>
                     <option value="sent">Sent</option>
                     <option value="archived">Archived</option>
@@ -1205,11 +1202,11 @@ export default function Campaigns() {
                 Save as Draft
               </Button>
               <Button 
-                onClick={() => saveEmailDesign("finalised")}
+                onClick={() => saveEmailDesign("scheduled")}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
-                Finalise Campaign
+                Finalize Campaign
               </Button>
             </div>
           </div>

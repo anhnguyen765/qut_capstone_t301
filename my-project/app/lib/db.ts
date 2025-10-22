@@ -15,16 +15,11 @@ export async function createConnection() {
     database: process.env.DB_NAME || "crm_db",
   };
 
-  // Add connection timeout and other options
+  // Add valid connection options for MySQL2
   const connectionConfig = {
     ...config,
-    connectTimeout: 30000, // 30 seconds
-    acquireTimeout: 30000,
-    timeout: 30000,
-    pool: {
-      min: 0,
-      max: 10
-    }
+    connectTimeout: 30000, // 30 seconds - this is valid
+    // Remove acquireTimeout and timeout as they're not valid for individual connections
   };
 
   try {

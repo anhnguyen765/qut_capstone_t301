@@ -19,7 +19,7 @@ interface Campaign {
   title: string;
   description: string;
   type: "app" | "classes" | "fishing_comps" | "oshc_vacation_care" | "promotion" | "other";
-  status: "draft" | "finalised";
+  status: "draft" | "scheduled" | "sent" | "archived";
   design: any;
   content: string;
   targetGroups: string[];
@@ -106,7 +106,7 @@ export default function CampaignBuilder() {
   const [emailEditorLoaded, setEmailEditorLoaded] = useState(false);
   const [emailDesign, setEmailDesign] = useState<any>(null);
   const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
-  const [showFinalisedConfirm, setShowFinalisedConfirm] = useState(false);
+  const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
   const emailEditorRef = useRef<EditorRef>(null);
 
   // Generate lightweight preview HTML from Unlayer design JSON
@@ -257,17 +257,92 @@ export default function CampaignBuilder() {
   };
 
   const handleStatusChange = (newStatus: string) => {
-    if (newStatus === 'finalised' && campaign.status !== 'finalised') {
-      setShowFinalisedConfirm(true);
-    } else {
-      setCampaign(prev => ({ ...prev, status: newStatus as any }));
+    setCampaign(prev => ({ ...prev, status: newStatus as any }));
+  };
+
+  const handleFinalizeCampaign = () => {
+    if (campaign.status === 'draft') {
+      setShowFinalizeConfirm(true);
     }
   };
 
-  const confirmFinalised = () => {
-    setCampaign(prev => ({ ...prev, status: 'finalised' }));
-    setShowFinalisedConfirm(false);
-    setMessage('Campaign status changed to finalised. You can duplicate it to make edits.');
+  const confirmFinalize = async () => {
+    if (!campaign.title.trim()) {
+      setMessage("Error: Campaign title is required before finalizing");
+      setShowFinalizeConfirm(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("Finalizing campaign...");
+
+    try {
+      // Save current design and content
+      let html = campaign.content;
+      let design = campaign.design;
+      
+      if (emailEditorRef.current?.editor) {
+        const unlayer = emailEditorRef.current.editor;
+        await new Promise((resolve) => {
+          unlayer.saveDesign((data: any) => {
+            design = data;
+            resolve(data);
+          });
+        });
+        await new Promise((resolve) => {
+          unlayer.exportHtml((data: any) => {
+            html = data.html;
+            resolve(data);
+          });
+        });
+      }
+
+      const campaignData = {
+        ...campaign,
+        status: 'scheduled',
+        content: html,
+        design,
+        createdBy: user?.userId
+      };
+
+      let response;
+      if (campaign.id) {
+        response = await fetch(`/api/campaigns/${campaign.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(campaignData),
+        });
+      } else {
+        response = await fetch("/api/campaigns", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(campaignData),
+        });
+      }
+
+      if (response.ok) {
+        const result = await response.json();
+        setCampaign(prev => ({ 
+          ...prev, 
+          id: result.id || prev.id, 
+          status: 'scheduled',
+          content: html, 
+          design 
+        }));
+        setMessage('Campaign finalized successfully! Status changed to scheduled.');
+        setShowFinalizeConfirm(false);
+      } else {
+        setMessage("Error finalizing campaign");
+      }
+    } catch (error) {
+      setMessage("Error finalizing campaign: " + error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const saveCampaign = async () => {
@@ -374,10 +449,12 @@ export default function CampaignBuilder() {
     switch (status) {
       case "draft":
         return "bg-yellow-100 text-yellow-800";
-      case "finalised":
-        return "bg-green-100 text-green-800";
       case "scheduled":
         return "bg-blue-100 text-blue-800";
+      case "sent":
+        return "bg-green-100 text-green-800";
+      case "archived":
+        return "bg-gray-100 text-gray-800";
       default:
         return "bg-secondary text-secondary-foreground";
     }
@@ -459,7 +536,9 @@ export default function CampaignBuilder() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="finalised">Finalised</SelectItem>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="sent">Sent</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -543,6 +622,18 @@ export default function CampaignBuilder() {
             )}
             {isLoading ? "Saving..." : "Save Campaign"}
           </Button>
+
+          {campaign.status === 'draft' && campaign.title.trim() && (
+            <Button
+              onClick={handleFinalizeCampaign}
+              disabled={isLoading}
+              variant="outline"
+              className="border-green-500 text-green-600 hover:bg-green-50"
+            >
+              <Target className="h-4 w-4 mr-2" />
+              Finalize Campaign
+            </Button>
+          )}
         </div>
       </div>
 
@@ -654,13 +745,6 @@ export default function CampaignBuilder() {
             </div>
                 <div className="flex gap-2">
                   <Button 
-                    variant="outline" 
-                    onClick={handleCloseEditor}
-                    className="border-primary text-primary hover:bg-primary/10"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
                     onClick={() => {
                       const unlayer = emailEditorRef.current?.editor;
                       if (!unlayer) return;
@@ -674,36 +758,73 @@ export default function CampaignBuilder() {
                         });
                       });
                     }}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                    variant="outline"
+                    className="border-primary text-primary hover:bg-primary/10"
                   >
                     <Save className="h-4 w-4 mr-2" />
-                    Apply Changes
+                    Save as Draft
                   </Button>
+                  {campaign.status === 'draft' && (
+                    <Button 
+                      onClick={() => {
+                        const unlayer = emailEditorRef.current?.editor;
+                        if (!unlayer) return;
+                        // Export current editor state and finalize
+                        unlayer.saveDesign((designData: any) => {
+                          unlayer.exportHtml((data: any) => {
+                            const { html } = data;
+                            setCampaign(prev => ({ ...prev, design: designData, content: html }));
+                            setShowEditor(false);
+                            // Trigger finalize after closing editor
+                            setTimeout(() => {
+                              setShowFinalizeConfirm(true);
+                            }, 100);
+                          });
+                        });
+                      }}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                    >
+                      <Target className="h-4 w-4 mr-2" />
+                      Finalize Campaign
+                    </Button>
+                  )}
                 </div>
           </div>
         </div>
       )}
 
-      {/* Finalised Confirmation Dialog */}
-      {showFinalisedConfirm && (
+      {/* Finalize Confirmation Dialog */}
+      {showFinalizeConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-card rounded-lg shadow-lg w-full max-w-md p-6">
-            <h2 className="text-xl font-bold mb-4 text-card-foreground">Finalise Campaign</h2>
+            <h2 className="text-xl font-bold mb-4 text-card-foreground">Finalize Campaign</h2>
             <p className="text-muted-foreground mb-6">
-              Are you sure you want to finalise this campaign? Once finalised, you won't be able to edit it directly, but you can duplicate it to make changes.
+              Are you sure you want to finalize this campaign? This will change the status to "Scheduled" and save all current changes. You can still edit it later if needed.
             </p>
             <div className="flex justify-end gap-2">
               <Button 
                 variant="outline" 
-                onClick={() => setShowFinalisedConfirm(false)}
+                onClick={() => setShowFinalizeConfirm(false)}
+                disabled={isLoading}
               >
                 Cancel
               </Button>
               <Button 
-                onClick={confirmFinalised}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                onClick={confirmFinalize}
+                disabled={isLoading}
+                className="bg-green-600 hover:bg-green-700 text-white"
               >
-                Yes, Finalise
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Finalizing...
+                  </>
+                ) : (
+                  <>
+                    <Target className="h-4 w-4 mr-2" />
+                    Yes, Finalize
+                  </>
+                )}
               </Button>
             </div>
           </div>

@@ -90,8 +90,11 @@ export async function POST(request: NextRequest) {
       [user.id, user.email, token, expiresAt.toISOString().slice(0, 19).replace('T', ' ')]
     );
 
-    // Create reset URL
-    const resetUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
+    // Create reset URL - use APP_BASE_URL like other email links in the app
+    const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
+    const resetUrl = baseUrl.startsWith('http') 
+      ? `${baseUrl}/reset-password?token=${token}` 
+      : `http://${baseUrl}/reset-password?token=${token}`;
 
     // Send password reset email
     const emailResult = await emailService.sendEmail({

@@ -259,22 +259,17 @@ export default function CampaignBuilder() {
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    console.log('handleStatusChange called with:', newStatus, 'current status:', campaign.status);
-    
     // If changing from finalized status, show confirmation
     if (campaign.status === 'finalized' && newStatus !== 'finalized') {
-      console.log('Showing confirmation dialog for finalized campaign');
       setPendingStatusChange(newStatus);
       setShowStatusChangeConfirm(true);
     } else {
       // For other status changes, save immediately
       if (!campaign.id) {
-        console.log('No campaign ID, cannot save');
         setMessage("Error: Cannot change status - campaign not saved yet");
         return;
       }
 
-      console.log('Saving status change immediately, campaign ID:', campaign.id);
       setIsLoading(true);
       setMessage("Updating campaign status...");
 
@@ -289,8 +284,6 @@ export default function CampaignBuilder() {
           design: campaign.design || null
         };
 
-        console.log('Sending PUT request with data:', updatedCampaign);
-
         const response = await fetch(`/api/campaigns/${campaign.id}`, {
           method: "PUT",
           headers: {
@@ -299,15 +292,12 @@ export default function CampaignBuilder() {
           body: JSON.stringify(updatedCampaign),
         });
 
-        console.log('Response status:', response.status, response.ok);
-
         if (response.ok) {
           setCampaign(prev => ({ ...prev, status: newStatus as any }));
           setMessage(`Status successfully changed to ${newStatus}`);
-          console.log('Status change successful');
         } else {
           const errorText = await response.text();
-          console.log('Error response:', errorText);
+          console.error('Error response:', errorText);
           setMessage("Error: Failed to update campaign status");
         }
       } catch (error) {
@@ -320,17 +310,13 @@ export default function CampaignBuilder() {
   };
 
   const confirmStatusChange = async () => {
-    console.log('confirmStatusChange called, pending status:', pendingStatusChange);
-    
     if (!campaign.id) {
-      console.log('No campaign ID for confirmation');
       setMessage("Error: Cannot change status - campaign not saved yet");
       setShowStatusChangeConfirm(false);
       setPendingStatusChange("");
       return;
     }
 
-    console.log('Confirming status change for campaign ID:', campaign.id);
     setIsLoading(true);
     setMessage("Updating campaign status...");
 
@@ -345,8 +331,6 @@ export default function CampaignBuilder() {
         design: campaign.design || null
       };
 
-      console.log('Sending PUT request for confirmation with data:', updatedCampaign);
-
       const response = await fetch(`/api/campaigns/${campaign.id}`, {
         method: "PUT",
         headers: {
@@ -355,17 +339,14 @@ export default function CampaignBuilder() {
         body: JSON.stringify(updatedCampaign),
       });
 
-      console.log('Confirmation response status:', response.status, response.ok);
-
       if (response.ok) {
         setCampaign(prev => ({ ...prev, status: pendingStatusChange as any }));
         setMessage(`Status successfully changed from finalized to ${pendingStatusChange}`);
         setShowStatusChangeConfirm(false);
         setPendingStatusChange("");
-        console.log('Confirmation status change successful');
       } else {
         const errorText = await response.text();
-        console.log('Confirmation error response:', errorText);
+        console.error('Confirmation error response:', errorText);
         setMessage("Error: Failed to update campaign status");
       }
     } catch (error) {

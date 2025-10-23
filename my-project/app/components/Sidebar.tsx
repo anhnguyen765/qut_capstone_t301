@@ -186,36 +186,14 @@ export function AppSidebar() {
             </Collapsible>
 
             {/* Contacts */}
-            <Collapsible defaultOpen className="group/collapsible">
-              <SidebarMenuItem>
-                <CollapsibleTrigger asChild>
-                  <Link href="/contacts" prefetch>
-                    <SidebarMenuButton className="w-full px-4 py-2 gap-x-2 rounded hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">
-                      <Users className="h-5 w-5" />
-                      <span className="font-semibold">Contacts</span>
-                      <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
-                    </SidebarMenuButton>
-                  </Link>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="overflow-hidden">
-                  <SidebarMenuSub>
-                    {[
-                      { label: "Companies", value: "companies" },
-                      { label: "Private", value: "private" },
-                      { label: "Groups", value: "groups" },
-                      { label: "OSHC", value: "oshc" },
-                      { label: "Schools", value: "schools" }
-                    ].map((item) => (
-                      <Link key={item.value} href={`/contacts/${item.value}`} prefetch>
-                        <SidebarMenuSubItem className="px-6 py-2 rounded hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors">
-                          {item.label}
-                        </SidebarMenuSubItem>
-                      </Link>
-                    ))}
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className="px-4 py-2 gap-x-2 hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] rounded transition-colors">
+                <Link href="/contacts" prefetch>
+                  <Users className="h-5 w-5" />
+                  <span className="font-semibold">Contacts</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
 
             {/* Analytics */}
             <SidebarMenuItem>

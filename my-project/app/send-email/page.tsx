@@ -10,6 +10,7 @@ import { Checkbox } from "@/app/components/ui/checkbox";
 import { Label } from "@/app/components/ui/label";
 import { Separator } from "@/app/components/ui/separator";
 import { Mail, Send, Loader2, Eye, Users, ChevronDown, ChevronRight, CheckCircle, Circle } from "lucide-react";
+import { useContactGroupNames } from "@/hooks/useContactGroups";
 
 interface Campaign {
   id: number;
@@ -428,7 +429,9 @@ export default function SendEmailPage() {
     }
   };
 
-  const groups = ["all", "Companies", "Groups", "Private", "OSHC", "Schools"];
+  // Use dynamic groups
+  const groupNames = useContactGroupNames();
+  const groups = ["all", ...groupNames];
 
   // Lightweight entries used for rendering lists to avoid TS inference issues
   const campaignEntries = campaigns.map((c) => ({ id: c.id, title: c.title, status: c.status, full: c }));

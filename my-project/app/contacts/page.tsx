@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Search, Filter, UserPlus, ArrowUpDown, Upload, Edit, Eye, ChevronDown, Trash2, Download } from "lucide-react";
+import { Search, Filter, UserPlus, ArrowUpDown, Upload, Edit, Eye, ChevronDown, Trash2, Download, Users, Settings } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -12,13 +12,15 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import GroupManager from "@/app/components/GroupManager";
+import { useContactGroups } from "@/hooks/useContactGroups";
 
 type Contact = {
   id?: number;
   name: string;
   email: string;
   phone?: string;
-  group: "Companies" | "Groups" | "Private" | "OSHC" | "Schools" | null;
+  group: string | null; // Changed to string to support dynamic groups
   notes?: string;
   opt1?: boolean;
   opt2?: boolean;
@@ -27,15 +29,13 @@ type Contact = {
   updated_at?: string;
 };
 
-const GROUPS = [
-  { label: "Companies", value: "Companies" },
-  { label: "Private", value: "Private" },
-  { label: "Schools", value: "Schools" },
-  { label: "Groups", value: "Groups" },
-  { label: "OSHC", value: "OSHC" },
-];
-
 export default function Contacts() {
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"contacts" | "groups">("contacts");
+  
+  // Dynamic groups
+  const { groups, groupNames, refetch: refetchGroups } = useContactGroups();
+  const GROUPS = groups.map(g => ({ label: g.name, value: g.name }));
   const [filter, setFilter] = useState("");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
@@ -154,7 +154,7 @@ export default function Contacts() {
         
       } else if (response.status === 409 && result.duplicate) {
         // Handle duplicate email
-        alert(`❌ Duplicate Email!\n\nA contact with email "${newContact.email}" already exists:\nName: ${result.existingContact?.name}\n\nPlease use a different email address.`);
+        alert(`Γ¥î Duplicate Email!\n\nA contact with email "${newContact.email}" already exists:\nName: ${result.existingContact?.name}\n\nPlease use a different email address.`);
       } else {
         // Handle other errors
         alert(`Error: ${result.error || 'Failed to add contact'}`);
@@ -396,10 +396,10 @@ export default function Contacts() {
       
       // Show summary message
       let message = `Import completed!\n`;
-      message += `✅ Successfully imported: ${successCount} contacts\n`;
+      message += `Γ£à Successfully imported: ${successCount} contacts\n`;
       
       if (duplicateCount > 0) {
-        message += `⚠️ Skipped duplicates: ${duplicateCount} contacts\n`;
+        message += `ΓÜá∩╕Å Skipped duplicates: ${duplicateCount} contacts\n`;
         if (duplicates.length <= 5) {
           message += `Duplicate emails: ${duplicates.join(', ')}\n`;
         } else {
@@ -408,7 +408,7 @@ export default function Contacts() {
       }
       
       if (errorCount > 0) {
-        message += `❌ Errors: ${errorCount} contacts\n`;
+        message += `Γ¥î Errors: ${errorCount} contacts\n`;
       }
       
       alert(message);
@@ -452,7 +452,38 @@ export default function Contacts() {
   };
 
   return (
-    <div className="py-8 px-[10%]">
+    <div className="space-y-6 p-6">
+      {/* Tab Navigation */}
+      <div className="border-b border-border">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab("contacts")}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "contacts"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            }`}
+          >
+            <Users className="h-4 w-4 inline mr-2" />
+            Contacts
+          </button>
+          <button
+            onClick={() => setActiveTab("groups")}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "groups"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            }`}
+          >
+            <Settings className="h-4 w-4 inline mr-2" />
+            Manage Groups
+          </button>
+        </nav>
+      </div>
+
+      {/* Contacts Tab */}
+      {activeTab === "contacts" && (
+        <div className="py-8 px-[10%]">
       <header className="mb-6">
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
           Contacts
@@ -734,7 +765,7 @@ export default function Contacts() {
                     onChange={e => setNewContact({ ...newContact, opt1: e.target.checked })}
                     className="accent-primary"
                   />
-                  Opt1
+                  Campaigns
                 </label>
                 <label className="flex items-center gap-2 text-card-foreground">
                   <input
@@ -743,7 +774,7 @@ export default function Contacts() {
                     onChange={e => setNewContact({ ...newContact, opt2: e.target.checked })}
                     className="accent-primary"
                   />
-                  Opt2
+                  Newsletters
                 </label>
                 <label className="flex items-center gap-2 text-card-foreground">
                   <input
@@ -1109,6 +1140,19 @@ export default function Contacts() {
           </div>
         </div>
       )}
+        </div>
+      )}
+
+      {/* Groups Tab */}
+      {activeTab === "groups" && (
+        <GroupManager 
+          onGroupsChange={() => {
+            refetchGroups(); // Refresh the groups list
+            fetchContacts(); // Refresh contacts to update group displays
+          }} 
+        />
+      )}
     </div>
   );
 }
+

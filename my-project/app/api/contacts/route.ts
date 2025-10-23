@@ -9,7 +9,7 @@ export async function GET() {
         name,
         email,
         phone,
-        \`group\`,
+        COALESCE(group_name, \`group\`) as \`group\`,
         notes,
         opt1,
         opt2,
@@ -81,13 +81,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate group
-    const validGroups = ['Companies', 'Groups', 'Private', 'OSHC', 'Schools'];
-    if (group && !validGroups.includes(group)) {
-      return NextResponse.json(
-        { error: "Invalid group. Must be one of: Companies, Groups, Private, OSHC, Schools" },
-        { status: 400 }
+    // Validate group against dynamic groups
+    if (group) {
+      const validGroups = await executeQuery(
+        'SELECT name FROM contact_groups WHERE is_active = TRUE'
       );
+      const validGroupNames = Array.isArray(validGroups) ? validGroups.map((g: any) => g.name) : [];
+      
+      if (!validGroupNames.includes(group)) {
+        return NextResponse.json(
+          { 
+            error: `Invalid group. Must be one of: ${validGroupNames.join(', ')}`,
+            validGroups: validGroupNames
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const result = await executeQuery(`
@@ -95,7 +104,7 @@ export async function POST(request: Request) {
         name, 
         email, 
         phone, 
-        \`group\`, 
+        group_name, 
         notes,
         opt1,
         opt2,

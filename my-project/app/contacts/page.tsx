@@ -128,24 +128,41 @@ export default function Contacts() {
     }
     
     try {
-      await fetch("/api/contacts", {
+      const response = await fetch("/api/contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newContact),
       });
-      setShowAddDialog(false);
-      setNewContact({ name: "", email: "", phone: "", group: null, notes: "", opt1: true, opt2: true, opt3: true });
-      // Refresh contacts
-      const response = await fetch("/api/contacts");
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        setContacts(data);
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        setShowAddDialog(false);
+        setNewContact({ name: "", email: "", phone: "", group: null, notes: "", opt1: true, opt2: true, opt3: true });
+        
+        // Refresh contacts
+        const contactsResponse = await fetch("/api/contacts");
+        const data = await contactsResponse.json();
+        if (Array.isArray(data)) {
+          setContacts(data);
+        } else {
+          console.error("Contacts API returned non-array data:", data);
+          setContacts([]);
+        }
+        
+        alert("Contact added successfully!");
+        
+      } else if (response.status === 409 && result.duplicate) {
+        // Handle duplicate email
+        alert(`❌ Duplicate Email!\n\nA contact with email "${newContact.email}" already exists:\nName: ${result.existingContact?.name}\n\nPlease use a different email address.`);
       } else {
-        console.error("Contacts API returned non-array data:", data);
-        setContacts([]);
+        // Handle other errors
+        alert(`Error: ${result.error || 'Failed to add contact'}`);
       }
+      
     } catch (error) {
       console.error("Error adding contact:", error);
+      alert("Error adding contact. Please try again.");
     }
   };
 
@@ -332,13 +349,37 @@ export default function Contacts() {
 
   const handleConfirmImport = async () => {
     setIsImporting(true);
+    let successCount = 0;
+    let duplicateCount = 0;
+    let errorCount = 0;
+    const duplicates: string[] = [];
+    
     try {
       for (const contact of importPreview) {
-        await fetch("/api/contacts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(contact),
-        });
+        try {
+          const response = await fetch("/api/contacts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(contact),
+          });
+          
+          const result = await response.json();
+          
+          if (response.ok) {
+            successCount++;
+          } else if (response.status === 409 && result.duplicate) {
+            // Duplicate email - skip this contact
+            duplicateCount++;
+            duplicates.push(`${contact.email} (${contact.name})`);
+            console.log(`Skipped duplicate email: ${contact.email}`);
+          } else {
+            errorCount++;
+            console.error(`Error adding contact ${contact.email}:`, result.error);
+          }
+        } catch (contactError) {
+          errorCount++;
+          console.error(`Error processing contact ${contact.email}:`, contactError);
+        }
       }
       
       // Refresh contacts
@@ -352,7 +393,26 @@ export default function Contacts() {
       setShowImportDialog(false);
       setImportFile(null);
       setImportPreview([]);
-      alert(`Successfully imported ${importPreview.length} contacts!`);
+      
+      // Show summary message
+      let message = `Import completed!\n`;
+      message += `✅ Successfully imported: ${successCount} contacts\n`;
+      
+      if (duplicateCount > 0) {
+        message += `⚠️ Skipped duplicates: ${duplicateCount} contacts\n`;
+        if (duplicates.length <= 5) {
+          message += `Duplicate emails: ${duplicates.join(', ')}\n`;
+        } else {
+          message += `Duplicate emails: ${duplicates.slice(0, 5).join(', ')} and ${duplicates.length - 5} more...\n`;
+        }
+      }
+      
+      if (errorCount > 0) {
+        message += `❌ Errors: ${errorCount} contacts\n`;
+      }
+      
+      alert(message);
+      
     } catch (error) {
       console.error('Error importing contacts:', error);
       alert('Error importing contacts. Please try again.');

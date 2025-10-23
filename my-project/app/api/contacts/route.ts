@@ -58,6 +58,29 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check for duplicate email
+    const existingContact = await executeQuery(
+      `SELECT id, name FROM contacts WHERE email = ? LIMIT 1`,
+      [email]
+    );
+
+    if (Array.isArray(existingContact) && existingContact.length > 0) {
+      const existing = existingContact[0] as any;
+      return NextResponse.json(
+        { 
+          error: "Email already exists", 
+          message: `A contact with email "${email}" already exists (Name: ${existing.name})`,
+          duplicate: true,
+          existingContact: {
+            id: existing.id,
+            name: existing.name,
+            email: email
+          }
+        },
+        { status: 409 }
+      );
+    }
+
     // Validate group
     const validGroups = ['Companies', 'Groups', 'Private', 'OSHC', 'Schools'];
     if (group && !validGroups.includes(group)) {

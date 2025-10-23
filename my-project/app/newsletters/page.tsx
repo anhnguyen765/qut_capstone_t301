@@ -543,7 +543,7 @@ export default function Newsletters() {
               onClick={() => handleNewsletterClick(newsletter)}
             >
               {/* Preview Section */}
-              <div className="h-48 bg-muted rounded-t-lg overflow-hidden">
+              <div className="h-48 bg-[var(--muted)] rounded-t-lg overflow-hidden">
                 {newsletter.content ? (
                   <div
                     className="h-full w-full p-4 text-xs overflow-hidden email-preview-wrapper"
@@ -558,7 +558,7 @@ export default function Newsletters() {
                     }}
                   />
                 ) : (
-                  <div className="h-full flex items-center justify-center text-gray-400">
+                  <div className="h-full flex items-center justify-center text-[var(--muted-foreground)]">
                     <div className="text-center">
                       <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                       <p className="text-sm">No preview available</p>
@@ -580,7 +580,7 @@ export default function Newsletters() {
 
 
               {(newsletter.finalisedAt || newsletter.updatedAt) && (
-                <div className="text-xs text-gray-500 mb-3">
+                <div className="text-xs text-[var(--muted-foreground)] mb-3">
                   <span>
                     {newsletter.finalisedAt 
                       ? `Finalised: ${formatDateAndTime(newsletter.finalisedAt)}`
@@ -659,7 +659,7 @@ export default function Newsletters() {
       {/* New Newsletter Form Dialog */}
       {showNewNewsletterForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-8 border border-[var(--border)]">
+          <div className="bg-[var(--background)] rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-8 border border-[var(--border)]">
             <h2 className="text-3xl font-bold mb-6 text-center text-[var(--foreground)]">Create New Newsletter</h2>
             <form onSubmit={handleNewNewsletterFormSubmit} className="space-y-6">
               {/* Optional template selection */}
@@ -734,8 +734,8 @@ export default function Newsletters() {
               </div>
               
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" className="px-5 py-2 rounded-lg bg-muted text-foreground font-semibold hover:bg-muted/80 transition" onClick={() => setShowNewNewsletterForm(false)}>Cancel</button>
-                <button type="submit" className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition">Continue</button>
+                <button type="button" className="px-5 py-2 rounded-lg bg-[var(--muted)] text-[var(--foreground)] font-semibold hover:bg-[var(--muted)]/80 transition" onClick={() => setShowNewNewsletterForm(false)}>Cancel</button>
+                <button type="submit" className="px-5 py-2 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold hover:bg-[var(--primary)]/90 transition">Continue</button>
               </div>
             </form>
           </div>
@@ -745,9 +745,9 @@ export default function Newsletters() {
       {/* Details Dialog */}
       {showDetailsDialog && selectedNewsletter && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+          <div className="bg-[var(--background)] rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
             {/* Header */}
-            <div className="flex justify-between items-start p-6 border-b">
+            <div className="flex justify-between items-start p-6 border-b border-[var(--border)]">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-[var(--accent)] flex items-center justify-center">
                   <span className="text-xl font-semibold text-[var(--accent-foreground)]">
@@ -755,7 +755,7 @@ export default function Newsletters() {
                   </span>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground">{selectedNewsletter?.title || 'Untitled Newsletter'}</h2>
+                  <h2 className="text-2xl font-bold text-[var(--foreground)]">{selectedNewsletter?.title || 'Untitled Newsletter'}</h2>
                   <span className={`inline-block text-xs px-3 py-1 rounded-full mt-1 ${getStatusColor(selectedNewsletter?.status || 'draft')}`}>
                     {(selectedNewsletter?.status || 'draft').charAt(0).toUpperCase() + (selectedNewsletter?.status || 'draft').slice(1)}
                   </span>
@@ -775,18 +775,18 @@ export default function Newsletters() {
               {/* Newsletter Info */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-gray-500" />
+                  <FileText className="h-5 w-5 text-[var(--muted-foreground)]" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Date</p>
-                    <p className="text-sm text-gray-600">{selectedNewsletter?.date || 'No date'}</p>
+                    <p className="text-sm font-medium text-[var(--foreground)]">Date</p>
+                    <p className="text-sm text-[var(--muted-foreground)]">{selectedNewsletter?.date || 'No date'}</p>
                   </div>
                 </div>
               </div>
 
               {/* Email Content Preview */}
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold text-foreground mb-3">Email Content Preview</h3>
-                <div className="bg-muted rounded-lg p-4 min-h-32">
+              <div className="border-t border-[var(--border)] pt-6">
+                <h3 className="text-lg font-semibold text-[var(--foreground)] mb-3">Email Content Preview</h3>
+                <div className="bg-[var(--muted)] rounded-lg p-4 min-h-32">
                   {selectedNewsletter?.content ? (
                     <div
                       className="text-sm email-preview-wrapper"
@@ -799,7 +799,7 @@ export default function Newsletters() {
                       }}
                     />
                   ) : (
-                    <div className="text-center text-muted-foreground py-8">
+                    <div className="text-center text-[var(--muted-foreground)] py-8">
                       <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                       <p>No content available</p>
                       <p className="text-xs">Click "Edit Newsletter" to add content</p>
@@ -810,7 +810,7 @@ export default function Newsletters() {
             </div>
 
             {/* Footer Actions */}
-            <div className="flex justify-between items-center p-6 border-t bg-muted">
+            <div className="flex justify-between items-center p-6 border-t border-[var(--border)] bg-[var(--muted)]">
               <div className="flex gap-2">
                 {(selectedNewsletter?.status === 'draft' || selectedNewsletter?.status === 'finalised') && (
                   <Button
@@ -843,7 +843,7 @@ export default function Newsletters() {
                     setIsRedirecting(true);
                     router.push(`/newsletters/builder?id=${selectedNewsletter.id}`);
                   }}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  className="bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)]"
                   disabled={selectedNewsletter.status === 'finalised'}
                   title={selectedNewsletter.status === 'finalised' ? 'Cannot edit finalised newsletters' : 'Edit newsletter'}
                 >
@@ -876,9 +876,9 @@ export default function Newsletters() {
 
       {/* Editor Dialog */}
       {showEditor && selectedNewsletter && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900">
+        <div className="fixed inset-0 z-50 flex flex-col bg-[var(--background)]">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-b border-[var(--border)] bg-white dark:bg-gray-900 z-10">
+          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-b border-[var(--border)] bg-[var(--background)] z-10">
             <div className="mb-4 sm:mb-0">
               <h2 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">
                 {isNewNewsletter ? 'Create Newsletter' : `Edit Newsletter: ${selectedNewsletter.title}`}
@@ -918,7 +918,7 @@ export default function Newsletters() {
           </div>
 
           {/* Footer */}
-          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-t border-[var(--border)] bg-gray-50 dark:bg-gray-800 z-10 gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-t border-[var(--border)] bg-[var(--muted)] z-10 gap-4">
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -943,14 +943,14 @@ export default function Newsletters() {
               <Button
                 onClick={() => saveEmailDesign("draft")}
                 variant="outline"
-                className="border-primary text-primary hover:bg-primary/10"
+                className="border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)]/10"
               >
                 <Save className="h-4 w-4 mr-2" />
                 Save as Draft
               </Button>
               <Button
                 onClick={() => saveEmailDesign("finalised")}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)]"
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Finalise Newsletter

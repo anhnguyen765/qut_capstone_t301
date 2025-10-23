@@ -336,14 +336,13 @@ export default function CampaignBuilder() {
 
     try {
       const updatedCampaign = {
-        title: campaign.title,
-        description: campaign.description,
-        type: campaign.type,
+        title: campaign.title || "",
+        date: campaign.scheduleDate || null,
+        type: campaign.type || "app",
         status: pendingStatusChange,
-        targetGroups: campaign.targetGroups,
-        content: campaign.content,
-        design: campaign.design,
-        createdBy: campaign.createdBy
+        targetGroups: campaign.targetGroups || [],
+        content: campaign.content || "",
+        design: campaign.design || null
       };
 
       console.log('Sending PUT request for confirmation with data:', updatedCampaign);

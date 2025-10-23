@@ -107,6 +107,8 @@ export default function CampaignBuilder() {
   const [emailDesign, setEmailDesign] = useState<any>(null);
   const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
   const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
+  const [showStatusChangeConfirm, setShowStatusChangeConfirm] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<string>("");
   const emailEditorRef = useRef<EditorRef>(null);
 
   // Generate lightweight preview HTML from Unlayer design JSON
@@ -256,8 +258,123 @@ export default function CampaignBuilder() {
     setShowEditor(false);
   };
 
-  const handleStatusChange = (newStatus: string) => {
-    setCampaign(prev => ({ ...prev, status: newStatus as any }));
+  const handleStatusChange = async (newStatus: string) => {
+    console.log('handleStatusChange called with:', newStatus, 'current status:', campaign.status);
+    
+    // If changing from finalized status, show confirmation
+    if (campaign.status === 'finalized' && newStatus !== 'finalized') {
+      console.log('Showing confirmation dialog for finalized campaign');
+      setPendingStatusChange(newStatus);
+      setShowStatusChangeConfirm(true);
+    } else {
+      // For other status changes, save immediately
+      if (!campaign.id) {
+        console.log('No campaign ID, cannot save');
+        setMessage("Error: Cannot change status - campaign not saved yet");
+        return;
+      }
+
+      console.log('Saving status change immediately, campaign ID:', campaign.id);
+      setIsLoading(true);
+      setMessage("Updating campaign status...");
+
+      try {
+        const updatedCampaign = {
+          title: campaign.title || "",
+          date: campaign.scheduleDate || null,
+          type: campaign.type || "app",
+          status: newStatus,
+          targetGroups: campaign.targetGroups || [],
+          content: campaign.content || "",
+          design: campaign.design || null
+        };
+
+        console.log('Sending PUT request with data:', updatedCampaign);
+
+        const response = await fetch(`/api/campaigns/${campaign.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedCampaign),
+        });
+
+        console.log('Response status:', response.status, response.ok);
+
+        if (response.ok) {
+          setCampaign(prev => ({ ...prev, status: newStatus as any }));
+          setMessage(`Status successfully changed to ${newStatus}`);
+          console.log('Status change successful');
+        } else {
+          const errorText = await response.text();
+          console.log('Error response:', errorText);
+          setMessage("Error: Failed to update campaign status");
+        }
+      } catch (error) {
+        console.error('Fetch error:', error);
+        setMessage("Error updating campaign status: " + error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const confirmStatusChange = async () => {
+    console.log('confirmStatusChange called, pending status:', pendingStatusChange);
+    
+    if (!campaign.id) {
+      console.log('No campaign ID for confirmation');
+      setMessage("Error: Cannot change status - campaign not saved yet");
+      setShowStatusChangeConfirm(false);
+      setPendingStatusChange("");
+      return;
+    }
+
+    console.log('Confirming status change for campaign ID:', campaign.id);
+    setIsLoading(true);
+    setMessage("Updating campaign status...");
+
+    try {
+      const updatedCampaign = {
+        title: campaign.title,
+        description: campaign.description,
+        type: campaign.type,
+        status: pendingStatusChange,
+        targetGroups: campaign.targetGroups,
+        content: campaign.content,
+        design: campaign.design,
+        createdBy: campaign.createdBy
+      };
+
+      console.log('Sending PUT request for confirmation with data:', updatedCampaign);
+
+      const response = await fetch(`/api/campaigns/${campaign.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedCampaign),
+      });
+
+      console.log('Confirmation response status:', response.status, response.ok);
+
+      if (response.ok) {
+        setCampaign(prev => ({ ...prev, status: pendingStatusChange as any }));
+        setMessage(`Status successfully changed from finalized to ${pendingStatusChange}`);
+        setShowStatusChangeConfirm(false);
+        setPendingStatusChange("");
+        console.log('Confirmation status change successful');
+      } else {
+        const errorText = await response.text();
+        console.log('Confirmation error response:', errorText);
+        setMessage("Error: Failed to update campaign status");
+      }
+    } catch (error) {
+      console.error('Confirmation fetch error:', error);
+      setMessage("Error updating campaign status: " + error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleFinalizeCampaign = () => {
@@ -550,7 +667,7 @@ export default function CampaignBuilder() {
                   <Select
                     value={campaign.status}
                     onValueChange={handleStatusChange}
-                    disabled={campaign.status === 'finalized'}
+                    disabled={isLoading}
                   >
                     <SelectTrigger className="border-2 border-border w-32">
                       <SelectValue />
@@ -862,6 +979,45 @@ export default function CampaignBuilder() {
                     <Target className="h-4 w-4 mr-2" />
                     Yes, Finalize
                   </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Change Confirmation Dialog */}
+      {showStatusChangeConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-card rounded-lg shadow-lg w-full max-w-md p-6">
+            <h2 className="text-xl font-bold mb-4 text-card-foreground">Change Campaign Status</h2>
+            <p className="text-muted-foreground mb-6">
+              Are you sure you want to change the status from "Finalized" to "{pendingStatusChange}"? 
+              This will allow the campaign to be edited again.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowStatusChangeConfirm(false);
+                  setPendingStatusChange("");
+                }}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={confirmStatusChange}
+                disabled={isLoading}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Yes, Change Status"
                 )}
               </Button>
             </div>

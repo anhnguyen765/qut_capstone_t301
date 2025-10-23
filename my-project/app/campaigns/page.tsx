@@ -19,7 +19,7 @@ type Campaign = {
   title: string;
   date: string;
   type: "app" | "classes" | "fishing_comps" | "oshc_vacation_care" | "promotion" | "other";
-  status: "draft" | "scheduled" | "sent" | "archived";
+  status: "draft" | "scheduled" | "finalized" | "sent" | "archived";
   targetGroups?: string[]; // Which contact groups to send to
   content?: string; // Email content/template
   design?: any; // Email editor design object
@@ -269,6 +269,8 @@ export default function Campaigns() {
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100";
       case "scheduled":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
+      case "finalized":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100";
       case "sent":
         return "bg-muted text-muted-foreground";
       case "archived":
@@ -303,7 +305,7 @@ export default function Campaigns() {
     }
   };
 
-  const saveEmailDesign = async (status: "draft" | "scheduled") => {
+  const saveEmailDesign = async (status: "draft" | "finalized") => {
     const unlayer = emailEditorRef.current?.editor;
 
     unlayer?.saveDesign((design: any) => {
@@ -742,8 +744,8 @@ export default function Campaigns() {
                       setIsRedirecting(true);
                       router.push(`/campaigns/builder?id=${campaign.id}`);
                     }}
-                    disabled={campaign.status === 'sent' || campaign.status === 'archived' || isRedirecting}
-                    title={campaign.status === 'sent' || campaign.status === 'archived' ? 'Cannot edit sent or archived campaigns' : 'Edit campaign'}
+                    disabled={campaign.status === 'sent' || campaign.status === 'archived' || campaign.status === 'finalized' || isRedirecting}
+                    title={campaign.status === 'sent' || campaign.status === 'archived' || campaign.status === 'finalized' ? 'Cannot edit sent, archived, or finalized campaigns' : 'Edit campaign'}
                   >
                     {isRedirecting ? (
                       <Loader className="h-4 w-4 mr-1 animate-spin" />
@@ -909,8 +911,8 @@ export default function Campaigns() {
                     router.push(`/campaigns/builder?id=${selectedCampaign.id}`);
                   }} 
                   className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={selectedCampaign.status === 'sent' || selectedCampaign.status === 'archived' || isRedirecting}
-                  title={selectedCampaign.status === 'sent' || selectedCampaign.status === 'archived' ? 'Cannot edit sent or archived campaigns' : 'Edit campaign'}
+                  disabled={selectedCampaign.status === 'sent' || selectedCampaign.status === 'archived' || selectedCampaign.status === 'finalized' || isRedirecting}
+                  title={selectedCampaign.status === 'sent' || selectedCampaign.status === 'archived' || selectedCampaign.status === 'finalized' ? 'Cannot edit sent, archived, or finalized campaigns' : 'Edit campaign'}
                 >
                   {isRedirecting ? (
                     <Loader className="h-4 w-4 mr-2 animate-spin" />
@@ -1123,6 +1125,7 @@ export default function Campaigns() {
                   >
                     <option value="draft">Draft</option>
                     <option value="scheduled">Scheduled</option>
+                    <option value="finalized">Finalized</option>
                     <option value="sent">Sent</option>
                     <option value="archived">Archived</option>
                   </select>
@@ -1229,21 +1232,27 @@ export default function Campaigns() {
               <Button variant="outline" onClick={handleCloseEditor}>
                 Cancel
               </Button>
-              <Button 
-                onClick={() => saveEmailDesign("draft")}
-                variant="outline"
-                className="border-primary text-primary hover:bg-primary/10"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Save as Draft
-              </Button>
-              <Button 
-                onClick={() => saveEmailDesign("scheduled")}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Finalize Campaign
-              </Button>
+              {selectedCampaign.status !== "finalized" && (
+                <Button 
+                  onClick={() => saveEmailDesign("draft")}
+                  variant="outline"
+                  className="border-primary text-primary hover:bg-primary/10"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Save as Draft
+                </Button>
+              )}
+              {selectedCampaign.status !== "finalized" && (
+                <Button 
+                  onClick={() => saveEmailDesign("finalized")}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  disabled={!selectedCampaign.design && !selectedCampaign.content}
+                  title={!selectedCampaign.design && !selectedCampaign.content ? "Cannot finalize campaign without design content" : "Finalize campaign"}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Finalize Campaign
+                </Button>
+              )}
             </div>
           </div>
         </div>

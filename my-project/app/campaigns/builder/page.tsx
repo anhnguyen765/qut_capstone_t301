@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/app/components/ui/badge";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { useAuth } from "@/app/contexts/AuthContext";
-import { Save, Eye, Send, Calendar, Target, Users, Clock, X, FileText, Loader2 } from "lucide-react";
+import { Save, Eye, Send, Calendar, Target, Users, Clock, X, FileText, Loader2, CheckCircle } from "lucide-react";
 import EmailEditor, { EditorRef } from "react-email-editor";
 
 interface Campaign {
@@ -19,7 +19,7 @@ interface Campaign {
   title: string;
   description: string;
   type: "app" | "classes" | "fishing_comps" | "oshc_vacation_care" | "promotion" | "other";
-  status: "draft" | "scheduled" | "sent" | "archived";
+  status: "draft" | "scheduled" | "finalized" | "sent" | "archived";
   design: any;
   content: string;
   targetGroups: string[];
@@ -273,6 +273,12 @@ export default function CampaignBuilder() {
       return;
     }
 
+    if (!campaign.design && !campaign.content) {
+      setMessage("Error: Campaign must have design content before finalizing. Please create content using the editor first.");
+      setShowFinalizeConfirm(false);
+      return;
+    }
+
     setIsLoading(true);
     setMessage("Finalizing campaign...");
 
@@ -299,7 +305,7 @@ export default function CampaignBuilder() {
 
       const campaignData = {
         ...campaign,
-        status: 'scheduled',
+        status: 'finalized',
         content: html,
         design,
         createdBy: user?.userId
@@ -329,11 +335,11 @@ export default function CampaignBuilder() {
         setCampaign(prev => ({ 
           ...prev, 
           id: result.id || prev.id, 
-          status: 'scheduled',
+          status: 'finalized',
           content: html, 
           design 
         }));
-        setMessage('Campaign finalized successfully! Status changed to scheduled.');
+        setMessage('Campaign finalized successfully! Status changed to finalized.');
         setShowFinalizeConfirm(false);
       } else {
         setMessage("Error finalizing campaign");
@@ -451,6 +457,8 @@ export default function CampaignBuilder() {
         return "bg-yellow-100 text-yellow-800";
       case "scheduled":
         return "bg-blue-100 text-blue-800";
+      case "finalized":
+        return "bg-purple-100 text-purple-800";
       case "sent":
         return "bg-green-100 text-green-800";
       case "archived":
@@ -473,6 +481,16 @@ export default function CampaignBuilder() {
       {message && (
         <div className={`mb-4 p-4 rounded ${message.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
           {message}
+        </div>
+      )}
+
+      {campaign.status === 'finalized' && (
+        <div className="mb-4 p-4 rounded bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-900/20 dark:text-purple-100 dark:border-purple-800">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5" />
+            <span className="font-medium">Campaign Finalized</span>
+          </div>
+          <p className="text-sm mt-1">This campaign has been finalized and is now read-only. You can view the content but cannot make changes.</p>
         </div>
       )}
 
@@ -502,6 +520,7 @@ export default function CampaignBuilder() {
                   onChange={(e) => setCampaign(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="Enter campaign title"
                   className="w-full border-2 border-border focus:border-primary"
+                  disabled={campaign.status === 'finalized'}
                 />
               </div>
 
@@ -511,6 +530,7 @@ export default function CampaignBuilder() {
                   <Select
                     value={campaign.type}
                     onValueChange={(value) => setCampaign(prev => ({ ...prev, type: value as any }))}
+                    disabled={campaign.status === 'finalized'}
                   >
                     <SelectTrigger className="border-2 border-border w-32">
                       <SelectValue />
@@ -530,6 +550,7 @@ export default function CampaignBuilder() {
                   <Select
                     value={campaign.status}
                     onValueChange={handleStatusChange}
+                    disabled={campaign.status === 'finalized'}
                   >
                     <SelectTrigger className="border-2 border-border w-32">
                       <SelectValue />
@@ -537,6 +558,7 @@ export default function CampaignBuilder() {
                     <SelectContent>
                       <SelectItem value="draft">Draft</SelectItem>
                       <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="finalized">Finalized</SelectItem>
                       <SelectItem value="sent">Sent</SelectItem>
                       <SelectItem value="archived">Archived</SelectItem>
                     </SelectContent>
@@ -557,6 +579,7 @@ export default function CampaignBuilder() {
                       checked={campaign.targetGroups.includes(group.value)}
                       onCheckedChange={(checked) => handleTargetGroupChange(group.value, checked as boolean)}
                       className="border-2 border-gray-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                      disabled={campaign.status === 'finalized'}
                     />
                     <label htmlFor={group.value} className="text-sm">
                       {group.label}
@@ -580,7 +603,7 @@ export default function CampaignBuilder() {
                 disabled={!campaign.title.trim()}
               >
                 <Eye className="h-4 w-4 mr-2" />
-                Open Editor
+                {campaign.status === 'finalized' ? 'View Campaign' : 'Open Editor'}
               </Button>
             </div>
           </CardContent>
@@ -612,8 +635,9 @@ export default function CampaignBuilder() {
         <div className="flex flex-wrap gap-3 mt-6">
           <Button
             onClick={saveCampaign}
-            disabled={isLoading || !campaign.title.trim()}
+            disabled={isLoading || !campaign.title.trim() || campaign.status === 'finalized'}
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            title={campaign.status === 'finalized' ? 'Cannot save finalized campaigns' : 'Save campaign changes'}
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -626,15 +650,22 @@ export default function CampaignBuilder() {
           {campaign.status === 'draft' && campaign.title.trim() && (
             <Button
               onClick={handleFinalizeCampaign}
-              disabled={isLoading}
+              disabled={isLoading || (!campaign.design && !campaign.content)}
               variant="outline"
               className="border-primary text-primary hover:bg-primary/10"
+              title={!campaign.design && !campaign.content ? "Cannot finalize campaign without design content" : "Finalize campaign"}
             >
               <Target className="h-4 w-4 mr-2" />
               Finalize Campaign
             </Button>
           )}
         </div>
+
+        {/* Help text for finalization requirements */}
+        {campaign.status === 'draft' && (!campaign.design && !campaign.content) && (
+          <div className="mt-2 text-sm text-muted-foreground flex items-center gap-2">
+          </div>
+        )}
       </div>
 
 
@@ -673,10 +704,13 @@ export default function CampaignBuilder() {
           <div className="w-full mx-auto flex flex-col sm:flex-row justify-between items-center border-b border-border bg-background z-10" style={{ flex: '0 0 auto' }}>
             <div className="mb-4 sm:mb-0">
               <h2 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">
-                Campaign Builder
+                {campaign.status === 'finalized' ? 'Campaign Viewer' : 'Campaign Builder'}
               </h2>
               <p className="text-sm text-[var(--muted-foreground)] mt-1">
-                Design your email campaign using the drag-and-drop editor
+                {campaign.status === 'finalized' 
+                  ? 'View your finalized email campaign design (read-only)'
+                  : 'Design your email campaign using the drag-and-drop editor'
+                }
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={handleCloseEditor}>
@@ -744,26 +778,28 @@ export default function CampaignBuilder() {
               </Button>
             </div>
                 <div className="flex gap-2">
-                  <Button 
-                    onClick={() => {
-                      const unlayer = emailEditorRef.current?.editor;
-                      if (!unlayer) return;
-                      // Export current editor state back to builder without persisting
-                      unlayer.saveDesign((designData: any) => {
-                        unlayer.exportHtml((data: any) => {
-                          const { html } = data;
-                          setCampaign(prev => ({ ...prev, design: designData, content: html }));
-                          setMessage('Editor changes applied. Review and click "Save Campaign" to persist.');
-                          setShowEditor(false);
+                  {campaign.status !== 'finalized' && (
+                    <Button 
+                      onClick={() => {
+                        const unlayer = emailEditorRef.current?.editor;
+                        if (!unlayer) return;
+                        // Export current editor state back to builder without persisting
+                        unlayer.saveDesign((designData: any) => {
+                          unlayer.exportHtml((data: any) => {
+                            const { html } = data;
+                            setCampaign(prev => ({ ...prev, design: designData, content: html }));
+                            setMessage('Editor changes applied. Review and click "Save Campaign" to persist.');
+                            setShowEditor(false);
+                          });
                         });
-                      });
-                    }}
-                    variant="outline"
-                    className="border-primary text-primary hover:bg-primary/10"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    Save as Draft
-                  </Button>
+                      }}
+                      variant="outline"
+                      className="border-primary text-primary hover:bg-primary/10"
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Save as Draft
+                    </Button>
+                  )}
                   {campaign.status === 'draft' && (
                     <Button 
                       onClick={() => {
@@ -783,6 +819,8 @@ export default function CampaignBuilder() {
                         });
                       }}
                       className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                      disabled={!campaign.design && !campaign.content}
+                      title={!campaign.design && !campaign.content ? "Cannot finalize campaign without design content. Please create content using the editor first." : "Finalize campaign"}
                     >
                       <Target className="h-4 w-4 mr-2" />
                       Finalize Campaign
@@ -799,7 +837,7 @@ export default function CampaignBuilder() {
           <div className="bg-card rounded-lg shadow-lg w-full max-w-md p-6">
             <h2 className="text-xl font-bold mb-4 text-card-foreground">Finalize Campaign</h2>
             <p className="text-muted-foreground mb-6">
-              Are you sure you want to finalize this campaign? This will change the status to "Scheduled" and save all current changes. You can still edit it later if needed.
+              Are you sure you want to finalize this campaign? This will change the status to "Finalized" and save all current changes. You can still edit it later if needed.
             </p>
             <div className="flex justify-end gap-2">
               <Button 

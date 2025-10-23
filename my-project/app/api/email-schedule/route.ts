@@ -26,9 +26,30 @@ export async function POST(request: NextRequest) {
     // Validate scheduled time is in the future
     const scheduledDate = new Date(scheduledAt);
     const now = new Date();
-    if (scheduledDate <= now) {
+    
+    // Add a 1-minute buffer to account for processing time
+    const minScheduleTime = new Date(now.getTime() + 60 * 1000);
+    
+    console.log('Schedule validation:', {
+      scheduledAt,
+      scheduledDate: scheduledDate.toISOString(),
+      now: now.toISOString(),
+      minScheduleTime: minScheduleTime.toISOString(),
+      isValid: scheduledDate > minScheduleTime
+    });
+    
+    if (isNaN(scheduledDate.getTime())) {
       return NextResponse.json(
-        { error: "Scheduled time must be in the future" },
+        { error: "Invalid scheduled date format. Please check your date and time values." },
+        { status: 400 }
+      );
+    }
+    
+    if (scheduledDate <= minScheduleTime) {
+      return NextResponse.json(
+        { 
+          error: `Scheduled time must be at least 1 minute in the future. Current time: ${now.toISOString()}, Scheduled time: ${scheduledDate.toISOString()}` 
+        },
         { status: 400 }
       );
     }
@@ -98,15 +119,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update campaign with scheduled time
+    // Update campaign status
     await executeQuery(
       `UPDATE campaigns SET 
        status = 'scheduled', 
-       scheduled_at = ?, 
-       total_recipients = ?,
        updated_at = NOW() 
        WHERE id = ?`,
-      [scheduledAt, contacts.length, campaignId]
+      [campaignId]
     );
 
     // Add emails to queue with scheduled status
@@ -273,7 +292,7 @@ export async function DELETE(request: NextRequest) {
       
       // Update campaign status
       await executeQuery(
-        `UPDATE campaigns SET status = 'draft', scheduled_at = NULL WHERE id = ?`,
+        `UPDATE campaigns SET status = 'draft' WHERE id = ?`,
         [campaignId]
       );
 

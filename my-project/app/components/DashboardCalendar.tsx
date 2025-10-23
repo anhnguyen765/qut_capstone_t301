@@ -76,14 +76,29 @@ export default function DashboardCalendar({ height = 400 }: { height?: number })
       }
 
       if (data.schedules) {
-        const calendarEvents = data.schedules.map((s: any) => ({
-          title: s.campaign_title,
-          start: new Date(s.scheduled_at),
-          end: new Date(s.scheduled_at),
-          allDay: false,
-          resource: s,
-          status: s.status,
-        }));
+        const calendarEvents = data.schedules.map((s: any) => {
+          // Hardcoded timezone fix: Brisbane is UTC+10
+          // Database stores UTC time, we need to add 10 hours for Brisbane display
+          let scheduledDate = new Date(s.scheduled_at);
+          
+          // Add 10 hours (36000000 milliseconds) to convert UTC to Brisbane time
+          const brisbaneTime = new Date(scheduledDate.getTime() + (10 * 60 * 60 * 1000));
+          
+          console.log(`Schedule ${s.id} timezone fix:`, {
+            utcFromDB: scheduledDate.toISOString(),
+            brisbaneTime: brisbaneTime.toISOString(),
+            displayTime: brisbaneTime.toLocaleString()
+          });
+          
+          return {
+            title: s.campaign_title,
+            start: brisbaneTime,
+            end: brisbaneTime,
+            allDay: false,
+            resource: s,
+            status: s.status,
+          };
+        });
         
         setEvents(calendarEvents);
         
@@ -206,7 +221,19 @@ export default function DashboardCalendar({ height = 400 }: { height?: number })
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm truncate">{email.campaign_title}</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {moment(email.scheduled_at).format('MMM DD, YYYY • HH:mm')}
+                    {(() => {
+                      const utcDate = new Date(email.scheduled_at);
+                      // Add 10 hours for Brisbane time (UTC+10)
+                      const brisbaneDate = new Date(utcDate.getTime() + (10 * 60 * 60 * 1000));
+                      return brisbaneDate.toLocaleString('en-AU', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                      });
+                    })()}
                   </div>
                   <div className="text-xs text-muted-foreground truncate">
                     {formatRecipient(email)}
@@ -380,8 +407,20 @@ export default function DashboardCalendar({ height = 400 }: { height?: number })
                   <span className="font-medium">Scheduled Time</span>
                 </div>
                 <div className="text-sm text-right">
-                  <div>{selectedEvent.start.toLocaleDateString()}</div>
-                  <div className="text-muted-foreground">{selectedEvent.start.toLocaleTimeString()}</div>
+                  <div>{(() => {
+                    const utcDate = new Date(selectedEvent.resource.scheduled_at);
+                    const brisbaneDate = new Date(utcDate.getTime() + (10 * 60 * 60 * 1000));
+                    return brisbaneDate.toLocaleDateString('en-AU');
+                  })()}</div>
+                  <div className="text-muted-foreground">{(() => {
+                    const utcDate = new Date(selectedEvent.resource.scheduled_at);
+                    const brisbaneDate = new Date(utcDate.getTime() + (10 * 60 * 60 * 1000));
+                    return brisbaneDate.toLocaleTimeString('en-AU', { 
+                      hour: 'numeric', 
+                      minute: '2-digit', 
+                      hour12: true
+                    });
+                  })()}</div>
                 </div>
               </div>
 

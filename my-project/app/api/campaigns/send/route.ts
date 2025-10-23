@@ -38,6 +38,29 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Validate scheduled time if provided
+    if (scheduledAt && !sendImmediately) {
+      const scheduledDate = new Date(scheduledAt);
+      const now = new Date();
+      
+      // Add a 1-minute buffer to account for processing time
+      const minScheduleTime = new Date(now.getTime() + 60 * 1000);
+      
+      if (isNaN(scheduledDate.getTime())) {
+        return NextResponse.json(
+          { error: "Invalid scheduled date format" },
+          { status: 400 }
+        );
+      }
+      
+      if (scheduledDate <= minScheduleTime) {
+        return NextResponse.json(
+          { error: "Scheduled time must be at least 1 minute in the future" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Get campaign details
     const campaignResult = await executeQuery(
       `SELECT * FROM campaigns WHERE id = ?`,
@@ -198,14 +221,10 @@ export async function PUT(request: NextRequest) {
       });
     }
 
-    // If scheduled, update campaign with scheduled time and upsert into email_schedule
+    // If scheduled, create or update entry in email_schedule
     let createdScheduleId: number | null = null;
     if (scheduledAt && !sendImmediately) {
-      await executeQuery(
-        `UPDATE campaigns SET scheduled_at = ? WHERE id = ?`,
-        [scheduledAt, campaignId]
-      );
-      // Also create or update an entry in email_schedule so the calendar/schedule UI can display this send
+      // Create or update an entry in email_schedule so the calendar/schedule UI can display this send
       try {
         // Determine recipient type for schedule tracking
         let recipientType: string = 'all';

@@ -18,7 +18,7 @@ import { Separator } from "@/app/components/ui/separator";
 import { Loader2, User, Mail, Shield, Calendar, Save, Eye, EyeOff } from "lucide-react";
 
 export default function ProfilePage() {
-    const { user, isLoading } = useAuth();
+    const { user, isLoading, checkAuth } = useAuth();
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
@@ -132,7 +132,10 @@ export default function ProfilePage() {
 
             if (response.ok) {
                 setProfileMessage("Profile updated successfully!");
-                // Update user context if needed
+                
+                // Refresh user data in the auth context
+                await checkAuth();
+                
             } else {
                 setErrors({ general: data.error || "Failed to update profile" });
             }
@@ -241,8 +244,8 @@ export default function ProfilePage() {
                                 <User className="h-6 w-6 text-primary" />
                             </div>
                             <div className="flex-1">
-                                <h3 className="font-semibold">{user.firstName} {user.lastName}</h3>
-                                <p className="text-sm text-muted-foreground">{user.email}</p>
+                                <h3 className="font-semibold text-white">{user.firstName} {user.lastName}</h3>
+                                <p className="text-sm text-white">{user.email}</p>
                                 <div className="flex items-center gap-2 mt-1">
                                     <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
                                         {user.role === 'admin' && <Shield className="h-3 w-3 mr-1" />}

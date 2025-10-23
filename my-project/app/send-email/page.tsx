@@ -272,6 +272,25 @@ export default function SendEmailPage() {
       setMessageType("error");
       return;
     }
+    
+    // Validate the scheduled time is in the future
+    if (!sendImmediately && scheduleDate && scheduleTime) {
+      const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
+      const now = new Date();
+      const minScheduleTime = new Date(now.getTime() + 60 * 1000); // 1 minute buffer
+      
+      if (isNaN(scheduledDateTime.getTime())) {
+        setMessage("Invalid date or time format.");
+        setMessageType("error");
+        return;
+      }
+      
+      if (scheduledDateTime <= minScheduleTime) {
+        setMessage("Scheduled time must be at least 1 minute in the future.");
+        setMessageType("error");
+        return;
+      }
+    }
 
     setIsLoading(true);
     setMessage("");
@@ -298,7 +317,17 @@ export default function SendEmailPage() {
 
       // Add scheduling information
       if (!sendImmediately && scheduleDate && scheduleTime) {
-        const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
+        // Create date in local timezone first
+        const localDateTime = new Date(`${scheduleDate}T${scheduleTime}`);
+        console.log("Frontend scheduling debug:");
+        console.log("- Input date:", scheduleDate);
+        console.log("- Input time:", scheduleTime);
+        console.log("- Local datetime object:", localDateTime);
+        console.log("- Local toString():", localDateTime.toString());
+        console.log("- UTC ISO string:", localDateTime.toISOString());
+        console.log("- Browser timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
+        
+        const scheduledAt = localDateTime.toISOString();
         requestBody.scheduledAt = scheduledAt;
       }
 

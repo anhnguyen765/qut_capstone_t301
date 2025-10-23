@@ -451,6 +451,21 @@ export default function Campaigns() {
       setScheduleError("Please select a date.");
       return;
     }
+    
+    // Validate the scheduled time is in the future
+    const scheduledDateTime = new Date(`${scheduleDate}T${scheduleTime || '09:00'}:00`);
+    const now = new Date();
+    const minScheduleTime = new Date(now.getTime() + 60 * 1000); // 1 minute buffer
+    
+    if (isNaN(scheduledDateTime.getTime())) {
+      setScheduleError("Invalid date or time format.");
+      return;
+    }
+    
+    if (scheduledDateTime <= minScheduleTime) {
+      setScheduleError("Scheduled time must be at least 1 minute in the future.");
+      return;
+    }
     if (recipientType === "email" && !email) {
       setScheduleError("Please enter a recipient email.");
       return;
@@ -483,8 +498,17 @@ export default function Campaigns() {
         throw new Error("Failed to update campaign");
       }
 
-      // Create scheduled datetime
-      const scheduledAt = `${scheduleDate}T${scheduleTime || '09:00'}:00`;
+      // Create scheduled datetime with proper timezone handling
+      const scheduledAt = new Date(`${scheduleDate}T${scheduleTime || '09:00'}:00`).toISOString();
+      
+      // Debug logging
+      console.log('Scheduling details:', {
+        scheduleDate,
+        scheduleTime,
+        scheduledAt,
+        now: new Date().toISOString(),
+        localTime: new Date(`${scheduleDate}T${scheduleTime || '09:00'}:00`).toString()
+      });
       
       // Create the schedule entry
       const scheduleResponse = await fetch(`/api/email-schedule`, {
@@ -501,7 +525,19 @@ export default function Campaigns() {
 
       if (!scheduleResponse.ok) {
         const data = await scheduleResponse.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to schedule campaign");
+        console.error('Schedule API error:', {
+          status: scheduleResponse.status,
+          error: data.error,
+          scheduledAt,
+          requestBody: {
+            campaignId: selectedCampaignId,
+            scheduledAt,
+            recipientType,
+            recipientEmail: recipientType === "email" ? email : null,
+            recipientGroup: recipientType === "group" ? group : null,
+          }
+        });
+        throw new Error(data.error || `Failed to schedule campaign (${scheduleResponse.status})`);
       }
 
       // Update campaign status in UI to show it's scheduled

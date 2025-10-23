@@ -66,6 +66,7 @@ export default function SendEmailPage() {
   const [individualEmail, setIndividualEmail] = useState("");
   const [individualEmails, setIndividualEmails] = useState<string[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [sendToAll, setSendToAll] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
   const [sendImmediately, setSendImmediately] = useState(false);
@@ -261,8 +262,8 @@ export default function SendEmailPage() {
     }
 
     // Validate recipients
-    if (selectedContacts.length === 0 && individualEmails.length === 0 && selectedGroups.length === 0) {
-      setMessage("Please select at least one recipient option.");
+    if (!sendToAll && selectedContacts.length === 0 && individualEmails.length === 0 && selectedGroups.length === 0) {
+      setMessage("Please select at least one recipient option or enable 'Send to All'.");
       setMessageType("error");
       return;
     }
@@ -302,18 +303,21 @@ export default function SendEmailPage() {
         sendImmediately: sendImmediately,
         subjectLine: subjectLine,
         senderName: senderName,
-        senderEmail: senderEmail
+        senderEmail: senderEmail,
+        sendToAll: sendToAll
       };
 
-      // Add recipient information
-      if (selectedContacts.length > 0) {
-        requestBody.contactIds = selectedContacts;
-      }
-      if (individualEmails.length > 0) {
-        requestBody.individualEmails = individualEmails;
-      }
-      if (selectedGroups.length > 0) {
-        requestBody.targetGroups = selectedGroups;
+      // Add recipient information (only if not sending to all)
+      if (!sendToAll) {
+        if (selectedContacts.length > 0) {
+          requestBody.contactIds = selectedContacts;
+        }
+        if (individualEmails.length > 0) {
+          requestBody.individualEmails = individualEmails;
+        }
+        if (selectedGroups.length > 0) {
+          requestBody.targetGroups = selectedGroups;
+        }
       }
 
       // Add scheduling information
@@ -384,6 +388,7 @@ export default function SendEmailPage() {
     setIndividualEmail("");
     setIndividualEmails([]);
     setSelectedGroups([]);
+    setSendToAll(false);
     setEditMode(false);
     setEditedSubject("");
     setEditedSenderName("");
@@ -771,16 +776,16 @@ export default function SendEmailPage() {
               >
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    {(selectedContacts.length > 0 || selectedGroups.length > 0 || individualEmails.length > 0) ? (
+                    {(sendToAll || selectedContacts.length > 0 || selectedGroups.length > 0 || individualEmails.length > 0) ? (
                       <CheckCircle className="h-5 w-5 text-green-500" />
                     ) : (
                       <Circle className="h-5 w-5 text-muted-foreground" />
                     )}
                     <Users className="h-5 w-5" />
                     <span>3. Select Recipients</span>
-                    {(selectedContacts.length > 0 || selectedGroups.length > 0 || individualEmails.length > 0) && (
+                    {(sendToAll || selectedContacts.length > 0 || selectedGroups.length > 0 || individualEmails.length > 0) && (
                       <Badge variant="outline" className="ml-2">
-                        {selectedContacts.length + individualEmails.length + selectedGroups.length} selected
+                        {sendToAll ? 'All Contacts' : `${selectedContacts.length + individualEmails.length + selectedGroups.length} selected`}
                       </Badge>
                     )}
                   </div>
@@ -797,6 +802,29 @@ export default function SendEmailPage() {
                 <CardContent>
                   <div className="space-y-4">
 
+                    {/* Send to All Option */}
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <Checkbox
+                          checked={sendToAll}
+                          onCheckedChange={(checked) => {
+                            setSendToAll(checked as boolean);
+                            if (checked) {
+                              // Clear other selections when "Send to All" is checked
+                              setSelectedContacts([]);
+                              setIndividualEmails([]);
+                              setSelectedGroups([]);
+                            }
+                          }}
+                          className="border-2 border-blue-400 data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600"
+                        />
+                        <div className="flex-1">
+                          <Label className="text-sm font-medium text-blue-800 dark:text-blue-100">Send to All Contacts</Label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {!sendToAll && (
                     <div className="space-y-4">
                       {/* Individual Emails - Moved to top */}
                       <div className="space-y-2">
@@ -911,7 +939,7 @@ export default function SendEmailPage() {
                         </div>
                       </div>
                     </div>
-
+                    )}
 
                     {/* Scheduling Options */}
                     <div className="space-y-2">
@@ -1010,14 +1038,32 @@ export default function SendEmailPage() {
                 <Users className="h-5 w-5" />
                 Recipients Review
                 <Badge variant="outline" className="ml-2">
-                  {selectedContacts.length + individualEmails.length + selectedGroups.length} total
+                  {sendToAll ? 'All Contacts' : `${selectedContacts.length + individualEmails.length + selectedGroups.length} total`}
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="max-h-64 overflow-y-auto space-y-1 border rounded p-2">
+                {/* Send to All indicator */}
+                {sendToAll && (
+                  <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm text-blue-800 dark:text-blue-100">Send to All Contacts</div>
+                      <div className="text-xs text-blue-600 dark:text-blue-200">All subscribed Contacts will receive this email</div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSendToAll(false)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                )}
+
                 {/* Selected Contacts */}
-                {selectedContacts.map(contactId => {
+                {!sendToAll && selectedContacts.map(contactId => {
                   const contact = contacts.find(c => c.id === contactId);
                   return contact ? (
                     <div key={contactId} className="flex items-center justify-between p-2 bg-muted rounded">
@@ -1042,7 +1088,7 @@ export default function SendEmailPage() {
 
 
                 {/* Individual Emails (Mixed Mode) */}
-                {individualEmails.map((email, index) => (
+                {!sendToAll && individualEmails.map((email, index) => (
                   <div key={index} className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm truncate">{email}</div>
@@ -1060,7 +1106,7 @@ export default function SendEmailPage() {
                 ))}
 
                 {/* Selected Groups */}
-                {selectedGroups.map(group => (
+                {!sendToAll && selectedGroups.map(group => (
                   <div key={group} className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded">
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm">{group}</div>
@@ -1078,7 +1124,7 @@ export default function SendEmailPage() {
                 ))}
 
                 {/* Empty State */}
-                {selectedContacts.length === 0 && individualEmails.length === 0 && selectedGroups.length === 0 && (
+                {!sendToAll && selectedContacts.length === 0 && individualEmails.length === 0 && selectedGroups.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No recipients selected</p>
@@ -1140,7 +1186,7 @@ export default function SendEmailPage() {
                     !editedSubject.trim() ||
                     !editedSenderName.trim() ||
                     !selectedCampaign.content ||
-                    (selectedContacts.length === 0 && selectedGroups.length === 0 && individualEmails.length === 0) ||
+                    (!sendToAll && selectedContacts.length === 0 && selectedGroups.length === 0 && individualEmails.length === 0) ||
                     isLoading
                   }
                   className="w-full"
@@ -1154,8 +1200,8 @@ export default function SendEmailPage() {
                     <>
                       <Send className="mr-2 h-4 w-4" />
                       {sendImmediately ? "Send" : "Schedule"} to {
-                        selectedContacts.length + individualEmails.length + selectedGroups.length
-                      } Recipient{(selectedContacts.length + individualEmails.length + selectedGroups.length) > 1 ? 's' : ''}
+                        sendToAll ? "All Contacts" : `${selectedContacts.length + individualEmails.length + selectedGroups.length} Recipient${(selectedContacts.length + individualEmails.length + selectedGroups.length) > 1 ? 's' : ''}`
+                      }
                     </>
                   )}
                 </Button>

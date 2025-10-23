@@ -659,7 +659,7 @@ export default function Campaigns() {
                 title="Sort by updated date"
                 aria-label="Sort by updated date"
               >
-                Updated {sortBy === "updatedAt" && <ArrowUpDown className="ml-1 h-4 w-4" />}
+                Last Updated <ArrowUpDown className="ml-1 h-4 w-4" /> {sortBy === "updatedAt" && <ArrowUpDown className="ml-1 h-4 w-4" />}
               </Button>
             </div>
           </div>

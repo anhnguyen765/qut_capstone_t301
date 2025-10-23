@@ -648,7 +648,7 @@ export default function Contacts() {
                       <span className="font-semibold text-[var(--foreground)]">
                         {contact.name}
                       </span>
-                      <span className="text-xs px-2 py-1 rounded bg-[var(--muted)] text-[var(--muted-foreground)]">
+                      <span className="text-xs px-2 py-1 rounded bg-[var(--muted)] text-white">
                         {contact.group || "No Group"}
                       </span>
                     </div>

@@ -308,10 +308,25 @@ export default function Campaigns() {
   const saveEmailDesign = async (status: "draft" | "finalized") => {
     const unlayer = emailEditorRef.current?.editor;
 
+    // Validation for finalization
+    if (status === "finalized") {
+      if (!selectedCampaign?.title?.trim()) {
+        setNotification({ message: "Error: Campaign title is required before finalizing", type: "error" });
+        return;
+      }
+    }
+
     unlayer?.saveDesign((design: any) => {
       setEmailDesign(design);
       unlayer.exportHtml(async (data: any) => {
         const { html } = data;
+        
+        // Additional validation for finalization
+        if (status === "finalized" && (!html?.trim() || html === '<div></div>' || !design)) {
+          setNotification({ message: "Error: Campaign must have content before finalizing. Please create content using the editor first.", type: "error" });
+          return;
+        }
+        
         if (selectedCampaign) {
           try {
             const campaignData = {
@@ -354,24 +369,19 @@ export default function Campaigns() {
             
             // Update the selected campaign with the new ID if it was created
             if (isNewCampaign && result.id) {
-              setSelectedCampaign(prev => prev ? ({ ...prev, id: result.id, status }) : null);
+              setSelectedCampaign(prev => prev ? ({ ...prev, id: result.id, status, content: html, design }) : null);
               setIsNewCampaign(false);
             } else {
-              setSelectedCampaign(prev => prev ? ({ ...prev, status }) : null);
+              setSelectedCampaign(prev => prev ? ({ ...prev, status, content: html, design }) : null);
             }
             
-            // Update the campaigns list
-            setCampaigns(prev => {
-              if (isNewCampaign && result.id) {
-                return [...prev, { ...selectedCampaign, id: result.id, status }];
-              } else {
-                return prev.map(c => 
-                  c.id === selectedCampaign.id 
-                    ? { ...c, status }
-                    : c
-                );
-              }
-            });
+            // Refresh campaigns list from backend to ensure consistency
+            await fetchCampaigns();
+            
+            // Close editor after successful finalization
+            if (status === "finalized") {
+              setShowEditor(false);
+            }
           } catch (err) {
             setNotification({ message: 'Error saving campaign: ' + (err instanceof Error ? err.message : err), type: "error" });
           }
@@ -744,15 +754,17 @@ export default function Campaigns() {
                       setIsRedirecting(true);
                       router.push(`/campaigns/builder?id=${campaign.id}`);
                     }}
-                    disabled={campaign.status === 'sent' || campaign.status === 'archived' || campaign.status === 'finalized' || isRedirecting}
-                    title={campaign.status === 'sent' || campaign.status === 'archived' || campaign.status === 'finalized' ? 'Cannot edit sent, archived, or finalized campaigns' : 'Edit campaign'}
+                    disabled={campaign.status === 'sent' || campaign.status === 'archived' || isRedirecting}
+                    title={campaign.status === 'finalized' ? 'View campaign (read-only)' : campaign.status === 'sent' || campaign.status === 'archived' ? 'Cannot edit sent or archived campaigns' : 'Edit campaign'}
                   >
                     {isRedirecting ? (
                       <Loader className="h-4 w-4 mr-1 animate-spin" />
+                    ) : campaign.status === 'finalized' ? (
+                      <Eye className="h-4 w-4 mr-1" />
                     ) : (
                       <Edit className="h-4 w-4 mr-1" />
                     )}
-                    Edit
+                    {campaign.status === 'finalized' ? 'View' : 'Edit'}
                   </Button>
                   <Button
                     variant="outline"
@@ -869,7 +881,7 @@ export default function Campaigns() {
                     <div className="text-center text-muted-foreground py-8">
                       <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                       <p>No content available</p>
-                      <p className="text-xs">Click "Edit Campaign" to add content</p>
+                      <p className="text-xs">Click "View Campaign" to see content</p>
                     </div>
                   )}
                 </div>
@@ -911,15 +923,17 @@ export default function Campaigns() {
                     router.push(`/campaigns/builder?id=${selectedCampaign.id}`);
                   }} 
                   className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={selectedCampaign.status === 'sent' || selectedCampaign.status === 'archived' || selectedCampaign.status === 'finalized' || isRedirecting}
-                  title={selectedCampaign.status === 'sent' || selectedCampaign.status === 'archived' || selectedCampaign.status === 'finalized' ? 'Cannot edit sent, archived, or finalized campaigns' : 'Edit campaign'}
+                  disabled={selectedCampaign.status === 'sent' || selectedCampaign.status === 'archived' || isRedirecting}
+                  title={selectedCampaign.status === 'finalized' ? 'View campaign (read-only)' : selectedCampaign.status === 'sent' || selectedCampaign.status === 'archived' ? 'Cannot edit sent or archived campaigns' : 'Edit campaign'}
                 >
                   {isRedirecting ? (
                     <Loader className="h-4 w-4 mr-2 animate-spin" />
+                  ) : selectedCampaign.status === 'finalized' ? (
+                    <Eye className="h-4 w-4 mr-2" />
                   ) : (
                     <Edit className="h-4 w-4 mr-2" />
                   )}
-                  Edit Campaign
+                  {selectedCampaign.status === 'finalized' ? 'View Campaign' : 'Edit Campaign'}
                 </Button>
               </div>
             </div>
@@ -1160,10 +1174,10 @@ export default function Campaigns() {
           <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-b border-border bg-background z-10">
             <div className="mb-4 sm:mb-0">
               <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
-                {isNewCampaign ? 'Create Campaign' : `Edit Campaign: ${selectedCampaign.title}`}
+                {isNewCampaign ? 'Create Campaign' : selectedCampaign.status === 'finalized' ? `View Campaign: ${selectedCampaign.title}` : `Edit Campaign: ${selectedCampaign.title}`}
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Design your email campaign using the drag-and-drop editor
+                {selectedCampaign.status === 'finalized' ? 'View your email campaign design (read-only)' : 'Design your email campaign using the drag-and-drop editor'}
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={handleCloseEditor}>
@@ -1246,8 +1260,7 @@ export default function Campaigns() {
                 <Button 
                   onClick={() => saveEmailDesign("finalized")}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={!selectedCampaign.design && !selectedCampaign.content}
-                  title={!selectedCampaign.design && !selectedCampaign.content ? "Cannot finalize campaign without design content" : "Finalize campaign"}
+                  title="Finalize campaign"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   Finalize Campaign

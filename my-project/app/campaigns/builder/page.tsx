@@ -650,10 +650,10 @@ export default function CampaignBuilder() {
           {campaign.status === 'draft' && campaign.title.trim() && (
             <Button
               onClick={handleFinalizeCampaign}
-              disabled={isLoading || (!campaign.design && !campaign.content)}
+              disabled={isLoading}
               variant="outline"
               className="border-primary text-primary hover:bg-primary/10"
-              title={!campaign.design && !campaign.content ? "Cannot finalize campaign without design content" : "Finalize campaign"}
+              title="Finalize campaign"
             >
               <Target className="h-4 w-4 mr-2" />
               Finalize Campaign

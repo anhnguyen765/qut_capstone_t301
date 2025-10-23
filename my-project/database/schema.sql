@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
     title VARCHAR(255) NOT NULL,
     date DATE NOT NULL,
     type ENUM('app', 'classes', 'fishing_comps', 'oshc_vacation_care', 'promotion', 'other', 'email', 'template') NOT NULL,
-    status ENUM('draft', 'scheduled', 'sent', 'archived') DEFAULT 'draft',
+    status ENUM('draft', 'scheduled', 'finalized', 'sent', 'archived') DEFAULT 'draft',
     target_groups TEXT,
     content MEDIUMTEXT,
     design LONGTEXT,

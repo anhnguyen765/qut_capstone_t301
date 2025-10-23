@@ -1,9 +1,8 @@
-import { NextResponse } from "next/server";
-import { executeQuery } from "@/app/lib/db";
+const { executeQuery } = require('../app/lib/db');
 
-export async function GET() {
+async function addFinalizedStatus() {
   try {
-    console.log('Checking current campaigns status column...');
+    console.log('Adding finalized status to campaigns table...');
     
     // First, let's check the current schema
     const currentSchema = await executeQuery(
@@ -28,17 +27,9 @@ export async function GET() {
     );
     console.log('Updated status column schema:', updatedSchema);
     
-    return NextResponse.json({ 
-      success: true, 
-      message: "Successfully added finalized status to campaigns table",
-      before: currentSchema,
-      after: updatedSchema
-    });
   } catch (error) {
     console.error('Error adding finalized status:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
   }
-} 
+}
+
+addFinalizedStatus();

@@ -9,7 +9,6 @@ export default function Unsub() {
   const [prefs, setPrefs] = useState({
     opt1: true,
     opt2: true,
-    opt3: true,
   });
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +20,7 @@ export default function Unsub() {
       const res = await fetch("/api/unsub", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, ...prefs }),
+        body: JSON.stringify({ email, opt1: prefs.opt1, opt2: prefs.opt2 }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -66,15 +65,7 @@ export default function Unsub() {
               checked={prefs.opt2}
               onChange={e => setPrefs(p => ({ ...p, opt2: e.target.checked }))}
             />
-            Subscribe to Newsletters
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={prefs.opt3}
-              onChange={e => setPrefs(p => ({ ...p, opt3: e.target.checked }))}
-            />
-            Subscribe to Promotional Offers
+            Subscribe to Event Invitations
           </label>
         </div>
         <button

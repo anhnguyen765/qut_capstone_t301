@@ -3,15 +3,16 @@ import { executeQuery } from "@/app/lib/db";
 
 export async function POST(req: Request) {
   try {
-    const { email, opt1, opt2, opt3 } = await req.json();
+    const { email, opt1, opt2 } = await req.json();
     if (!email) {
       return NextResponse.json({ error: "Email is required." }, { status: 400 });
     }
     // Update preferences for the contact with this email
     // Store numeric values: 1 = subscribed/true, 0 = unsubscribed/false
+    // Only update opt1 and opt2; opt3 is no longer user-controllable
     const result = await executeQuery(
-      `UPDATE contacts SET opt1=?, opt2=?, opt3=? WHERE email=?`,
-      [opt1 ? 1 : 0, opt2 ? 1 : 0, opt3 ? 1 : 0, email]
+      `UPDATE contacts SET opt1=?, opt2=? WHERE email=?`,
+      [opt1 ? 1 : 0, opt2 ? 1 : 0, email]
     );
     // Handle both ResultSetHeader and array result (for db util compatibility)
     let affectedRows = 0;

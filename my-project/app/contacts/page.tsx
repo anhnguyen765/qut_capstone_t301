@@ -24,7 +24,6 @@ type Contact = {
   notes?: string;
   opt1?: boolean;
   opt2?: boolean;
-  opt3?: boolean;
   created_at?: string;
   updated_at?: string;
 };
@@ -52,7 +51,6 @@ export default function Contacts() {
   notes: "",
   opt1: true,
   opt2: true,
-  opt3: true,
   });
 
   // View/Edit Contact Dialog State
@@ -138,7 +136,7 @@ export default function Contacts() {
       
       if (response.ok) {
         setShowAddDialog(false);
-        setNewContact({ name: "", email: "", phone: "", group: null, notes: "", opt1: true, opt2: true, opt3: true });
+        setNewContact({ name: "", email: "", phone: "", group: null, notes: "", opt1: true, opt2: true });
         
         // Refresh contacts
         const contactsResponse = await fetch("/api/contacts");
@@ -252,8 +250,7 @@ export default function Contacts() {
                 email: '',
                 group: 'Private',
                 opt1: true,
-                opt2: true,
-                opt3: true
+                opt2: true
               };
               
               headers.forEach((header, index) => {
@@ -297,9 +294,6 @@ export default function Contacts() {
                     break;
                   case 'opt2':
                     contact.opt2 = value.toLowerCase() === 'true' || value.toLowerCase() === '1' || value.toLowerCase() === 'yes';
-                    break;
-                  case 'opt3':
-                    contact.opt3 = value.toLowerCase() === 'true' || value.toLowerCase() === '1' || value.toLowerCase() === 'yes';
                     break;
                 }
               });
@@ -591,7 +585,7 @@ export default function Contacts() {
                 // Export all contacts as CSV (matching import format)
                 if (!contacts.length) return;
                 const headers = [
-                  'name','email','phone','group','notes','opt1','opt2','opt3'
+                  'name','email','phone','group','notes','campaigns','newsletters'
                 ];
                 const csvRows = [
                   headers.join(','),
@@ -737,7 +731,6 @@ export default function Contacts() {
                 >
                   <SelectTrigger className="w-full border border-border rounded p-2 flex justify-start items-center bg-background text-foreground">
                     <SelectValue placeholder="Select a group" />
-                    <span className="flex-none"><ChevronDown className="h-4 w-4 text-foreground" /></span>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Private">Private</SelectItem>
@@ -775,15 +768,6 @@ export default function Contacts() {
                     className="accent-primary"
                   />
                   Newsletters
-                </label>
-                <label className="flex items-center gap-2 text-card-foreground">
-                  <input
-                    type="checkbox"
-                    checked={!!newContact.opt3}
-                    onChange={e => setNewContact({ ...newContact, opt3: e.target.checked })}
-                    className="accent-primary"
-                  />
-                  Opt3
                 </label>
               </div>
               <div className="flex justify-end gap-2">
@@ -877,7 +861,6 @@ export default function Contacts() {
                   >
                     <SelectTrigger className="w-full border border-border rounded p-2 flex justify-between items-center bg-background text-foreground">
                       <SelectValue placeholder="Select group" />
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
                     </SelectTrigger>
 
                     <SelectContent>
@@ -906,7 +889,7 @@ export default function Contacts() {
                       onChange={e => setSelectedContact({ ...selectedContact, opt1: e.target.checked } as Contact)}
                       className="accent-primary"
                     />
-                    Opt1
+                    Campaigns
                   </label>
                   <label className="flex items-center gap-2 text-card-foreground">
                     <input
@@ -915,16 +898,7 @@ export default function Contacts() {
                       onChange={e => setSelectedContact({ ...selectedContact, opt2: e.target.checked } as Contact)}
                       className="accent-primary"
                     />
-                    Opt2
-                  </label>
-                  <label className="flex items-center gap-2 text-card-foreground">
-                    <input
-                      type="checkbox"
-                      checked={!!selectedContact.opt3}
-                      onChange={e => setSelectedContact({ ...selectedContact, opt3: e.target.checked } as Contact)}
-                      className="accent-primary"
-                    />
-                    Opt3
+                    Newsletters
                   </label>
                 </div>
                 <div className="flex justify-end gap-2">
@@ -962,13 +936,10 @@ export default function Contacts() {
                 )}
                 <div className="flex gap-4">
                   <span className="flex items-center gap-1 text-card-foreground">
-                    <input type="checkbox" checked={!!selectedContact.opt1} readOnly className="accent-primary" /> Opt1
+                    <input type="checkbox" checked={!!selectedContact.opt1} readOnly className="accent-primary" /> Campaigns
                   </span>
                   <span className="flex items-center gap-1 text-card-foreground">
-                    <input type="checkbox" checked={!!selectedContact.opt2} readOnly className="accent-primary" /> Opt2
-                  </span>
-                  <span className="flex items-center gap-1 text-card-foreground">
-                    <input type="checkbox" checked={!!selectedContact.opt3} readOnly className="accent-primary" /> Opt3
+                    <input type="checkbox" checked={!!selectedContact.opt2} readOnly className="accent-primary" /> Newsletters
                   </span>
                 </div>
                 <div className="flex justify-end">
@@ -1148,7 +1119,21 @@ export default function Contacts() {
         <GroupManager 
           onGroupsChange={() => {
             refetchGroups(); // Refresh the groups list
-            fetchContacts(); // Refresh contacts to update group displays
+            // Refresh contacts to update group displays
+            fetch("/api/contacts")
+              .then((res) => res.json())
+              .then((data) => {
+                if (Array.isArray(data)) {
+                  setContacts(data);
+                } else {
+                  console.error("Contacts API returned non-array data:", data);
+                  setContacts([]);
+                }
+              })
+              .catch((error) => {
+                console.error("Error fetching contacts:", error);
+                setContacts([]);
+              });
           }} 
         />
       )}

@@ -8,7 +8,7 @@ import {
   PopoverTrigger,
 } from "@/app/components/ui/popover";
 import { Button } from "@/app/components/ui/button";
-import { Edit, X, Eye, Send, Archive, Tag, FileText, Save, CheckCircle, Copy, Loader } from "lucide-react";
+import { Edit, X, Eye, Send, Archive, Tag, FileText, Save, CheckCircle, Copy, Loader, Trash2 } from "lucide-react";
 import EmailEditor, { EditorRef, EmailEditorProps } from "react-email-editor";
 import { useRouter, useSearchParams } from "next/navigation";
 import ConfirmationDialog from "@/app/components/ConfirmationDialog";
@@ -824,17 +824,15 @@ export default function Newsletters() {
                     Schedule Email
                   </Button>
                 )}
-                 {selectedNewsletter.status !== 'finalised' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => showDeleteConfirmation(selectedNewsletter.id, selectedNewsletter.title)}
-                     className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => showDeleteConfirmation(selectedNewsletter.id, selectedNewsletter.title)}
+                  className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
               </div>
               <div className="flex gap-2">
                 <Button

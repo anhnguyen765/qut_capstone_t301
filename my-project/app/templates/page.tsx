@@ -539,7 +539,7 @@ export default function TemplatesPage() {
               title="Sort by updated date"
               aria-label="Sort by updated date"
             >
-              Updated {sortBy === "updated_at" && <ArrowUpDown className="ml-1 h-4 w-4" />}
+              Last Updated {sortBy === "updated_at" && <ArrowUpDown className="ml-1 h-4 w-4" />}
             </Button>
           </div>
         </div>

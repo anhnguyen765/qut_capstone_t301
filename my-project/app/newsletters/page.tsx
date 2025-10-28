@@ -65,6 +65,7 @@ export default function Newsletters() {
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const emailEditorRef = useRef<EditorRef>(null);
 
   useEffect(() => {
@@ -81,6 +82,23 @@ export default function Newsletters() {
         }
       })
       .catch((err) => console.error("Failed to fetch templates:", err));
+
+    // Detect dark mode
+    const checkDarkMode = () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      setIsDarkMode(isDark);
+    };
+    
+    checkDarkMode();
+    
+    // Watch for theme changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => observer.disconnect();
   }, []);
 
   const fetchNewsletters = async () => {
@@ -425,7 +443,7 @@ export default function Newsletters() {
       {/* Sticky Header */}
       <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)] pb-4 mb-6">
         <header className="mb-4">
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-foreground">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-[var(--foreground)]">
             Newsletters
           </h1>
         </header>
@@ -460,8 +478,8 @@ export default function Newsletters() {
           />
           <Popover>
             <PopoverTrigger asChild>
-              <Button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 bg-background hover:bg-[var(--accent)] rounded-md">
-                <Filter className="h-5 w-5 text-foreground" />
+              <Button className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 bg-[var(--background)] hover:bg-[var(--accent)] rounded-md">
+                <Filter className="h-5 w-5 text-[var(--foreground)]" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-48 p-2" align="end">
@@ -477,7 +495,7 @@ export default function Newsletters() {
                       onChange={() => handleStatusChange(status.value)}
                       className="accent-[var(--primary)]"
                     />
-                    <span className="text-foreground">{status.label}</span>
+                    <span className="text-[var(--foreground)]">{status.label}</span>
                   </label>
                 ))}
               </div>
@@ -547,15 +565,17 @@ export default function Newsletters() {
                 {newsletter.content ? (
                   <div
                     className="h-full w-full p-4 text-xs overflow-hidden email-preview-wrapper"
-                    dangerouslySetInnerHTML={{ __html: newsletter.content }}
-                    style={{
-                      transform: 'scale(0.3)',
-                      transformOrigin: 'top left',
-                      width: '333%',
-                      height: '333%',
-                      backgroundColor: 'var(--background)',
-                      color: 'var(--foreground)'
-                    }}
+                      dangerouslySetInnerHTML={{ __html: newsletter.content }}
+                      style={{
+                        transform: 'scale(0.3)',
+                        transformOrigin: 'top left',
+                        width: '333%',
+                        height: '333%',
+                        backgroundColor: 'var(--background)',
+                        color: 'var(--foreground)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '0.375rem'
+                      }}
                   />
                 ) : (
                   <div className="h-full flex items-center justify-center text-[var(--muted-foreground)]">
@@ -658,7 +678,7 @@ export default function Newsletters() {
 
       {/* New Newsletter Form Dialog */}
       {showNewNewsletterForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70 backdrop-blur-sm">
           <div className="bg-[var(--background)] rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-8 border border-[var(--border)]">
             <h2 className="text-3xl font-bold mb-6 text-center text-[var(--foreground)]">Create New Newsletter</h2>
             <form onSubmit={handleNewNewsletterFormSubmit} className="space-y-6">
@@ -744,7 +764,7 @@ export default function Newsletters() {
 
       {/* Details Dialog */}
       {showDetailsDialog && selectedNewsletter && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60">
           <div className="bg-[var(--background)] rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
             {/* Header */}
             <div className="flex justify-between items-start p-6 border-b border-[var(--border)]">
@@ -897,7 +917,7 @@ export default function Newsletters() {
               onReady={onEmailEditorReady}
               options={{
                 appearance: {
-                  theme: 'light',
+                  theme: isDarkMode ? 'dark' : 'light',
                   panels: {
                     tools: {
                       dock: 'left'
